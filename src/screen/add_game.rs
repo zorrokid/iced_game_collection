@@ -12,17 +12,12 @@ pub enum Message {
 }
 
 impl AddGame {
-    pub fn new() -> (Self, Task<Message>) {
-        (
-            Self {
-                name: String::new(),
-            },
-            Task::none(),
-        )
+    pub fn new(name: String) -> (Self, Task<Message>) {
+        (Self { name }, Task::none())
     }
 
     pub fn title(&self) -> String {
-        "Add Game".to_string()
+        format!("Add Game {}", self.name)
     }
 
     pub fn update(&mut self, message: Message) {

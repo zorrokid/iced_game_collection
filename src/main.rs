@@ -76,8 +76,8 @@ impl IcedGameCollection {
                 if let Screen::Home(home) = &mut self.screen {
                     let action = home.update(home_message);
                     match action {
-                        home::Action::AddGame => {
-                            let (add_game, task) = screen::AddGame::new();
+                        home::Action::AddGame(name) => {
+                            let (add_game, task) = screen::AddGame::new(name);
                             self.screen = Screen::AddGame(add_game);
                             task.map(Message::AddGame)
                         }

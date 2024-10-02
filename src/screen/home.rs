@@ -9,7 +9,7 @@ pub enum Message {
 }
 
 pub enum Action {
-    AddGame,
+    AddGame(String),
     None,
 }
 
@@ -26,7 +26,7 @@ impl Home {
         match message {
             Message::AddGame => {
                 print!("Add game");
-                Action::AddGame
+                Action::AddGame("Pac-Man".to_string())
                 // Add game
             }
             Message::ViewGames => {
