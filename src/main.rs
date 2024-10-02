@@ -52,8 +52,41 @@ impl IcedGameCollection {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::AddGame(add_game_message) => Task::none(),
-            Message::Home(home_message) => Task::none(),
+            Message::AddGame(add_game_message) => {
+                /*print!("Add game message: {:?}", add_game_message);
+                if let Screen::AddGame(add_game) = &mut self.screen {
+                    let action = add_game.update(add_game_message);
+                    match action {
+                        home::Action::AddGame => {
+                            self.screen = Screen::AddGame(add_game::AddGame::new());*/
+                // Add game to database
+                /*self.games.push(Game {
+                    id: 1,
+                    name: add_game.name.clone(),
+                });
+                self.screen = Screen::Games(games::Games::new(self.games.clone()));*/
+                /* }
+                    }
+                }
+                self.screen = Screen::AddGame(add_game::AddGame::new());*/
+                Task::none()
+            }
+
+            Message::Home(home_message) => {
+                if let Screen::Home(home) = &mut self.screen {
+                    let action = home.update(home_message);
+                    match action {
+                        home::Action::AddGame => {
+                            let (add_game, task) = screen::AddGame::new();
+                            self.screen = Screen::AddGame(add_game);
+                            task.map(Message::AddGame)
+                        }
+                        home::Action::None => Task::none(),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
             Message::Games(games_message) => Task::none(),
             Message::GameDetails(game_details_message) => Task::none(),
         }

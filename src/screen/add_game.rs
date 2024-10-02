@@ -1,3 +1,4 @@
+use iced::task::Task;
 use iced::widget::text;
 
 pub struct AddGame {
@@ -11,10 +12,13 @@ pub enum Message {
 }
 
 impl AddGame {
-    pub fn new() -> Self {
-        Self {
-            name: String::new(),
-        }
+    pub fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                name: String::new(),
+            },
+            Task::none(),
+        )
     }
 
     pub fn title(&self) -> String {

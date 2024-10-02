@@ -1,4 +1,4 @@
-use iced::widget::text;
+use iced::widget::{button, column, text};
 
 pub struct Home {}
 
@@ -6,6 +6,11 @@ pub struct Home {}
 pub enum Message {
     AddGame,
     ViewGames,
+}
+
+pub enum Action {
+    AddGame,
+    None,
 }
 
 impl Home {
@@ -17,18 +22,23 @@ impl Home {
         "Iced Game Collection".to_string()
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::AddGame => {
+                print!("Add game");
+                Action::AddGame
                 // Add game
             }
             Message::ViewGames => {
                 // View games
+                Action::None
             }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        text("Welcome to Iced Game Collection").size(50).into()
+        let add_button = button("Add Game").on_press(Message::AddGame);
+        let header = text("Welcome to Iced Game Collection").size(50);
+        column![header, add_button].into()
     }
 }
