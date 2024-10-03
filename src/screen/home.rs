@@ -29,11 +29,7 @@ impl Home {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::AddGame => {
-                print!("Add game");
-                Action::AddGame(self.name.clone())
-                // Add game
-            }
+            Message::AddGame => Action::AddGame(self.name.clone()),
             Message::ViewGames => {
                 // View games
                 Action::None

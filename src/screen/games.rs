@@ -1,4 +1,5 @@
-use iced::widget::text;
+use iced::widget::{column, text, Column};
+use iced::Element;
 use iced_game_collection::model::Game;
 pub struct Games {
     pub games: Vec<Game>,
@@ -35,6 +36,10 @@ impl Games {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        text("Games").size(50).into()
+        // list of games
+        let games = self.games.iter().map(|game| text(game.name.clone()).into());
+        let games_list_with_container =
+            Column::with_children(games.collect::<Vec<Element<Message>>>());
+        column![games_list_with_container].into()
     }
 }

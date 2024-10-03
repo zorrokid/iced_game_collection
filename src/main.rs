@@ -53,6 +53,16 @@ impl IcedGameCollection {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::AddGame(add_game_message) => {
+                if let Screen::AddGame(add_game) = &mut self.screen {
+                    let action = add_game.update(add_game_message);
+                    match action {
+                        add_game::Action::SubmitGame(game) => {
+                            self.games.push(game);
+                            self.screen = Screen::Games(games::Games::new(self.games.clone()));
+                        }
+                        add_game::Action::None => {}
+                    }
+                }
                 /*print!("Add game message: {:?}", add_game_message);
                 if let Screen::AddGame(add_game) = &mut self.screen {
                     let action = add_game.update(add_game_message);
