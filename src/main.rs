@@ -1,5 +1,4 @@
 mod screen;
-use core::task;
 
 use iced::Task;
 use iced_game_collection::model::Game;
@@ -67,22 +66,6 @@ impl IcedGameCollection {
                         add_game::Action::None => {}
                     }
                 }
-                /*print!("Add game message: {:?}", add_game_message);
-                if let Screen::AddGame(add_game) = &mut self.screen {
-                    let action = add_game.update(add_game_message);
-                    match action {
-                        home::Action::AddGame => {
-                            self.screen = Screen::AddGame(add_game::AddGame::new());*/
-                // Add game to database
-                /*self.games.push(Game {
-                    id: 1,
-                    name: add_game.name.clone(),
-                });
-                self.screen = Screen::Games(games::Games::new(self.games.clone()));*/
-                /* }
-                    }
-                }
-                self.screen = Screen::AddGame(add_game::AddGame::new());*/
                 Task::none()
             }
 
