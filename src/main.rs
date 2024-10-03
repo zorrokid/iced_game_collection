@@ -64,14 +64,14 @@ impl IcedGameCollection {
                     match action {
                         add_game::Action::SubmitGame(game) => {
                             self.games.push(game);
-                            let (view_games, task) = screen::Games::new(self.games.clone());
-                            self.screen = Screen::Games(view_games);
-                            return task.map(Message::Games);
+                            self.screen = Screen::Games(screen::Games::new(self.games.clone()));
+                            Task::none()
                         }
-                        add_game::Action::None => {}
+                        add_game::Action::None => Task::none(),
                     }
+                } else {
+                    Task::none()
                 }
-                Task::none()
             }
 
             Message::AddSystem(add_system_message) => {
@@ -94,14 +94,13 @@ impl IcedGameCollection {
                     let action = home.update(home_message);
                     match action {
                         home::Action::AddGame(name) => {
-                            let (add_game, task) = screen::AddGame::new(name, self.systems.clone());
-                            self.screen = Screen::AddGame(add_game);
-                            task.map(Message::AddGame)
+                            self.screen =
+                                Screen::AddGame(screen::AddGame::new(name, self.systems.clone()));
+                            Task::none()
                         }
                         home::Action::ViewGames => {
-                            let (view_games, task) = screen::Games::new(self.games.clone());
-                            self.screen = Screen::Games(view_games);
-                            task.map(Message::Games)
+                            self.screen = Screen::Games(screen::Games::new(self.games.clone()));
+                            Task::none()
                         }
                         home::Action::AddSystem => {
                             self.screen = Screen::AddSystem(screen::AddSystem::new());

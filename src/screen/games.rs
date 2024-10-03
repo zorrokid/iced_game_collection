@@ -1,6 +1,5 @@
 use iced::widget::{button, column, text, Column};
 use iced::Element;
-use iced::Task;
 use iced_game_collection::model::Game;
 pub struct Games {
     pub games: Vec<Game>,
@@ -20,8 +19,8 @@ pub enum Action {
 }
 
 impl Games {
-    pub fn new(games: Vec<Game>) -> (Self, Task<Message>) {
-        (Self { games }, Task::none())
+    pub fn new(games: Vec<Game>) -> Self {
+        Self { games }
     }
 
     pub fn title(&self) -> String {

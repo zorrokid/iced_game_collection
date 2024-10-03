@@ -21,15 +21,12 @@ pub enum Action {
 }
 
 impl AddGame {
-    pub fn new(name: String, systems: Vec<System>) -> (Self, Task<Message>) {
-        (
-            Self {
-                name,
-                systems,
-                selected_system: None,
-            },
-            Task::none(),
-        )
+    pub fn new(name: String, systems: Vec<System>) -> Self {
+        Self {
+            name,
+            systems,
+            selected_system: None,
+        }
     }
 
     pub fn title(&self) -> String {
