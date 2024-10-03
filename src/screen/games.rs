@@ -1,5 +1,6 @@
-use iced::widget::{column, text, Column};
+use iced::widget::{button, column, text, Column};
 use iced::Element;
+use iced::Task;
 use iced_game_collection::model::Game;
 pub struct Games {
     pub games: Vec<Game>,
@@ -10,28 +11,38 @@ pub enum Message {
     ViewGame(usize),
     EditGame(usize),
     DeleteGame(usize),
+    GoHome,
+}
+
+pub enum Action {
+    GoHome,
+    None,
 }
 
 impl Games {
-    pub fn new(games: Vec<Game>) -> Self {
-        Self { games }
+    pub fn new(games: Vec<Game>) -> (Self, Task<Message>) {
+        (Self { games }, Task::none())
     }
 
     pub fn title(&self) -> String {
         "Games".to_string()
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(index) => {
                 // View game
+                Action::None
             }
             Message::EditGame(index) => {
                 // Edit game
+                Action::None
             }
             Message::DeleteGame(index) => {
                 // Delete game
+                Action::None
             }
+            Message::GoHome => Action::GoHome,
         }
     }
 
@@ -40,6 +51,7 @@ impl Games {
         let games = self.games.iter().map(|game| text(game.name.clone()).into());
         let games_list_with_container =
             Column::with_children(games.collect::<Vec<Element<Message>>>());
-        column![games_list_with_container].into()
+        let home_button = button("Home").on_press(Message::GoHome);
+        column![games_list_with_container, home_button].into()
     }
 }

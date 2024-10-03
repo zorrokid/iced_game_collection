@@ -13,6 +13,7 @@ pub enum Message {
 
 pub enum Action {
     AddGame(String),
+    ViewGames,
     None,
 }
 
@@ -30,10 +31,7 @@ impl Home {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::AddGame => Action::AddGame(self.name.clone()),
-            Message::ViewGames => {
-                // View games
-                Action::None
-            }
+            Message::ViewGames => Action::ViewGames,
             Message::NameChanged(name) => {
                 self.name = name;
                 Action::None
@@ -45,6 +43,9 @@ impl Home {
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
         let add_button = button("Add Game").on_press(Message::AddGame);
         let header = text("Welcome to Iced Game Collection").size(50);
-        column![header, name_input_field, add_button].into()
+
+        let view_games_button = button("View Games").on_press(Message::ViewGames);
+
+        column![header, name_input_field, add_button, view_games_button].into()
     }
 }

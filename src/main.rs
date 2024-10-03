@@ -1,4 +1,6 @@
 mod screen;
+use core::task;
+
 use iced::Task;
 use iced_game_collection::model::Game;
 use screen::add_game;
@@ -58,7 +60,9 @@ impl IcedGameCollection {
                     match action {
                         add_game::Action::SubmitGame(game) => {
                             self.games.push(game);
-                            self.screen = Screen::Games(games::Games::new(self.games.clone()));
+                            let (view_games, task) = screen::Games::new(self.games.clone());
+                            self.screen = Screen::Games(view_games);
+                            return task.map(Message::Games);
                         }
                         add_game::Action::None => {}
                     }
@@ -91,13 +95,32 @@ impl IcedGameCollection {
                             self.screen = Screen::AddGame(add_game);
                             task.map(Message::AddGame)
                         }
+                        home::Action::ViewGames => {
+                            let (view_games, task) = screen::Games::new(self.games.clone());
+                            self.screen = Screen::Games(view_games);
+                            task.map(Message::Games)
+                        }
                         home::Action::None => Task::none(),
                     }
                 } else {
                     Task::none()
                 }
             }
-            Message::Games(games_message) => Task::none(),
+            Message::Games(games_message) => {
+                if let Screen::Games(games) = &mut self.screen {
+                    let action = games.update(games_message);
+                    match action {
+                        games::Action::GoHome => {
+                            let home = home::Home::new();
+                            self.screen = Screen::Home(home);
+                            Task::none()
+                        }
+                        games::Action::None => Task::none(),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
             Message::GameDetails(game_details_message) => Task::none(),
         }
     }
