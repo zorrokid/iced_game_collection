@@ -9,11 +9,13 @@ pub enum Message {
     AddGame,
     ViewGames,
     NameChanged(String),
+    AddSystem,
 }
 
 pub enum Action {
     AddGame(String),
     ViewGames,
+    AddSystem,
     None,
 }
 
@@ -36,6 +38,7 @@ impl Home {
                 self.name = name;
                 Action::None
             }
+            Message::AddSystem => Action::AddSystem,
         }
     }
 
@@ -45,7 +48,15 @@ impl Home {
         let header = text("Welcome to Iced Game Collection").size(50);
 
         let view_games_button = button("View Games").on_press(Message::ViewGames);
+        let add_system_button = button("Add System").on_press(Message::AddSystem);
 
-        column![header, name_input_field, add_button, view_games_button].into()
+        column![
+            header,
+            name_input_field,
+            add_button,
+            view_games_button,
+            add_system_button
+        ]
+        .into()
     }
 }

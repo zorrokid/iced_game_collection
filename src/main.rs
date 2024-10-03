@@ -1,8 +1,9 @@
 mod screen;
 
 use iced::Task;
-use iced_game_collection::model::Game;
+use iced_game_collection::model::{Game, System};
 use screen::add_game;
+use screen::add_system;
 use screen::game_details;
 use screen::games;
 use screen::home;
@@ -21,6 +22,7 @@ fn main() -> iced::Result {
 struct IcedGameCollection {
     screen: Screen,
     games: Vec<Game>,
+    systems: Vec<System>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +31,7 @@ enum Message {
     Home(home::Message),
     Games(games::Message),
     GameDetails(game_details::Message),
+    AddSystem(add_system::Message),
 }
 
 impl IcedGameCollection {
@@ -37,6 +40,7 @@ impl IcedGameCollection {
             Self {
                 screen: Screen::Home(home::Home::new()),
                 games: vec![],
+                systems: vec![],
             },
             Task::none(),
         )
@@ -48,6 +52,7 @@ impl IcedGameCollection {
             Screen::AddGame(add_game) => add_game.title(),
             Screen::Games(games) => games.title(),
             Screen::GameDetails(game_details) => game_details.title(),
+            Screen::AddSystem(add_system) => add_system.title(),
         }
     }
 
@@ -69,12 +74,27 @@ impl IcedGameCollection {
                 Task::none()
             }
 
+            Message::AddSystem(add_system_message) => {
+                if let Screen::AddSystem(add_system) = &mut self.screen {
+                    let action = add_system.update(add_system_message);
+                    match action {
+                        add_system::Action::SubmitSystem(system) => {
+                            self.systems.push(system);
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                        add_system::Action::None => Task::none(),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
             Message::Home(home_message) => {
                 if let Screen::Home(home) = &mut self.screen {
                     let action = home.update(home_message);
                     match action {
                         home::Action::AddGame(name) => {
-                            let (add_game, task) = screen::AddGame::new(name);
+                            let (add_game, task) = screen::AddGame::new(name, self.systems.clone());
                             self.screen = Screen::AddGame(add_game);
                             task.map(Message::AddGame)
                         }
@@ -82,6 +102,10 @@ impl IcedGameCollection {
                             let (view_games, task) = screen::Games::new(self.games.clone());
                             self.screen = Screen::Games(view_games);
                             task.map(Message::Games)
+                        }
+                        home::Action::AddSystem => {
+                            self.screen = Screen::AddSystem(screen::AddSystem::new());
+                            Task::none()
                         }
                         home::Action::None => Task::none(),
                     }
@@ -114,6 +138,7 @@ impl IcedGameCollection {
             Screen::AddGame(add_game) => add_game.view().map(Message::AddGame),
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::GameDetails(game_details) => game_details.view().map(Message::GameDetails),
+            Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
         }
     }
 }
