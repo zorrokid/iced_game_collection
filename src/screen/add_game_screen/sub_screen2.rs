@@ -1,24 +1,25 @@
-use iced::widget::{button, column, text};
+use iced::widget::{button, column, text, text_input};
 
 #[derive(Debug, Clone)]
 pub struct SubScreen2 {
-    // ...
+    name: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToSubscreen,
+    ReleaseAdded(String),
 }
 
 pub enum Action {
-    GoToSubscreen,
+    ReleaseAdded(String),
     None,
 }
 
 impl SubScreen2 {
     pub fn new() -> Self {
         Self {
-            // ...
+            name: "".to_string(),
         }
     }
 
@@ -29,16 +30,24 @@ impl SubScreen2 {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToSubscreen => {
-                Action::GoToSubscreen
-                // ...
-            } // ...
+                // Action::GoToSubscreen(self.name.clone()),
+                Action::ReleaseAdded(self.name.clone())
+            }
+            Message::ReleaseAdded(name) => {
+                self.name = name.clone();
+                Action::None
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         // ...
         let title = text("Sub screen 2");
-        let go_to_subscreen_button = button("Go to Subscreen 1").on_press(Message::GoToSubscreen);
-        column![title, go_to_subscreen_button].into()
+        let release_name_input_field =
+            text_input("Enter release name", &self.name).on_input(Message::ReleaseAdded);
+
+        let submit_button =
+            button("Submit (and go to Subscreen 1)").on_press(Message::GoToSubscreen);
+        column![title, release_name_input_field, submit_button].into()
     }
 }

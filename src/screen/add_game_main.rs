@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use crate::screen::add_game_screen::sub_screen;
 use crate::screen::add_game_screen::sub_screen2;
 use crate::screen::add_game_screen::AddGameScreen;
@@ -7,6 +5,8 @@ use crate::screen::add_game_screen::AddGameScreen;
 #[derive(Debug, Clone)]
 pub struct AddGameMain {
     screen: AddGameScreen,
+    name: String,
+    releases: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,12 @@ pub enum Action {
 impl AddGameMain {
     pub fn new() -> Self {
         Self {
-            screen: AddGameScreen::SubScreen(sub_screen::SubScreen::new()),
+            screen: AddGameScreen::SubScreen(sub_screen::SubScreen::new(
+                std::string::String::new(),
+                vec![],
+            )),
+            name: "".to_string(),
+            releases: vec![],
         }
     }
 
@@ -42,6 +47,10 @@ impl AddGameMain {
                             self.screen = AddGameScreen::SubScreen2(sub_screen2::SubScreen2::new());
                             Action::None
                         }
+                        sub_screen::Action::NameChanged(name) => {
+                            self.name = name;
+                            Action::None
+                        }
                         sub_screen::Action::None => Action::None,
                     }
                 } else {
@@ -52,8 +61,12 @@ impl AddGameMain {
                 if let AddGameScreen::SubScreen2(sub_screen2) = &mut self.screen {
                     let action = sub_screen2.update(sub_screen2_message);
                     match action {
-                        sub_screen2::Action::GoToSubscreen => {
-                            self.screen = AddGameScreen::SubScreen(sub_screen::SubScreen::new());
+                        sub_screen2::Action::ReleaseAdded(name) => {
+                            self.releases.push(name);
+                            self.screen = AddGameScreen::SubScreen(sub_screen::SubScreen::new(
+                                self.name.clone(),
+                                self.releases.clone(),
+                            ));
                             Action::None
                         }
                         sub_screen2::Action::None => Action::None,
