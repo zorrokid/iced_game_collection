@@ -1,5 +1,5 @@
+use crate::model::Game;
 use iced::widget::text;
-use iced_game_collection::model::Game;
 pub struct GameDetails {
     pub game: Game,
 }

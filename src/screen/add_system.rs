@@ -1,5 +1,5 @@
+use crate::model::System;
 use iced::widget::{button, column, text, text_input};
-use iced_game_collection::model::System;
 
 pub struct AddSystem {
     pub name: String,

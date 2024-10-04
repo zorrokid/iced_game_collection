@@ -1,8 +1,11 @@
+mod model;
 mod screen;
 
 use iced::Task;
-use iced_game_collection::model::{Game, System};
+use model::{Game, System};
 use screen::add_game;
+use screen::add_game_main;
+use screen::add_release;
 use screen::add_system;
 use screen::game_details;
 use screen::games;
@@ -32,6 +35,8 @@ enum Message {
     Games(games::Message),
     GameDetails(game_details::Message),
     AddSystem(add_system::Message),
+    AddRelease(add_release::Message),
+    AddGameMain(add_game_main::Message),
 }
 
 impl IcedGameCollection {
@@ -42,6 +47,7 @@ impl IcedGameCollection {
                 games: vec![],
                 systems: vec![],
             },
+            // TODO: here coscreen::Games::new(self.games.clone())uld be a task to load games from a database
             Task::none(),
         )
     }
@@ -53,6 +59,8 @@ impl IcedGameCollection {
             Screen::Games(games) => games.title(),
             Screen::GameDetails(game_details) => game_details.title(),
             Screen::AddSystem(add_system) => add_system.title(),
+            Screen::AddRelease(add_release) => add_release.title(),
+            Screen::AddGameMain(add_game_main) => add_game_main.title(),
         }
     }
 
@@ -68,6 +76,13 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         add_game::Action::None => Task::none(),
+                        add_game::Action::AddRelease(add_game_state) => {
+                            self.screen = Screen::AddRelease(screen::AddRelease::new(
+                                self.systems.clone(),
+                                add_game_state,
+                            ));
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
@@ -89,13 +104,29 @@ impl IcedGameCollection {
                     Task::none()
                 }
             }
+            // TODO: AddGame should be like main for other screens
+            Message::AddRelease(add_release_message) => {
+                if let Screen::AddRelease(add_release) = &mut self.screen {
+                    let action = add_release.update(add_release_message);
+                    match action {
+                        add_release::Action::SubmitRelease(release, add_game) => {
+                            // should I pass the add game state to add release and then to add game to be restored?
+                            self.screen =
+                                Screen::AddGame(screen::AddGame::new(Some(add_game.clone())));
+                            Task::none()
+                        }
+                        add_release::Action::None => Task::none(),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
             Message::Home(home_message) => {
                 if let Screen::Home(home) = &mut self.screen {
                     let action = home.update(home_message);
                     match action {
-                        home::Action::AddGame(name) => {
-                            self.screen =
-                                Screen::AddGame(screen::AddGame::new(name, self.systems.clone()));
+                        home::Action::AddGame => {
+                            self.screen = Screen::AddGame(screen::AddGame::new(None));
                             Task::none()
                         }
                         home::Action::ViewGames => {
@@ -104,6 +135,10 @@ impl IcedGameCollection {
                         }
                         home::Action::AddSystem => {
                             self.screen = Screen::AddSystem(screen::AddSystem::new());
+                            Task::none()
+                        }
+                        home::Action::AddGameMain => {
+                            self.screen = Screen::AddGameMain(screen::AddGameMain::new());
                             Task::none()
                         }
                         home::Action::None => Task::none(),
@@ -128,6 +163,20 @@ impl IcedGameCollection {
                 }
             }
             Message::GameDetails(game_details_message) => Task::none(),
+            Message::AddGameMain(add_game_main_message) => {
+                if let Screen::AddGameMain(add_game_main) = &mut self.screen {
+                    let action = add_game_main.update(add_game_main_message);
+                    match action {
+                        add_game_main::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                        add_game_main::Action::None => Task::none(),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
         }
     }
 
@@ -138,6 +187,8 @@ impl IcedGameCollection {
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::GameDetails(game_details) => game_details.view().map(Message::GameDetails),
             Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
+            Screen::AddRelease(add_release) => add_release.view().map(Message::AddRelease),
+            Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
         }
     }
 }

@@ -1,31 +1,34 @@
-use iced::task::Task;
-use iced::widget::{button, column, pick_list, text, text_input};
-use iced_game_collection::model::{Game, System};
+use crate::model::{Game, Release};
+use iced::widget::{button, column, text, text_input};
 
+#[derive(Debug, Clone)]
 pub struct AddGame {
     pub name: String,
-    pub systems: Vec<System>,
-    pub selected_system: Option<System>,
+    pub releases: Vec<Release>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     NameChanged(String),
-    SystemSelected(System),
     Submit,
+    AddRelease,
 }
 
 pub enum Action {
     SubmitGame(Game),
     None,
+    AddRelease(AddGame),
 }
 
 impl AddGame {
-    pub fn new(name: String, systems: Vec<System>) -> Self {
-        Self {
-            name,
-            systems,
-            selected_system: None,
+    pub fn new(state: Option<AddGame>) -> Self {
+        if let Some(state) = state {
+            state
+        } else {
+            Self {
+                name: "".to_string(),
+                releases: vec![],
+            }
         }
     }
 
@@ -43,22 +46,15 @@ impl AddGame {
                 id: 0,
                 name: self.name.clone(),
             }),
-            Message::SystemSelected(system) => {
-                self.selected_system = Some(system);
-                Action::None
-            }
+            Message::AddRelease => Action::AddRelease(self.clone()),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let header = text("Add game").size(50);
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
-        let systems_select = pick_list(
-            self.systems.as_slice(),
-            self.selected_system.as_ref(),
-            Message::SystemSelected,
-        );
+        let add_release_button = button("Add Release").on_press(Message::AddRelease);
         let add_button = button("Add Game").on_press(Message::Submit);
-        column![header, name_input_field, systems_select, add_button].into()
+        column![header, name_input_field, add_release_button, add_button].into()
     }
 }

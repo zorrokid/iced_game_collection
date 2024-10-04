@@ -17,3 +17,10 @@ impl Display for System {
         write!(f, "{}", self.name)
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Release {
+    pub id: i32,
+    pub name: String,
+    pub system_id: i32,
+}

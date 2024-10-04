@@ -1,6 +1,6 @@
+use crate::model::Game;
 use iced::widget::{button, column, text, Column};
 use iced::Element;
-use iced_game_collection::model::Game;
 pub struct Games {
     pub games: Vec<Game>,
 }

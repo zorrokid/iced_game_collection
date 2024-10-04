@@ -1,29 +1,26 @@
 use iced::widget::{button, column, text, text_input};
 
-pub struct Home {
-    name: String,
-}
+pub struct Home {}
 
 #[derive(Debug, Clone)]
 pub enum Message {
     AddGame,
     ViewGames,
-    NameChanged(String),
     AddSystem,
+    AddGameMain,
 }
 
 pub enum Action {
-    AddGame(String),
+    AddGame,
     ViewGames,
     AddSystem,
+    AddGameMain,
     None,
 }
 
 impl Home {
     pub fn new() -> Self {
-        Self {
-            name: "".to_string(),
-        }
+        Self {}
     }
 
     pub fn title(&self) -> String {
@@ -32,30 +29,27 @@ impl Home {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::AddGame => Action::AddGame(self.name.clone()),
+            Message::AddGame => Action::AddGame,
             Message::ViewGames => Action::ViewGames,
-            Message::NameChanged(name) => {
-                self.name = name;
-                Action::None
-            }
             Message::AddSystem => Action::AddSystem,
+            Message::AddGameMain => Action::AddGameMain,
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
         let add_button = button("Add Game").on_press(Message::AddGame);
         let header = text("Welcome to Iced Game Collection").size(50);
 
         let view_games_button = button("View Games").on_press(Message::ViewGames);
         let add_system_button = button("Add System").on_press(Message::AddSystem);
+        let go_to_add_game_main_button = button("Add Game Main").on_press(Message::AddGameMain);
 
         column![
             header,
-            name_input_field,
             add_button,
             view_games_button,
-            add_system_button
+            add_system_button,
+            go_to_add_game_main_button
         ]
         .into()
     }
