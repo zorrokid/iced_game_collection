@@ -48,7 +48,7 @@ impl IcedGameCollection {
 
     fn title(&self) -> String {
         match &self.screen {
-            Screen::Home(_) => "Home".to_string(),
+            Screen::Home(home) => home.title(),
             Screen::Games(games) => games.title(),
             Screen::AddSystem(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
