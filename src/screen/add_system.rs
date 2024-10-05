@@ -1,8 +1,10 @@
 use crate::model::System;
-use iced::widget::{button, column, text, text_input};
+use iced::widget::{button, column, text, text_input, Column};
 
 pub struct AddSystem {
     pub name: String,
+    pub systems: Vec<System>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -17,9 +19,11 @@ pub enum Action {
 }
 
 impl AddSystem {
-    pub fn new() -> Self {
+    pub fn new(systems: Vec<System>) -> Self {
         Self {
             name: "".to_string(),
+            systems,
+            error: None,
         }
     }
 
@@ -33,10 +37,17 @@ impl AddSystem {
                 self.name = name;
                 Action::None
             }
-            Message::Submit => Action::SubmitSystem(System {
-                id: 0,
-                name: self.name.clone(),
-            }),
+            Message::Submit => {
+                if self.name.is_empty() {
+                    self.error = Some("Name cannot be empty".to_string());
+                    return Action::None;
+                } else {
+                    Action::SubmitSystem(System {
+                        id: 0,
+                        name: self.name.clone(),
+                    })
+                }
+            }
         }
     }
 
@@ -44,6 +55,23 @@ impl AddSystem {
         let header = text("Add system").size(50);
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
         let add_button = button("Add system").on_press(Message::Submit);
-        column![header, name_input_field, add_button].into()
+        let systems_list = self
+            .systems
+            .iter()
+            .map(|system| text(system.to_string()).into())
+            .collect::<Vec<iced::Element<Message>>>();
+        let error = if let Some(error) = &self.error {
+            text(error)
+        } else {
+            text("")
+        };
+        column![
+            header,
+            error,
+            name_input_field,
+            add_button,
+            Column::with_children(systems_list)
+        ]
+        .into()
     }
 }

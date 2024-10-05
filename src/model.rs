@@ -23,7 +23,7 @@ impl Display for System {
 pub struct Release {
     pub id: i32,
     pub name: String,
-    pub system_id: i32,
+    pub system: System,
 }
 
 impl Display for Release {

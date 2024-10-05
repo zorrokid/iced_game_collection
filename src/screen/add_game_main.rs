@@ -1,4 +1,4 @@
-use crate::model::Release;
+use crate::model::{Release, System};
 use crate::screen::add_game_screen::add_game_main_screen;
 use crate::screen::add_game_screen::add_release_screen;
 use crate::screen::add_game_screen::AddGameScreen;
@@ -8,6 +8,7 @@ pub struct AddGameMain {
     screen: AddGameScreen,
     name: String,
     releases: Vec<Release>,
+    systems: Vec<System>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +24,7 @@ pub enum Action {
 }
 
 impl AddGameMain {
-    pub fn new() -> Self {
+    pub fn new(systems: Vec<System>) -> Self {
         Self {
             screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
                 std::string::String::new(),
@@ -31,6 +32,7 @@ impl AddGameMain {
             )),
             name: "".to_string(),
             releases: vec![],
+            systems,
         }
     }
 
@@ -47,7 +49,7 @@ impl AddGameMain {
                         add_game_main_screen::Action::GoHome => Action::GoHome,
                         add_game_main_screen::Action::AddRelease => {
                             self.screen = AddGameScreen::AddReleaseScreen(
-                                add_release_screen::AddReleaseScreen::new(),
+                                add_release_screen::AddReleaseScreen::new(self.systems.clone()),
                             );
                             Action::None
                         }
@@ -62,9 +64,9 @@ impl AddGameMain {
                     Action::None
                 }
             }
-            Message::AddReleaseScreen(sub_screen2_message) => {
-                if let AddGameScreen::AddReleaseScreen(sub_screen2) = &mut self.screen {
-                    let action = sub_screen2.update(sub_screen2_message);
+            Message::AddReleaseScreen(add_release_screen_message) => {
+                if let AddGameScreen::AddReleaseScreen(add_release_screen) = &mut self.screen {
+                    let action = add_release_screen.update(add_release_screen_message);
                     match action {
                         add_release_screen::Action::ReleaseAdded(name) => {
                             self.releases.push(name);
@@ -77,6 +79,15 @@ impl AddGameMain {
                             Action::None
                         }
                         add_release_screen::Action::None => Action::None,
+                        add_release_screen::Action::GoBack => {
+                            self.screen = AddGameScreen::AddGameMainScreen(
+                                add_game_main_screen::AddGameMainScreen::new(
+                                    self.name.clone(),
+                                    self.releases.clone(),
+                                ),
+                            );
+                            Action::None
+                        }
                     }
                 } else {
                     Action::None
