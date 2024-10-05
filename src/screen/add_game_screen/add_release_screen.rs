@@ -1,3 +1,4 @@
+use crate::model::Release;
 use iced::widget::{button, column, text, text_input};
 
 #[derive(Debug, Clone)]
@@ -12,7 +13,7 @@ pub enum Message {
 }
 
 pub enum Action {
-    ReleaseAdded(String),
+    ReleaseAdded(Release),
     None,
 }
 
@@ -31,7 +32,12 @@ impl AddReleaseScreen {
         match message {
             Message::GoToSubscreen => {
                 // Action::GoToSubscreen(self.name.clone()),
-                Action::ReleaseAdded(self.name.clone())
+                let release = Release {
+                    id: 0,
+                    name: self.name.clone(),
+                    system_id: 0,
+                };
+                Action::ReleaseAdded(release)
             }
             Message::ReleaseAdded(name) => {
                 self.name = name.clone();

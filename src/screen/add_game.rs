@@ -45,6 +45,7 @@ impl AddGame {
             Message::Submit => Action::SubmitGame(Game {
                 id: 0,
                 name: self.name.clone(),
+                releases: self.releases.clone(),
             }),
             Message::AddRelease => Action::AddRelease(self.clone()),
         }

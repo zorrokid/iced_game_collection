@@ -171,6 +171,11 @@ impl IcedGameCollection {
                             self.screen = Screen::Home(screen::Home::new());
                             Task::none()
                         }
+                        add_game_main::Action::SubmitGame(game) => {
+                            self.games.push(game);
+                            self.screen = Screen::Games(screen::Games::new(self.games.clone()));
+                            Task::none()
+                        }
                         add_game_main::Action::None => Task::none(),
                     }
                 } else {
