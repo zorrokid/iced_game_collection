@@ -1,6 +1,7 @@
 use crate::model::System;
 use iced::widget::{button, column, text, text_input, Column};
 
+// TODO: move AddSystem under Add Release
 pub struct AddSystem {
     pub name: String,
     pub systems: Vec<System>,

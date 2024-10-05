@@ -1,6 +1,10 @@
 use crate::model::{Release, System};
 use iced::widget::{button, column, pick_list, text, text_input};
 
+// TODO create of main and sub screens for add release
+// - add release main
+// -- add release screen
+// -- add system screen
 #[derive(Debug, Clone)]
 pub struct AddReleaseScreen {
     pub name: String,
