@@ -1,10 +1,10 @@
-pub mod sub_screen;
-pub mod sub_screen2;
-pub use sub_screen::SubScreen;
-pub use sub_screen2::SubScreen2;
+pub mod add_game_main_screen;
+pub mod add_release_screen;
+pub use add_game_main_screen::AddGameMainScreen;
+pub use add_release_screen::AddReleaseScreen;
 
 #[derive(Debug, Clone)]
 pub enum AddGameScreen {
-    SubScreen(SubScreen),
-    SubScreen2(sub_screen2::SubScreen2),
+    AddGameMainScreen(AddGameMainScreen),
+    AddReleaseScreen(AddReleaseScreen),
 }

@@ -2,7 +2,7 @@ use iced::widget::{button, column, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
-pub struct SubScreen {
+pub struct AddGameMainScreen {
     name: String,
     releases: Vec<String>,
 }
@@ -21,7 +21,7 @@ pub enum Action {
     None,
 }
 
-impl SubScreen {
+impl AddGameMainScreen {
     pub fn new(name: String, releases: Vec<String>) -> Self {
         Self { name, releases }
     }

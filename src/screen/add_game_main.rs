@@ -1,5 +1,5 @@
-use crate::screen::add_game_screen::sub_screen;
-use crate::screen::add_game_screen::sub_screen2;
+use crate::screen::add_game_screen::add_game_main_screen;
+use crate::screen::add_game_screen::add_release_screen;
 use crate::screen::add_game_screen::AddGameScreen;
 
 #[derive(Debug, Clone)]
@@ -11,8 +11,8 @@ pub struct AddGameMain {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Subscreen(sub_screen::Message),
-    Subscreen2(sub_screen2::Message),
+    Subscreen(add_game_main_screen::Message),
+    Subscreen2(add_release_screen::Message),
 }
 
 pub enum Action {
@@ -23,7 +23,7 @@ pub enum Action {
 impl AddGameMain {
     pub fn new() -> Self {
         Self {
-            screen: AddGameScreen::SubScreen(sub_screen::SubScreen::new(
+            screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
                 std::string::String::new(),
                 vec![],
             )),
@@ -39,37 +39,41 @@ impl AddGameMain {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Subscreen(sub_screen_message) => {
-                if let AddGameScreen::SubScreen(sub_screen) = &mut self.screen {
+                if let AddGameScreen::AddGameMainScreen(sub_screen) = &mut self.screen {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
-                        sub_screen::Action::GoHome => Action::GoHome,
-                        sub_screen::Action::GoToSubscreen2 => {
-                            self.screen = AddGameScreen::SubScreen2(sub_screen2::SubScreen2::new());
+                        add_game_main_screen::Action::GoHome => Action::GoHome,
+                        add_game_main_screen::Action::GoToSubscreen2 => {
+                            self.screen = AddGameScreen::AddReleaseScreen(
+                                add_release_screen::AddReleaseScreen::new(),
+                            );
                             Action::None
                         }
-                        sub_screen::Action::NameChanged(name) => {
+                        add_game_main_screen::Action::NameChanged(name) => {
                             self.name = name;
                             Action::None
                         }
-                        sub_screen::Action::None => Action::None,
+                        add_game_main_screen::Action::None => Action::None,
                     }
                 } else {
                     Action::None
                 }
             }
             Message::Subscreen2(sub_screen2_message) => {
-                if let AddGameScreen::SubScreen2(sub_screen2) = &mut self.screen {
+                if let AddGameScreen::AddReleaseScreen(sub_screen2) = &mut self.screen {
                     let action = sub_screen2.update(sub_screen2_message);
                     match action {
-                        sub_screen2::Action::ReleaseAdded(name) => {
+                        add_release_screen::Action::ReleaseAdded(name) => {
                             self.releases.push(name);
-                            self.screen = AddGameScreen::SubScreen(sub_screen::SubScreen::new(
-                                self.name.clone(),
-                                self.releases.clone(),
-                            ));
+                            self.screen = AddGameScreen::AddGameMainScreen(
+                                add_game_main_screen::AddGameMainScreen::new(
+                                    self.name.clone(),
+                                    self.releases.clone(),
+                                ),
+                            );
                             Action::None
                         }
-                        sub_screen2::Action::None => Action::None,
+                        add_release_screen::Action::None => Action::None,
                     }
                 } else {
                     Action::None
@@ -80,8 +84,12 @@ impl AddGameMain {
 
     pub fn view(&self) -> iced::Element<Message> {
         match &self.screen {
-            AddGameScreen::SubScreen(sub_screen) => sub_screen.view().map(Message::Subscreen),
-            AddGameScreen::SubScreen2(sub_screen2) => sub_screen2.view().map(Message::Subscreen2),
+            AddGameScreen::AddGameMainScreen(sub_screen) => {
+                sub_screen.view().map(Message::Subscreen)
+            }
+            AddGameScreen::AddReleaseScreen(sub_screen2) => {
+                sub_screen2.view().map(Message::Subscreen2)
+            }
         }
     }
 }

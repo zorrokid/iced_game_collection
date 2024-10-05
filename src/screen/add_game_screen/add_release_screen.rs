@@ -1,7 +1,7 @@
 use iced::widget::{button, column, text, text_input};
 
 #[derive(Debug, Clone)]
-pub struct SubScreen2 {
+pub struct AddReleaseScreen {
     name: String,
 }
 
@@ -16,7 +16,7 @@ pub enum Action {
     None,
 }
 
-impl SubScreen2 {
+impl AddReleaseScreen {
     pub fn new() -> Self {
         Self {
             name: "".to_string(),
