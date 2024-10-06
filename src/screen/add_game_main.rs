@@ -2,6 +2,7 @@ use crate::model::{Release, System};
 use crate::screen::add_game_screen::add_game_main_screen;
 use crate::screen::add_game_screen::add_release_screen;
 use crate::screen::add_game_screen::AddGameScreen;
+use iced::Task;
 
 #[derive(Debug, Clone)]
 pub struct AddGameMain {
@@ -21,6 +22,7 @@ pub enum Action {
     GoHome,
     SubmitGame(crate::model::Game),
     None,
+    Run(Task<Message>),
 }
 
 impl AddGameMain {
@@ -87,6 +89,9 @@ impl AddGameMain {
                                 ),
                             );
                             Action::None
+                        }
+                        add_release_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::AddReleaseScreen))
                         }
                     }
                 } else {

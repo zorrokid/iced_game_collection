@@ -123,6 +123,7 @@ impl IcedGameCollection {
                             self.screen = Screen::Games(screen::Games::new(self.games.clone()));
                             Task::none()
                         }
+                        add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
                         add_game_main::Action::None => Task::none(),
                     }
                 } else {

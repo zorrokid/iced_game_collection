@@ -1,5 +1,8 @@
+use std::path::PathBuf;
+
 use crate::model::{Release, System};
-use iced::widget::{button, column, pick_list, text, text_input};
+use iced::widget::{button, column, pick_list, text, text_input, Column};
+use iced::Task;
 
 // TODO create of main and sub screens for add release
 // - add release main
@@ -10,6 +13,7 @@ pub struct AddReleaseScreen {
     pub name: String,
     pub systems: Vec<System>,
     pub selected_system: Option<System>,
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -18,12 +22,15 @@ pub enum Message {
     NameChanged(String),
     SystemSelected(System),
     GoBack,
+    FileAdded(Result<PathBuf, Error>),
+    SelectFile,
 }
 
 pub enum Action {
     ReleaseAdded(Release),
     GoBack,
     None,
+    Run(Task<Message>),
 }
 
 impl AddReleaseScreen {
@@ -32,6 +39,7 @@ impl AddReleaseScreen {
             name: "".to_string(),
             systems,
             selected_system: None,
+            files: vec![],
         }
     }
 
@@ -60,6 +68,17 @@ impl AddReleaseScreen {
                 self.selected_system = Some(system);
                 Action::None
             }
+            Message::SelectFile => {
+                println!("Select file");
+                Action::Run(Task::perform(pick_file(), Message::FileAdded))
+            }
+            Message::FileAdded(result) => {
+                println!("File added");
+                if let Ok(path) = result {
+                    self.files.push(path.to_string_lossy().to_string());
+                }
+                Action::None
+            }
             Message::GoBack => Action::GoBack,
         }
     }
@@ -73,6 +92,12 @@ impl AddReleaseScreen {
             self.selected_system.as_ref(),
             Message::SystemSelected,
         );
+        let files_list = self
+            .files
+            .iter()
+            .map(|file| text(file).into())
+            .collect::<Vec<iced::Element<Message>>>();
+        let add_file_button = button("Add File").on_press(Message::SelectFile);
         let back_button = button("Back").on_press(Message::GoBack);
 
         let submit_button = button("Submit").on_press(Message::Submit);
@@ -81,8 +106,25 @@ impl AddReleaseScreen {
             title,
             release_name_input_field,
             systems_select,
+            Column::with_children(files_list),
+            add_file_button,
             submit_button
         ]
         .into()
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    DialogClosed,
+}
+
+async fn pick_file() -> Result<PathBuf, Error> {
+    print!("pick file");
+    let file_handle = rfd::AsyncFileDialog::new()
+        .set_title("Choose a text file")
+        .pick_file()
+        .await
+        .ok_or(Error::DialogClosed)?;
+    Ok(file_handle.path().to_owned())
 }
