@@ -14,6 +14,7 @@ pub struct AddReleaseScreen {
     pub systems: Vec<System>,
     pub selected_system: Option<System>,
     pub files: Vec<String>,
+    pub error: String,
 }
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,7 @@ impl AddReleaseScreen {
             systems,
             selected_system: None,
             files: vec![],
+            error: "".to_string(),
         }
     }
 
@@ -57,6 +59,7 @@ impl AddReleaseScreen {
                         system: system.clone(),
                     })
                 } else {
+                    self.error = "System not selected".to_string();
                     Action::None
                 }
             }
@@ -69,11 +72,14 @@ impl AddReleaseScreen {
                 Action::None
             }
             Message::SelectFile => {
-                println!("Select file");
-                Action::Run(Task::perform(pick_file(), Message::FileAdded))
+                // Why do we need to wrap the Task in Run-action?
+                Action::Run(
+                    // Async operation pick_file has to be run in a separate thread
+                    // the outcome of pick_file is sent back to the main thread as a FileAdded-Message
+                    Task::perform(pick_file(), Message::FileAdded),
+                )
             }
             Message::FileAdded(result) => {
-                println!("File added");
                 if let Ok(path) = result {
                     self.files.push(path.to_string_lossy().to_string());
                 }
@@ -101,6 +107,7 @@ impl AddReleaseScreen {
         let back_button = button("Back").on_press(Message::GoBack);
 
         let submit_button = button("Submit").on_press(Message::Submit);
+        let error = text(self.error.clone());
         column![
             back_button,
             title,
@@ -108,7 +115,8 @@ impl AddReleaseScreen {
             systems_select,
             Column::with_children(files_list),
             add_file_button,
-            submit_button
+            submit_button,
+            error,
         ]
         .into()
     }
@@ -120,7 +128,6 @@ pub enum Error {
 }
 
 async fn pick_file() -> Result<PathBuf, Error> {
-    print!("pick file");
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a text file")
         .pick_file()
