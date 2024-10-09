@@ -1,13 +1,15 @@
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Clone)]
+use serde::Serialize;
+
+#[derive(Clone, Serialize)]
 pub struct Game {
     pub id: i32,
     pub name: String,
     pub releases: Vec<Release>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct System {
     pub id: i32,
     pub name: String,
@@ -19,7 +21,7 @@ impl Display for System {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Release {
     pub id: i32,
     pub name: String,

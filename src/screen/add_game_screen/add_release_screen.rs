@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::error::Error;
 use crate::model::{Release, System};
 use iced::widget::{button, column, pick_list, text, text_input, Column};
 use iced::Task;
@@ -73,6 +74,8 @@ impl AddReleaseScreen {
             }
             Message::SelectFile => {
                 // Why do we need to wrap the Task in Run-action?
+                // - since update returns an Action, we need to wrap the Task in an Action
+                // - also the Task::perform needs to be returned to the runtime
                 Action::Run(
                     // Async operation pick_file has to be run in a separate thread
                     // the outcome of pick_file is sent back to the main thread as a FileAdded-Message
@@ -120,11 +123,6 @@ impl AddReleaseScreen {
         ]
         .into()
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Error {
-    DialogClosed,
 }
 
 async fn pick_file() -> Result<PathBuf, Error> {

@@ -1,12 +1,18 @@
+mod error;
 mod model;
 mod screen;
 
-use iced::Task;
+use std::fs::File;
+use std::io::Write;
+
+use error::Error;
+use iced::{exit, Task};
 use model::{Game, System};
 use screen::add_game_main;
 use screen::add_system;
 use screen::games;
 use screen::home;
+use serde_json::to_string_pretty;
 
 use crate::screen::Screen;
 
@@ -90,6 +96,18 @@ impl IcedGameCollection {
                                 Screen::AddGameMain(screen::AddGameMain::new(self.systems.clone()));
                             Task::none()
                         }
+                        home::Action::Exit => {
+                            let res = save_games(self.games.clone());
+                            if let Err(e) = res {
+                                match e {
+                                    Error::IoError(e) => eprintln!("Failed to save games: {}", e),
+                                    _ => eprintln!("Failed to save games"),
+                                }
+                                Task::none()
+                            } else {
+                                exit()
+                            }
+                        }
                     }
                 } else {
                     Task::none()
@@ -141,4 +159,15 @@ impl IcedGameCollection {
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
         }
     }
+}
+
+fn save_games(games: Vec<Game>) -> Result<(), Error> {
+    let json = to_string_pretty(&games)
+        .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
+    // create file without tokio
+    let mut file = File::create("games.json")
+        .map_err(|e| Error::IoError(format!("Failed to create games.json: {}", e)))?;
+    file.write(json.as_bytes())
+        .map_err(|e| Error::IoError(format!("Failed to write games.json: {}", e)))?;
+    Ok(())
 }
