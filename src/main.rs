@@ -39,7 +39,7 @@ enum Message {
     Games(games::Message),
     AddSystem(add_system::Message),
     AddGameMain(add_game_main::Message),
-    Loaded(Vec<Game>),
+    Loaded(Result<Vec<Game>, Error>),
     GamesSavedOnExit(Result<(), Error>),
 }
 
@@ -51,13 +51,7 @@ impl IcedGameCollection {
                 games: vec![],
                 systems: vec![],
             },
-            Task::perform(Self::load_games_async(), |result| match result {
-                Ok(games) => Message::Loaded(games),
-                Err(_) => {
-                    eprintln!("Failed to load games");
-                    Message::Loaded(vec![])
-                }
-            }),
+            Task::perform(Self::load_games_async(), Message::Loaded),
         )
     }
 
@@ -105,22 +99,10 @@ impl IcedGameCollection {
                                 Screen::AddGameMain(screen::AddGameMain::new(self.systems.clone()));
                             Task::none()
                         }
-                        home::Action::Exit => {
-                            /*let res = save_games(self.games.clone());
-                            if let Err(e) = res {
-                                match e {
-                                    Error::IoError(e) => eprintln!("Failed to save games: {}", e),
-                                    _ => eprintln!("Failed to save games"),
-                                }
-                                Task::none()
-                            } else {
-                                exit()
-                            }*/
-                            Task::perform(
-                                Self::save_games_async(self.games.clone()),
-                                Message::GamesSavedOnExit,
-                            )
-                        }
+                        home::Action::Exit => Task::perform(
+                            Self::save_games_async(self.games.clone()),
+                            Message::GamesSavedOnExit,
+                        ),
                     }
                 } else {
                     Task::none()
@@ -161,10 +143,16 @@ impl IcedGameCollection {
                     Task::none()
                 }
             }
-            Message::Loaded(games) => {
-                self.games = games;
-                Task::none()
-            }
+            Message::Loaded(games) => match games {
+                Ok(games) => {
+                    self.games = games;
+                    Task::none()
+                }
+                Err(_) => {
+                    eprintln!("Failed to load games");
+                    Task::none()
+                }
+            },
             Message::GamesSavedOnExit(result) => {
                 if let Err(e) = result {
                     match e {
@@ -190,7 +178,6 @@ impl IcedGameCollection {
         let mut file = AsyncFile::open(GAMES_FILE_NAME)
             .await
             .map_err(|e| Error::IoError(format!("Failed to open {}: {}", GAMES_FILE_NAME, e)))?;
-
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .await
@@ -204,7 +191,6 @@ impl IcedGameCollection {
     async fn save_games_async(games: Vec<Game>) -> Result<(), Error> {
         let json = to_string_pretty(&games)
             .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
-        // create file without tokio
         let mut file = AsyncFile::create(GAMES_FILE_NAME)
             .await
             .map_err(|e| Error::IoError(format!("Failed to create {}: {}", GAMES_FILE_NAME, e)))?;
