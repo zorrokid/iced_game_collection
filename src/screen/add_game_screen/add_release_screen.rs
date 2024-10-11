@@ -127,7 +127,7 @@ impl AddReleaseScreen {
 
 async fn pick_file() -> Result<PathBuf, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
-        .set_title("Choose a text file")
+        .set_title("Choose a file")
         .pick_file()
         .await
         .ok_or(Error::DialogClosed)?;
