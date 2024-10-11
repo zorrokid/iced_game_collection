@@ -7,7 +7,7 @@ use async_std::io::ReadExt;
 use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
-use model::{Collection, Game};
+use model::Collection;
 use screen::add_game_main;
 use screen::add_system;
 use screen::games;
