@@ -5,6 +5,8 @@ mod screen;
 use std::fs::File;
 use std::io::Write;
 
+use async_std::fs::File as AsyncFile;
+use async_std::io::ReadExt;
 use error::Error;
 use iced::{exit, Task};
 use model::{Game, System};
@@ -13,13 +15,10 @@ use screen::add_system;
 use screen::games;
 use screen::home;
 use serde_json::to_string_pretty;
-use tokio::fs::File as TokioFile;
-use tokio::io::AsyncReadExt;
 
 use crate::screen::Screen;
 
-#[tokio::main]
-async fn main() -> iced::Result {
+fn main() -> iced::Result {
     iced::application(
         IcedGameCollection::title,
         IcedGameCollection::update,
@@ -51,11 +50,11 @@ impl IcedGameCollection {
                 games: vec![],
                 systems: vec![],
             },
-            Task::future(load_games_async()).then(|result| match result {
-                Ok(games) => Task::done(Message::Loaded(games)),
+            Task::perform(Self::load_games_async(), |result| match result {
+                Ok(games) => Message::Loaded(games),
                 Err(_) => {
                     eprintln!("Failed to load games");
-                    Task::none()
+                    Message::Loaded(vec![])
                 }
             }),
         )
@@ -193,15 +192,20 @@ fn load_games() -> Result<Vec<Game>, Error> {
     Ok(games)
 }
 
-async fn load_games_async() -> Result<Vec<Game>, Error> {
-    let mut file = TokioFile::open("games.json")
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
-    let mut contents = Vec::new();
-    file.read_to_end(&mut contents)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to read games.json: {}", e)))?;
-    let games: Vec<Game> = serde_json::from_slice(&contents)
-        .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
-    Ok(games)
+impl IcedGameCollection {
+    async fn load_games_async() -> Result<Vec<Game>, Error> {
+        let mut file = AsyncFile::open("games.json")
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to read games.json: {}", e)))?;
+        let games = serde_json::from_str(&contents)
+            .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
+        Ok(games)
+
+        // TODO: read games.json file using async-std
+    }
 }
