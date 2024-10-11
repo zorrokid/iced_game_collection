@@ -13,10 +13,13 @@ use screen::add_system;
 use screen::games;
 use screen::home;
 use serde_json::to_string_pretty;
+use tokio::fs::File as TokioFile;
+use tokio::io::AsyncReadExt;
 
 use crate::screen::Screen;
 
-fn main() -> iced::Result {
+#[tokio::main]
+async fn main() -> iced::Result {
     iced::application(
         IcedGameCollection::title,
         IcedGameCollection::update,
@@ -37,6 +40,7 @@ enum Message {
     Games(games::Message),
     AddSystem(add_system::Message),
     AddGameMain(add_game_main::Message),
+    Loaded(Vec<Game>),
 }
 
 impl IcedGameCollection {
@@ -47,8 +51,13 @@ impl IcedGameCollection {
                 games: vec![],
                 systems: vec![],
             },
-            // TODO: here coscreen::Games::new(self.games.clone())uld be a task to load games from a database
-            Task::none(),
+            Task::future(load_games_async()).then(|result| match result {
+                Ok(games) => Task::done(Message::Loaded(games)),
+                Err(_) => {
+                    eprintln!("Failed to load games");
+                    Task::none()
+                }
+            }),
         )
     }
 
@@ -148,6 +157,10 @@ impl IcedGameCollection {
                     Task::none()
                 }
             }
+            Message::Loaded(games) => {
+                self.games = games;
+                Task::none()
+            }
         }
     }
 
@@ -170,4 +183,25 @@ fn save_games(games: Vec<Game>) -> Result<(), Error> {
     file.write(json.as_bytes())
         .map_err(|e| Error::IoError(format!("Failed to write games.json: {}", e)))?;
     Ok(())
+}
+
+fn load_games() -> Result<Vec<Game>, Error> {
+    let file = File::open("games.json")
+        .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
+    let games: Vec<Game> = serde_json::from_reader(file)
+        .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
+    Ok(games)
+}
+
+async fn load_games_async() -> Result<Vec<Game>, Error> {
+    let mut file = TokioFile::open("games.json")
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to read games.json: {}", e)))?;
+    let games: Vec<Game> = serde_json::from_slice(&contents)
+        .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
+    Ok(games)
 }
