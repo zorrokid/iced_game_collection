@@ -7,7 +7,7 @@ use async_std::io::ReadExt;
 use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
-use model::{Game, System};
+use model::{Collection, Game};
 use screen::add_game_main;
 use screen::add_system;
 use screen::games;
@@ -16,7 +16,7 @@ use serde_json::to_string_pretty;
 
 use crate::screen::Screen;
 
-const GAMES_FILE_NAME: &str = "games.json";
+const COLLECTION_FILE_NAME: &str = "games.json";
 
 fn main() -> iced::Result {
     iced::application(
@@ -29,8 +29,7 @@ fn main() -> iced::Result {
 
 struct IcedGameCollection {
     screen: Screen,
-    games: Vec<Game>,
-    systems: Vec<System>,
+    collection: Collection,
 }
 
 #[derive(Debug, Clone)]
@@ -39,8 +38,8 @@ enum Message {
     Games(games::Message),
     AddSystem(add_system::Message),
     AddGameMain(add_game_main::Message),
-    Loaded(Result<Vec<Game>, Error>),
-    GamesSavedOnExit(Result<(), Error>),
+    Loaded(Result<Collection, Error>),
+    CollectionSavedOnExit(Result<(), Error>),
 }
 
 impl IcedGameCollection {
@@ -48,10 +47,9 @@ impl IcedGameCollection {
         (
             Self {
                 screen: Screen::Home(home::Home::new()),
-                games: vec![],
-                systems: vec![],
+                collection: Collection::default(),
             },
-            Task::perform(Self::load_games_async(), Message::Loaded),
+            Task::perform(Self::load_collection_async(), Message::Loaded),
         )
     }
 
@@ -71,7 +69,7 @@ impl IcedGameCollection {
                     let action = add_system.update(add_system_message);
                     match action {
                         add_system::Action::SubmitSystem(system) => {
-                            self.systems.push(system);
+                            self.collection.systems.push(system);
                             self.screen = Screen::Home(screen::Home::new());
                             Task::none()
                         }
@@ -86,22 +84,25 @@ impl IcedGameCollection {
                     let action = home.update(home_message);
                     match action {
                         home::Action::ViewGames => {
-                            self.screen = Screen::Games(screen::Games::new(self.games.clone()));
+                            self.screen =
+                                Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
                         home::Action::AddSystem => {
-                            self.screen =
-                                Screen::AddSystem(screen::AddSystem::new(self.systems.clone()));
+                            self.screen = Screen::AddSystem(screen::AddSystem::new(
+                                self.collection.systems.clone(),
+                            ));
                             Task::none()
                         }
                         home::Action::AddGameMain => {
-                            self.screen =
-                                Screen::AddGameMain(screen::AddGameMain::new(self.systems.clone()));
+                            self.screen = Screen::AddGameMain(screen::AddGameMain::new(
+                                self.collection.systems.clone(),
+                            ));
                             Task::none()
                         }
                         home::Action::Exit => Task::perform(
-                            Self::save_games_async(self.games.clone()),
-                            Message::GamesSavedOnExit,
+                            Self::save_collection_async(self.collection.clone()),
+                            Message::CollectionSavedOnExit,
                         ),
                     }
                 } else {
@@ -132,8 +133,9 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         add_game_main::Action::SubmitGame(game) => {
-                            self.games.push(game);
-                            self.screen = Screen::Games(screen::Games::new(self.games.clone()));
+                            self.collection.games.push(game);
+                            self.screen =
+                                Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
                         add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
@@ -143,9 +145,9 @@ impl IcedGameCollection {
                     Task::none()
                 }
             }
-            Message::Loaded(games) => match games {
+            Message::Loaded(collection) => match collection {
                 Ok(games) => {
-                    self.games = games;
+                    self.collection = games;
                     Task::none()
                 }
                 Err(_) => {
@@ -153,11 +155,11 @@ impl IcedGameCollection {
                     Task::none()
                 }
             },
-            Message::GamesSavedOnExit(result) => {
+            Message::CollectionSavedOnExit(result) => {
                 if let Err(e) = result {
                     match e {
-                        Error::IoError(e) => eprintln!("Failed to save games: {}", e),
-                        _ => eprintln!("Failed to save games"),
+                        Error::IoError(e) => eprintln!("Failed to save collection: {}", e),
+                        _ => eprintln!("Failed to save collection"),
                     }
                 }
                 exit()
@@ -174,29 +176,32 @@ impl IcedGameCollection {
         }
     }
 
-    async fn load_games_async() -> Result<Vec<Game>, Error> {
-        let mut file = AsyncFile::open(GAMES_FILE_NAME)
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to open {}: {}", GAMES_FILE_NAME, e)))?;
+    async fn load_collection_async() -> Result<Collection, Error> {
+        let mut file = AsyncFile::open(COLLECTION_FILE_NAME).await.map_err(|e| {
+            Error::IoError(format!("Failed to open {}: {}", COLLECTION_FILE_NAME, e))
+        })?;
         let mut contents = String::new();
-        file.read_to_string(&mut contents)
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to read {}: {}", GAMES_FILE_NAME, e)))?;
+        file.read_to_string(&mut contents).await.map_err(|e| {
+            Error::IoError(format!("Failed to read {}: {}", COLLECTION_FILE_NAME, e))
+        })?;
         let games = serde_json::from_str(&contents).map_err(|e| {
-            Error::IoError(format!("Failed to deserialize {}: {}", GAMES_FILE_NAME, e))
+            Error::IoError(format!(
+                "Failed to deserialize {}: {}",
+                COLLECTION_FILE_NAME, e
+            ))
         })?;
         Ok(games)
     }
 
-    async fn save_games_async(games: Vec<Game>) -> Result<(), Error> {
-        let json = to_string_pretty(&games)
+    async fn save_collection_async(collection: Collection) -> Result<(), Error> {
+        let json = to_string_pretty(&collection)
             .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
-        let mut file = AsyncFile::create(GAMES_FILE_NAME)
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to create {}: {}", GAMES_FILE_NAME, e)))?;
-        file.write(json.as_bytes())
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to write {}: {}", GAMES_FILE_NAME, e)))?;
+        let mut file = AsyncFile::create(COLLECTION_FILE_NAME).await.map_err(|e| {
+            Error::IoError(format!("Failed to create {}: {}", COLLECTION_FILE_NAME, e))
+        })?;
+        file.write(json.as_bytes()).await.map_err(|e| {
+            Error::IoError(format!("Failed to write {}: {}", COLLECTION_FILE_NAME, e))
+        })?;
         Ok(())
     }
 }

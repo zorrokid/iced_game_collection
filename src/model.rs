@@ -2,6 +2,12 @@ use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
+pub struct Collection {
+    pub games: Vec<Game>,
+    pub systems: Vec<System>,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Game {
     pub id: i32,
