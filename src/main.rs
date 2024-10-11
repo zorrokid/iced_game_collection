@@ -2,11 +2,9 @@ mod error;
 mod model;
 mod screen;
 
-use std::fs::File;
-use std::io::Write;
-
 use async_std::fs::File as AsyncFile;
 use async_std::io::ReadExt;
+use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
 use model::{Game, System};
@@ -17,6 +15,8 @@ use screen::home;
 use serde_json::to_string_pretty;
 
 use crate::screen::Screen;
+
+const GAMES_FILE_NAME: &str = "games.json";
 
 fn main() -> iced::Result {
     iced::application(
@@ -40,6 +40,7 @@ enum Message {
     AddSystem(add_system::Message),
     AddGameMain(add_game_main::Message),
     Loaded(Vec<Game>),
+    GamesSavedOnExit(Result<(), Error>),
 }
 
 impl IcedGameCollection {
@@ -105,7 +106,7 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         home::Action::Exit => {
-                            let res = save_games(self.games.clone());
+                            /*let res = save_games(self.games.clone());
                             if let Err(e) = res {
                                 match e {
                                     Error::IoError(e) => eprintln!("Failed to save games: {}", e),
@@ -114,7 +115,11 @@ impl IcedGameCollection {
                                 Task::none()
                             } else {
                                 exit()
-                            }
+                            }*/
+                            Task::perform(
+                                Self::save_games_async(self.games.clone()),
+                                Message::GamesSavedOnExit,
+                            )
                         }
                     }
                 } else {
@@ -160,6 +165,15 @@ impl IcedGameCollection {
                 self.games = games;
                 Task::none()
             }
+            Message::GamesSavedOnExit(result) => {
+                if let Err(e) = result {
+                    match e {
+                        Error::IoError(e) => eprintln!("Failed to save games: {}", e),
+                        _ => eprintln!("Failed to save games"),
+                    }
+                }
+                exit()
+            }
         }
     }
 
@@ -171,41 +185,32 @@ impl IcedGameCollection {
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
         }
     }
-}
 
-fn save_games(games: Vec<Game>) -> Result<(), Error> {
-    let json = to_string_pretty(&games)
-        .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
-    // create file without tokio
-    let mut file = File::create("games.json")
-        .map_err(|e| Error::IoError(format!("Failed to create games.json: {}", e)))?;
-    file.write(json.as_bytes())
-        .map_err(|e| Error::IoError(format!("Failed to write games.json: {}", e)))?;
-    Ok(())
-}
-
-fn load_games() -> Result<Vec<Game>, Error> {
-    let file = File::open("games.json")
-        .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
-    let games: Vec<Game> = serde_json::from_reader(file)
-        .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
-    Ok(games)
-}
-
-impl IcedGameCollection {
     async fn load_games_async() -> Result<Vec<Game>, Error> {
-        let mut file = AsyncFile::open("games.json")
+        let mut file = AsyncFile::open(GAMES_FILE_NAME)
             .await
-            .map_err(|e| Error::IoError(format!("Failed to open games.json: {}", e)))?;
+            .map_err(|e| Error::IoError(format!("Failed to open {}: {}", GAMES_FILE_NAME, e)))?;
 
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .await
-            .map_err(|e| Error::IoError(format!("Failed to read games.json: {}", e)))?;
-        let games = serde_json::from_str(&contents)
-            .map_err(|e| Error::IoError(format!("Failed to deserialize games.json: {}", e)))?;
+            .map_err(|e| Error::IoError(format!("Failed to read {}: {}", GAMES_FILE_NAME, e)))?;
+        let games = serde_json::from_str(&contents).map_err(|e| {
+            Error::IoError(format!("Failed to deserialize {}: {}", GAMES_FILE_NAME, e))
+        })?;
         Ok(games)
+    }
 
-        // TODO: read games.json file using async-std
+    async fn save_games_async(games: Vec<Game>) -> Result<(), Error> {
+        let json = to_string_pretty(&games)
+            .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
+        // create file without tokio
+        let mut file = AsyncFile::create(GAMES_FILE_NAME)
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to create {}: {}", GAMES_FILE_NAME, e)))?;
+        file.write(json.as_bytes())
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to write {}: {}", GAMES_FILE_NAME, e)))?;
+        Ok(())
     }
 }
