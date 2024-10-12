@@ -1,5 +1,5 @@
 use crate::model::Game;
-use iced::widget::{button, column, text};
+use iced::widget::{button, column, text, Column};
 
 pub struct ViewGame {
     game: Game,
@@ -32,7 +32,13 @@ impl ViewGame {
 
     pub fn view(&self) -> iced::Element<Message> {
         let title = text(self.game.name.clone()).size(50);
+        let releases_list = self
+            .game
+            .releases
+            .iter()
+            .map(|release| text(release.to_string()).into())
+            .collect::<Vec<iced::Element<Message>>>();
         let home_button = button("Home").on_press(Message::GoHome);
-        column![title, home_button].into()
+        column![title, Column::with_children(releases_list), home_button].into()
     }
 }

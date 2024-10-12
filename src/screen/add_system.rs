@@ -1,4 +1,4 @@
-use crate::model::System;
+use crate::model::{max_id, System};
 use iced::widget::{button, column, text, text_input, Column};
 
 // TODO: move AddSystem under Add Release
@@ -46,7 +46,7 @@ impl AddSystem {
                     return Action::None;
                 } else {
                     Action::SubmitSystem(System {
-                        id: self.systems.len() as i32,
+                        id: max_id(&self.systems),
                         name: self.name.clone(),
                     })
                 }

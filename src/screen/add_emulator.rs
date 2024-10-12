@@ -1,4 +1,4 @@
-use crate::model::{Emulator, System};
+use crate::model::{max_id, Emulator, System};
 use iced::widget::{button, column, pick_list, text, text_input, Column};
 use iced::Element;
 
@@ -29,7 +29,7 @@ impl AddEmulator {
     pub fn new(emulators: Vec<Emulator>, systems: Vec<System>) -> Self {
         Self {
             emulator: Emulator {
-                id: emulators.len() as i32,
+                id: max_id(&emulators),
                 name: "".to_string(),
                 executable: "".to_string(),
                 arguments: "".to_string(),

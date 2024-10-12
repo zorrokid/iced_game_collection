@@ -107,6 +107,7 @@ impl IcedGameCollection {
                         home::Action::AddGame => {
                             self.screen = Screen::AddGameMain(screen::AddGameMain::new(
                                 self.collection.systems.clone(),
+                                self.collection.games.clone(),
                             ));
                             Task::none()
                         }

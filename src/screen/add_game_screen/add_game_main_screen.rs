@@ -1,4 +1,4 @@
-use crate::model::{Game, Release};
+use crate::model::{max_id, Game, Release};
 use iced::widget::{button, column, text, text_input, Column};
 use iced::Element;
 
@@ -6,6 +6,7 @@ use iced::Element;
 pub struct AddGameMainScreen {
     name: String,
     releases: Vec<Release>,
+    games: Vec<Game>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,8 +26,12 @@ pub enum Action {
 }
 
 impl AddGameMainScreen {
-    pub fn new(name: String, releases: Vec<Release>) -> Self {
-        Self { name, releases }
+    pub fn new(name: String, releases: Vec<Release>, games: Vec<Game>) -> Self {
+        Self {
+            name,
+            releases,
+            games,
+        }
     }
 
     pub fn title(&self) -> String {
@@ -42,7 +47,7 @@ impl AddGameMainScreen {
                 Action::NameChanged(name)
             }
             Message::SubmitGame => Action::SubmitGame(Game {
-                id: 0,
+                id: max_id(&self.games),
                 name: self.name.clone(),
                 releases: self.releases.clone(),
             }),

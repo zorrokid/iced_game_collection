@@ -41,6 +41,7 @@ impl Games {
         // list of games
         let games = self.games.iter().map(|game| {
             row![
+                text(game.id.to_string()),
                 text(game.name.clone()),
                 button("View").on_press(Message::ViewGame(game.id)),
             ]

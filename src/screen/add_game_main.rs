@@ -1,4 +1,6 @@
-use crate::model::{Release, System};
+use std::vec;
+
+use crate::model::{Game, Release, System};
 use crate::screen::add_game_screen::add_game_main_screen;
 use crate::screen::add_game_screen::add_release_screen;
 use crate::screen::add_game_screen::AddGameScreen;
@@ -10,6 +12,7 @@ pub struct AddGameMain {
     name: String,
     releases: Vec<Release>,
     systems: Vec<System>,
+    games: Vec<Game>,
 }
 
 #[derive(Debug, Clone)]
@@ -26,15 +29,17 @@ pub enum Action {
 }
 
 impl AddGameMain {
-    pub fn new(systems: Vec<System>) -> Self {
+    pub fn new(systems: Vec<System>, games: Vec<Game>) -> Self {
         Self {
             screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
                 std::string::String::new(),
+                vec![],
                 vec![],
             )),
             name: "".to_string(),
             releases: vec![],
             systems,
+            games,
         }
     }
 
@@ -76,6 +81,7 @@ impl AddGameMain {
                                 add_game_main_screen::AddGameMainScreen::new(
                                     self.name.clone(),
                                     self.releases.clone(),
+                                    self.games.clone(),
                                 ),
                             );
                             Action::None
@@ -86,6 +92,7 @@ impl AddGameMain {
                                 add_game_main_screen::AddGameMainScreen::new(
                                     self.name.clone(),
                                     self.releases.clone(),
+                                    self.games.clone(),
                                 ),
                             );
                             Action::None
