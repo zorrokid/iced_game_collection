@@ -133,6 +133,10 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         games::Action::None => Task::none(),
+                        games::Action::ViewGame(id) => {
+                            // View game
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()

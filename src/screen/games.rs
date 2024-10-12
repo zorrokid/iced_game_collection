@@ -1,5 +1,5 @@
 use crate::model::Game;
-use iced::widget::{button, column, text, Column};
+use iced::widget::{button, column, row, text, Column};
 use iced::Element;
 pub struct Games {
     pub games: Vec<Game>,
@@ -7,14 +7,15 @@ pub struct Games {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ViewGame(usize),
-    EditGame(usize),
-    DeleteGame(usize),
+    ViewGame(i32),
+    EditGame(i32),
+    DeleteGame(i32),
     GoHome,
 }
 
 pub enum Action {
     GoHome,
+    ViewGame(i32),
     None,
 }
 
@@ -47,7 +48,13 @@ impl Games {
 
     pub fn view(&self) -> iced::Element<Message> {
         // list of games
-        let games = self.games.iter().map(|game| text(game.name.clone()).into());
+        let games = self.games.iter().map(|game| {
+            row![
+                text(game.name.clone()),
+                button("View").on_press(Message::ViewGame(game.id)),
+            ]
+            .into()
+        });
         let games_list_with_container =
             Column::with_children(games.collect::<Vec<Element<Message>>>());
         let home_button = button("Home").on_press(Message::GoHome);
