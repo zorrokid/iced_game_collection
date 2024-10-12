@@ -30,18 +30,9 @@ impl Games {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::ViewGame(index) => {
-                // View game
-                Action::None
-            }
-            Message::EditGame(index) => {
-                // Edit game
-                Action::None
-            }
-            Message::DeleteGame(index) => {
-                // Delete game
-                Action::None
-            }
+            Message::ViewGame(id) => Action::ViewGame(id),
+            Message::EditGame(id) => Action::None,
+            Message::DeleteGame(id) => Action::None,
             Message::GoHome => Action::GoHome,
         }
     }

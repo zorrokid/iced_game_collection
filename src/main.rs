@@ -13,6 +13,7 @@ use screen::add_game_main;
 use screen::add_system;
 use screen::games;
 use screen::home;
+use screen::view_game;
 use serde_json::to_string_pretty;
 
 use crate::screen::Screen;
@@ -42,6 +43,7 @@ enum Message {
     AddGameMain(add_game_main::Message),
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
+    ViewGame(screen::view_game::Message),
 }
 
 impl IcedGameCollection {
@@ -62,6 +64,7 @@ impl IcedGameCollection {
             Screen::AddSystem(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
             Screen::AddEmulator(add_emulator) => add_emulator.title(),
+            Screen::ViewGame(view_game) => view_game.title(),
         }
     }
 
@@ -134,7 +137,9 @@ impl IcedGameCollection {
                         }
                         games::Action::None => Task::none(),
                         games::Action::ViewGame(id) => {
-                            // View game
+                            let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
+                            let view_game = view_game::ViewGame::new(game.clone());
+                            self.screen = Screen::ViewGame(view_game);
                             Task::none()
                         }
                     }
@@ -201,6 +206,19 @@ impl IcedGameCollection {
                     Task::none()
                 }
             }
+            Message::ViewGame(view_game_message) => {
+                if let Screen::ViewGame(view_game) = &mut self.screen {
+                    let action = view_game.update(view_game_message);
+                    match action {
+                        view_game::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                    }
+                } else {
+                    Task::none()
+                }
+            }
         }
     }
 
@@ -211,6 +229,7 @@ impl IcedGameCollection {
             Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
             Screen::AddEmulator(add_emulator) => add_emulator.view().map(Message::AddEmulator),
+            Screen::ViewGame(view_game) => view_game.view().map(Message::ViewGame),
         }
     }
 
