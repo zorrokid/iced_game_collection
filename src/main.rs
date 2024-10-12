@@ -8,6 +8,7 @@ use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
+use screen::add_emulator;
 use screen::add_game_main;
 use screen::add_system;
 use screen::games;
@@ -37,6 +38,7 @@ enum Message {
     Home(home::Message),
     Games(games::Message),
     AddSystem(add_system::Message),
+    AddEmulator(add_emulator::Message),
     AddGameMain(add_game_main::Message),
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
@@ -59,6 +61,7 @@ impl IcedGameCollection {
             Screen::Games(games) => games.title(),
             Screen::AddSystem(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
+            Screen::AddEmulator(add_emulator) => add_emulator.title(),
         }
     }
 
@@ -74,6 +77,10 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         add_system::Action::None => Task::none(),
+                        add_system::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
@@ -94,7 +101,7 @@ impl IcedGameCollection {
                             ));
                             Task::none()
                         }
-                        home::Action::AddGameMain => {
+                        home::Action::AddGame => {
                             self.screen = Screen::AddGameMain(screen::AddGameMain::new(
                                 self.collection.systems.clone(),
                             ));
@@ -104,6 +111,13 @@ impl IcedGameCollection {
                             Self::save_collection_async(self.collection.clone()),
                             Message::CollectionSavedOnExit,
                         ),
+                        home::Action::AddEmulator => {
+                            self.screen = Screen::AddEmulator(screen::AddEmulator::new(
+                                self.collection.emulators.clone(),
+                                self.collection.systems.clone(),
+                            ));
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
@@ -164,6 +178,25 @@ impl IcedGameCollection {
                 }
                 exit()
             }
+            Message::AddEmulator(add_emulator_message) => {
+                if let Screen::AddEmulator(add_emulator) = &mut self.screen {
+                    let action = add_emulator.update(add_emulator_message);
+                    match action {
+                        add_emulator::Action::SubmitEmulator(emulator) => {
+                            self.collection.emulators.push(emulator);
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                        add_emulator::Action::None => Task::none(),
+                        add_emulator::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                    }
+                } else {
+                    Task::none()
+                }
+            }
         }
     }
 
@@ -173,6 +206,7 @@ impl IcedGameCollection {
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
+            Screen::AddEmulator(add_emulator) => add_emulator.view().map(Message::AddEmulator),
         }
     }
 

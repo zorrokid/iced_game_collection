@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Collection {
     pub games: Vec<Game>,
     pub systems: Vec<System>,
+    pub emulators: Vec<Emulator>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -38,4 +39,13 @@ impl Display for Release {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Emulator {
+    pub id: i32,
+    pub name: String,
+    pub executable: String,
+    pub arguments: String,
+    pub system_id: i32,
 }

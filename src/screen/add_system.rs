@@ -11,11 +11,13 @@ pub struct AddSystem {
 #[derive(Debug, Clone)]
 pub enum Message {
     NameChanged(String),
+    GoHome,
     Submit,
 }
 
 pub enum Action {
     SubmitSystem(System),
+    GoHome,
     None,
 }
 
@@ -44,11 +46,12 @@ impl AddSystem {
                     return Action::None;
                 } else {
                     Action::SubmitSystem(System {
-                        id: 0,
+                        id: self.systems.len() as i32,
                         name: self.name.clone(),
                     })
                 }
             }
+            Message::GoHome => Action::GoHome,
         }
     }
 
@@ -66,8 +69,10 @@ impl AddSystem {
         } else {
             text("")
         };
+        let back_button = button("Back").on_press(Message::GoHome);
         column![
             header,
+            back_button,
             error,
             name_input_field,
             add_button,

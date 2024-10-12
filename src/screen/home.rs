@@ -6,14 +6,16 @@ pub struct Home {}
 pub enum Message {
     ViewGames,
     AddSystem,
-    AddGameMain,
+    AddGame,
+    AddEmulator,
     Exit,
 }
 
 pub enum Action {
     ViewGames,
     AddSystem,
-    AddGameMain,
+    AddGame,
+    AddEmulator,
     Exit,
 }
 
@@ -30,7 +32,8 @@ impl Home {
         match message {
             Message::ViewGames => Action::ViewGames,
             Message::AddSystem => Action::AddSystem,
-            Message::AddGameMain => Action::AddGameMain,
+            Message::AddGame => Action::AddGame,
+            Message::AddEmulator => Action::AddEmulator,
             Message::Exit => Action::Exit,
         }
     }
@@ -40,7 +43,8 @@ impl Home {
 
         let view_games_button = button("View Games").on_press(Message::ViewGames);
         let add_system_button = button("Add System").on_press(Message::AddSystem);
-        let add_game_button = button("Add Game Main").on_press(Message::AddGameMain);
+        let add_game_button = button("Add Game").on_press(Message::AddGame);
+        let add_emulator_button = button("Add Emulator").on_press(Message::AddEmulator);
         let exit_button = button("Exit").on_press(Message::Exit);
 
         column![
@@ -48,6 +52,7 @@ impl Home {
             view_games_button,
             add_system_button,
             add_game_button,
+            add_emulator_button,
             exit_button
         ]
         .into()

@@ -67,11 +67,11 @@ impl AddGameMainScreen {
 
         column![
             title,
+            go_home_button,
             Column::with_children(releases_list),
             name_input_field,
             add_release_button,
             submit_game_button,
-            go_home_button
         ]
         .into()
     }
