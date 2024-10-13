@@ -26,6 +26,7 @@ pub struct Release {
     pub id: i32,
     pub name: String,
     pub system: System,
+    pub files: Vec<String>,
 }
 
 impl Display for Release {

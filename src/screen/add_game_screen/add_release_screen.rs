@@ -58,6 +58,7 @@ impl AddReleaseScreen {
                         id: 0, // TODO: maybe use Option, set id when saving to db?
                         name: self.name.clone(),
                         system: system.clone(),
+                        files: self.files.clone(),
                     })
                 } else {
                     self.error = "System not selected".to_string();

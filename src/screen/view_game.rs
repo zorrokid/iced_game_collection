@@ -1,5 +1,5 @@
 use crate::model::Game;
-use iced::widget::{button, column, text, Column};
+use iced::widget::{button, column, row, text, Column};
 
 pub struct ViewGame {
     game: Game,
@@ -8,11 +8,13 @@ pub struct ViewGame {
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
+    RunWithEmulator(String),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
+    RunWithEmulator(String),
 }
 
 impl ViewGame {
@@ -27,6 +29,7 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
+            Message::RunWithEmulator(file) => Action::RunWithEmulator(file),
         }
     }
 
@@ -36,7 +39,21 @@ impl ViewGame {
             .game
             .releases
             .iter()
-            .map(|release| text(release.to_string()).into())
+            .map(|release| {
+                let files_list = release
+                    .files
+                    .iter()
+                    .map(|file| {
+                        row!(
+                            text(file),
+                            button("Run").on_press(Message::RunWithEmulator(file.clone()))
+                        )
+                        .into()
+                    })
+                    .collect::<Vec<iced::Element<Message>>>();
+
+                column!(text(release.to_string()), Column::with_children(files_list)).into()
+            })
             .collect::<Vec<iced::Element<Message>>>();
         let back_button = button("Back").on_press(Message::GoToGames);
         column![title, Column::with_children(releases_list), back_button].into()

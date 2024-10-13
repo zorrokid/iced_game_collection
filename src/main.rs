@@ -216,6 +216,10 @@ impl IcedGameCollection {
                                 Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
+                        view_game::Action::RunWithEmulator(file) => {
+                            println!("Running with emulator: {}", file);
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
