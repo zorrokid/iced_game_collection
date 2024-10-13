@@ -7,12 +7,12 @@ pub struct ViewGame {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    GoHome,
+    GoToGames,
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    GoHome,
+    GoToGames,
 }
 
 impl ViewGame {
@@ -26,7 +26,7 @@ impl ViewGame {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::GoHome => Action::GoHome,
+            Message::GoToGames => Action::GoToGames,
         }
     }
 
@@ -38,7 +38,7 @@ impl ViewGame {
             .iter()
             .map(|release| text(release.to_string()).into())
             .collect::<Vec<iced::Element<Message>>>();
-        let home_button = button("Home").on_press(Message::GoHome);
-        column![title, Column::with_children(releases_list), home_button].into()
+        let back_button = button("Back").on_press(Message::GoToGames);
+        column![title, Column::with_children(releases_list), back_button].into()
     }
 }

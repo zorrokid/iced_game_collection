@@ -211,8 +211,9 @@ impl IcedGameCollection {
                 if let Screen::ViewGame(view_game) = &mut self.screen {
                     let action = view_game.update(view_game_message);
                     match action {
-                        view_game::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
+                        view_game::Action::GoToGames => {
+                            self.screen =
+                                Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
                     }
