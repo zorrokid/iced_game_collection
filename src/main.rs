@@ -45,7 +45,7 @@ enum Message {
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
-    FinishedRunningWithEmulator(Result<(), Error>),
+    FinishedRunningWithEmulator(Result<(i32), Error>),
 }
 
 impl IcedGameCollection {
@@ -218,12 +218,13 @@ impl IcedGameCollection {
                                 Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
-                        view_game::Action::RunWithEmulator(file) => {
+                        view_game::Action::RunWithEmulator(file, game_id) => {
                             println!("Running with emulator: {}", file);
                             Task::perform(
                                 Self::run_with_emulator_async(
                                     file,
                                     self.collection.emulators.clone(),
+                                    game_id,
                                 ),
                                 Message::FinishedRunningWithEmulator,
                             )
@@ -234,9 +235,20 @@ impl IcedGameCollection {
                 }
             }
             Message::FinishedRunningWithEmulator(result) => {
-                if let Err(e) = result {
-                    eprintln!("Failed to run with emulator");
+                match result {
+                    Ok(game_id) => {
+                        let game = self
+                            .collection
+                            .games
+                            .iter()
+                            .find(|g| g.id == game_id)
+                            .unwrap();
+                        let view_game = view_game::ViewGame::new(game.clone());
+                        self.screen = Screen::ViewGame(view_game);
+                    }
+                    Err(_) => println!("Failed to run with emulator"),
                 }
+
                 Task::none()
             }
         }
@@ -285,7 +297,8 @@ impl IcedGameCollection {
     async fn run_with_emulator_async(
         file: String,
         emulators: Vec<model::Emulator>,
-    ) -> Result<(), Error> {
+        game_id: i32,
+    ) -> Result<(i32), Error> {
         // TODO emulator should be selected by user
         let emulator = emulators.iter().find(|e| e.system_id == 1);
         if let Some(emulator) = emulator {
@@ -301,12 +314,15 @@ impl IcedGameCollection {
                 .status()
                 .await
                 .map_err(|e| Error::IoError(format!("Failed to get status of emulator: {}", e)))?;
+            println!("Emulator exited with status: {}", status);
             if !status.success() {
                 eprintln!("Emulator failed with status: {}", status);
             }
         } else {
             eprintln!("No emulator found for {}", file);
         }
-        Ok(())
+        println!("Finished running with emulator");
+
+        Ok(game_id)
     }
 }
