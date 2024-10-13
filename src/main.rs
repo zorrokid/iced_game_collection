@@ -2,6 +2,7 @@ mod error;
 mod model;
 mod screen;
 
+use async_process::Command;
 use async_std::fs::File as AsyncFile;
 use async_std::io::ReadExt;
 use async_std::io::WriteExt;
@@ -44,6 +45,7 @@ enum Message {
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
+    FinishedRunningWithEmulator(Result<(), Error>),
 }
 
 impl IcedGameCollection {
@@ -218,12 +220,24 @@ impl IcedGameCollection {
                         }
                         view_game::Action::RunWithEmulator(file) => {
                             println!("Running with emulator: {}", file);
-                            Task::none()
+                            Task::perform(
+                                Self::run_with_emulator_async(
+                                    file,
+                                    self.collection.emulators.clone(),
+                                ),
+                                Message::FinishedRunningWithEmulator,
+                            )
                         }
                     }
                 } else {
                     Task::none()
                 }
+            }
+            Message::FinishedRunningWithEmulator(result) => {
+                if let Err(e) = result {
+                    eprintln!("Failed to run with emulator");
+                }
+                Task::none()
             }
         }
     }
@@ -265,6 +279,34 @@ impl IcedGameCollection {
         file.write(json.as_bytes()).await.map_err(|e| {
             Error::IoError(format!("Failed to write {}: {}", COLLECTION_FILE_NAME, e))
         })?;
+        Ok(())
+    }
+
+    async fn run_with_emulator_async(
+        file: String,
+        emulators: Vec<model::Emulator>,
+    ) -> Result<(), Error> {
+        // TODO emulator should be selected by user
+        let emulator = emulators.iter().find(|e| e.system_id == 1);
+        if let Some(emulator) = emulator {
+            // spawn emulator
+            println!("Running {} with emulator {}", file, emulator.name);
+            let mut child = Command::new(&emulator.executable)
+                .arg(&file)
+                .arg(&emulator.arguments)
+                .spawn()
+                .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
+
+            let status = child
+                .status()
+                .await
+                .map_err(|e| Error::IoError(format!("Failed to get status of emulator: {}", e)))?;
+            if !status.success() {
+                eprintln!("Emulator failed with status: {}", status);
+            }
+        } else {
+            eprintln!("No emulator found for {}", file);
+        }
         Ok(())
     }
 }

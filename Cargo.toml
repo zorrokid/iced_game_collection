@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-process = "2.3.0"
 async-std = "1.13.0"
 iced = {version = "0.13"}
 rfd = "0.15.0"
