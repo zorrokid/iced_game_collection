@@ -1,4 +1,4 @@
-use crate::model::{max_id, Game, Release};
+use crate::model::{get_new_id, Game, Release};
 use iced::widget::{button, column, text, text_input, Column};
 use iced::Element;
 
@@ -47,7 +47,7 @@ impl AddGameMainScreen {
                 Action::NameChanged(name)
             }
             Message::SubmitGame => Action::SubmitGame(Game {
-                id: max_id(&self.games),
+                id: get_new_id(&self.games),
                 name: self.name.clone(),
                 releases: self.releases.clone(),
             }),

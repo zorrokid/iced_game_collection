@@ -72,10 +72,10 @@ pub struct Collection {
     pub emulators: Vec<Emulator>,
 }
 
-pub fn max_id<T: HasId>(items: &Vec<T>) -> i32 {
+pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
     items
         .iter()
         .max_by_key(|item| item.id())
-        .map(|item| item.id())
+        .map(|item| item.id() + 1)
         .unwrap_or(1)
 }

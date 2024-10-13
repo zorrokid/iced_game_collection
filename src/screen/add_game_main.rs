@@ -34,7 +34,7 @@ impl AddGameMain {
             screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
                 std::string::String::new(),
                 vec![],
-                vec![],
+                games.clone(),
             )),
             name: "".to_string(),
             releases: vec![],
