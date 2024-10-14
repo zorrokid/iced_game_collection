@@ -1,25 +1,26 @@
-use crate::model::Game;
-use iced::widget::{button, column, row, text, Column};
+use crate::model::{Emulator, Game};
+use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
     game: Game,
+    emulators: Vec<Emulator>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(String),
+    RunWithEmulator(Emulator, String),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(String),
+    RunWithEmulator(Emulator, String),
 }
 
 impl ViewGame {
-    pub fn new(game: Game) -> Self {
-        Self { game }
+    pub fn new(game: Game, emulators: Vec<Emulator>) -> Self {
+        Self { game, emulators }
     }
 
     pub fn title(&self) -> String {
@@ -29,7 +30,7 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(file) => Action::RunWithEmulator(file),
+            Message::RunWithEmulator(emulator, file) => Action::RunWithEmulator(emulator, file),
         }
     }
 
@@ -40,15 +41,28 @@ impl ViewGame {
             .releases
             .iter()
             .map(|release| {
+                let emulators_for_system = self
+                    .emulators
+                    .iter()
+                    .filter(|emulator| emulator.system_id == release.system.id)
+                    .collect::<Vec<&Emulator>>();
                 let files_list = release
                     .files
                     .iter()
                     .map(|file| {
-                        row!(
-                            text(file),
-                            button("Run").on_press(Message::RunWithEmulator(file.clone()))
-                        )
-                        .into()
+                        let emulator_buttons = emulators_for_system
+                            .iter()
+                            .map(|emulator| {
+                                button(emulator.name.as_str())
+                                    .on_press(Message::RunWithEmulator(
+                                        (*emulator).clone(),
+                                        file.clone(),
+                                    ))
+                                    .into()
+                            })
+                            .collect::<Vec<iced::Element<Message>>>();
+
+                        row!(text(file), Row::with_children(emulator_buttons),).into()
                     })
                     .collect::<Vec<iced::Element<Message>>>();
 

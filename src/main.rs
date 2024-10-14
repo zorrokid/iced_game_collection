@@ -141,7 +141,10 @@ impl IcedGameCollection {
                         games::Action::None => Task::none(),
                         games::Action::ViewGame(id) => {
                             let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
-                            let view_game = view_game::ViewGame::new(game.clone());
+                            let view_game = view_game::ViewGame::new(
+                                game.clone(),
+                                self.collection.emulators.clone(),
+                            );
                             self.screen = Screen::ViewGame(view_game);
                             Task::none()
                         }
@@ -218,13 +221,10 @@ impl IcedGameCollection {
                                 Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
-                        view_game::Action::RunWithEmulator(file) => {
+                        view_game::Action::RunWithEmulator(emulator, file) => {
                             println!("Running with emulator: {}", file);
                             Task::perform(
-                                Self::run_with_emulator_async(
-                                    file,
-                                    self.collection.emulators.clone(),
-                                ),
+                                Self::run_with_emulator_async(file, emulator.clone()),
                                 Message::FinishedRunningWithEmulator,
                             )
                         }
@@ -286,31 +286,22 @@ impl IcedGameCollection {
         Ok(())
     }
 
-    async fn run_with_emulator_async(
-        file: String,
-        emulators: Vec<model::Emulator>,
-    ) -> Result<(), Error> {
-        // TODO emulator should be selected by user
-        let emulator = emulators.iter().find(|e| e.system_id == 1);
-        if let Some(emulator) = emulator {
-            // spawn emulator
-            println!("Running {} with emulator {}", file, emulator.name);
-            let mut child = Command::new(&emulator.executable)
-                .arg(&file)
-                .arg(&emulator.arguments)
-                .spawn()
-                .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
+    async fn run_with_emulator_async(file: String, emulator: model::Emulator) -> Result<(), Error> {
+        // spawn emulator
+        println!("Running {} with emulator {}", file, emulator.name);
+        let mut child = Command::new(&emulator.executable)
+            .arg(&file)
+            .arg(&emulator.arguments)
+            .spawn()
+            .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
 
-            let status = child
-                .status()
-                .await
-                .map_err(|e| Error::IoError(format!("Failed to get status of emulator: {}", e)))?;
-            println!("Emulator exited with status: {}", status);
-            if !status.success() {
-                eprintln!("Emulator failed with status: {}", status);
-            }
-        } else {
-            eprintln!("No emulator found for {}", file);
+        let status = child
+            .status()
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to get status of emulator: {}", e)))?;
+        println!("Emulator exited with status: {}", status);
+        if !status.success() {
+            eprintln!("Emulator failed with status: {}", status);
         }
         println!("Finished running with emulator");
 
