@@ -8,13 +8,13 @@ pub struct ViewGame {
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(String, i32),
+    RunWithEmulator(String),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(String, i32),
+    RunWithEmulator(String),
 }
 
 impl ViewGame {
@@ -29,7 +29,7 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(file, game_id) => Action::RunWithEmulator(file, game_id),
+            Message::RunWithEmulator(file) => Action::RunWithEmulator(file),
         }
     }
 
@@ -46,8 +46,7 @@ impl ViewGame {
                     .map(|file| {
                         row!(
                             text(file),
-                            button("Run")
-                                .on_press(Message::RunWithEmulator(file.clone(), self.game.id))
+                            button("Run").on_press(Message::RunWithEmulator(file.clone()))
                         )
                         .into()
                     })
