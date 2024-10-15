@@ -16,6 +16,8 @@ pub enum Message {
 pub enum Action {
     GoHome,
     ViewGame(i32),
+    EditGame(i32),
+    DeleteGame(i32),
     None,
 }
 
@@ -31,8 +33,8 @@ impl Games {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
-            Message::EditGame(id) => Action::None,
-            Message::DeleteGame(id) => Action::None,
+            Message::EditGame(id) => Action::EditGame(id),
+            Message::DeleteGame(id) => Action::DeleteGame(id),
             Message::GoHome => Action::GoHome,
         }
     }
@@ -43,6 +45,8 @@ impl Games {
                 text(game.id.to_string()),
                 text(game.name.clone()),
                 button("View").on_press(Message::ViewGame(game.id)),
+                button("Edit").on_press(Message::EditGame(game.id)),
+                button("Delete").on_press(Message::DeleteGame(game.id)),
             ]
             .into()
         });

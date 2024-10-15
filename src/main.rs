@@ -148,6 +148,8 @@ impl IcedGameCollection {
                             self.screen = Screen::ViewGame(view_game);
                             Task::none()
                         }
+                        games::Action::EditGame(_) => Task::none(),
+                        games::Action::DeleteGame(_) => Task::none(),
                     }
                 } else {
                     Task::none()
