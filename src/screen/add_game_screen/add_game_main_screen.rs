@@ -55,7 +55,6 @@ impl AddGameMainScreen {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let title = text("Sub screen 1");
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
 
         let releases_list = self
@@ -66,13 +65,12 @@ impl AddGameMainScreen {
 
         let add_release_button =
             button("Add release (Go to Subscreen 2)").on_press(Message::AddRelease);
-        let go_home_button = button("Go Home").on_press(Message::GoHome);
+        let back_button = button("Back").on_press(Message::GoHome);
 
         let submit_game_button = button("Submit Game").on_press(Message::SubmitGame);
 
         column![
-            title,
-            go_home_button,
+            back_button,
             Column::with_children(releases_list),
             name_input_field,
             add_release_button,

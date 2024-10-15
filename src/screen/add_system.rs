@@ -56,7 +56,6 @@ impl AddSystem {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let header = text("Add system").size(50);
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
         let add_button = button("Add system").on_press(Message::Submit);
         let systems_list = self
@@ -71,7 +70,6 @@ impl AddSystem {
         };
         let back_button = button("Back").on_press(Message::GoHome);
         column![
-            header,
             back_button,
             error,
             name_input_field,

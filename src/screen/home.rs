@@ -39,8 +39,6 @@ impl Home {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let header = text("Welcome to Iced Game Collection").size(50);
-
         let view_games_button = button("View Games").on_press(Message::ViewGames);
         let add_system_button = button("Add System").on_press(Message::AddSystem);
         let add_game_button = button("Add Game").on_press(Message::AddGame);
@@ -48,7 +46,6 @@ impl Home {
         let exit_button = button("Exit").on_press(Message::Exit);
 
         column![
-            header,
             view_games_button,
             add_system_button,
             add_game_button,

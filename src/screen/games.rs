@@ -38,7 +38,6 @@ impl Games {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        // list of games
         let games = self.games.iter().map(|game| {
             row![
                 text(game.id.to_string()),
@@ -49,7 +48,7 @@ impl Games {
         });
         let games_list_with_container =
             Column::with_children(games.collect::<Vec<Element<Message>>>());
-        let home_button = button("Home").on_press(Message::GoHome);
-        column![games_list_with_container, home_button].into()
+        let back_button = button("Back").on_press(Message::GoHome);
+        column![back_button, games_list_with_container].into()
     }
 }

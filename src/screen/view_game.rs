@@ -35,7 +35,7 @@ impl ViewGame {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let title = text(self.game.name.clone()).size(50);
+        let title = text(self.game.name.clone()).size(30);
         let releases_list = self
             .game
             .releases
@@ -70,6 +70,6 @@ impl ViewGame {
             })
             .collect::<Vec<iced::Element<Message>>>();
         let back_button = button("Back").on_press(Message::GoToGames);
-        column![title, Column::with_children(releases_list), back_button].into()
+        column![title, back_button, Column::with_children(releases_list)].into()
     }
 }

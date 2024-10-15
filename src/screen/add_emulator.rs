@@ -75,7 +75,6 @@ impl AddEmulator {
     }
 
     pub fn view(&self) -> Element<Message> {
-        let header = text("Add emulator").size(50);
         let name_input_field =
             text_input("Enter name", &self.emulator.name).on_input(Message::NameChanged);
         let executable_input_field = text_input("Enter executable", &self.emulator.executable)
@@ -95,7 +94,6 @@ impl AddEmulator {
             .collect::<Vec<Element<Message>>>();
         let back_button = button("Back").on_press(Message::GoHome);
         column![
-            header,
             back_button,
             name_input_field,
             executable_input_field,
