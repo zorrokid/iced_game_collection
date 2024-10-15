@@ -149,7 +149,10 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         games::Action::EditGame(_) => Task::none(),
-                        games::Action::DeleteGame(_) => Task::none(),
+                        games::Action::DeleteGame(id) => {
+                            self.collection.games.retain(|g| g.id != id);
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
