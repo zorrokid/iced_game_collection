@@ -70,6 +70,6 @@ impl ViewGame {
             })
             .collect::<Vec<iced::Element<Message>>>();
         let back_button = button("Back").on_press(Message::GoToGames);
-        column![title, back_button, Column::with_children(releases_list)].into()
+        column![back_button, title, Column::with_children(releases_list)].into()
     }
 }

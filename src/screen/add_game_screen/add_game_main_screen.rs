@@ -55,19 +55,15 @@ impl AddGameMainScreen {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
+        let back_button = button("Back").on_press(Message::GoHome);
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
-
         let releases_list = self
             .releases
             .iter()
             .map(|release| text(release.to_string()).into())
             .collect::<Vec<Element<Message>>>();
-
-        let add_release_button =
-            button("Add release (Go to Subscreen 2)").on_press(Message::AddRelease);
-        let back_button = button("Back").on_press(Message::GoHome);
-
-        let submit_game_button = button("Submit Game").on_press(Message::SubmitGame);
+        let add_release_button = button("Add release").on_press(Message::AddRelease);
+        let submit_game_button = button("Submit").on_press(Message::SubmitGame);
 
         column![
             back_button,

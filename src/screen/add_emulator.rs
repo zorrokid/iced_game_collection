@@ -86,7 +86,7 @@ impl AddEmulator {
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)
             .on_input(Message::ArgumentsChanged);
-        let add_button = button("Add emulator").on_press(Message::Submit(self.emulator.clone()));
+        let add_button = button("Submit").on_press(Message::Submit(self.emulator.clone()));
         let emulators_list = self
             .emulators
             .iter()

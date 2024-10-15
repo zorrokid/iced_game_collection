@@ -57,7 +57,7 @@ impl AddSystem {
 
     pub fn view(&self) -> iced::Element<Message> {
         let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
-        let add_button = button("Add system").on_press(Message::Submit);
+        let add_button = button("Submit").on_press(Message::Submit);
         let systems_list = self
             .systems
             .iter()
