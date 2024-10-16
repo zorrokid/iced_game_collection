@@ -9,6 +9,20 @@ pub struct Game {
     pub releases: Vec<Release>,
 }
 
+pub struct GameListModel {
+    pub id: i32,
+    pub name: String,
+}
+
+impl From<&Game> for GameListModel {
+    fn from(game: &Game) -> Self {
+        GameListModel {
+            id: game.id,
+            name: game.name.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
     pub id: i32,
@@ -71,6 +85,16 @@ pub struct Collection {
     pub games: Vec<Game>,
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
+}
+
+pub trait ToGameListModel {
+    fn to_game_list_model(&self) -> Vec<GameListModel>;
+}
+
+impl ToGameListModel for Collection {
+    fn to_game_list_model(&self) -> Vec<GameListModel> {
+        self.games.iter().map(GameListModel::from).collect()
+    }
 }
 
 pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {

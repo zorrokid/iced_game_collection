@@ -1,8 +1,8 @@
-use crate::model::Game;
+use crate::model::GameListModel;
 use iced::widget::{button, column, row, text, Column};
 use iced::Element;
 pub struct Games {
-    pub games: Vec<Game>,
+    pub games: Vec<GameListModel>,
 }
 
 #[derive(Debug, Clone)]
@@ -22,7 +22,7 @@ pub enum Action {
 }
 
 impl Games {
-    pub fn new(games: Vec<Game>) -> Self {
+    pub fn new(games: Vec<GameListModel>) -> Self {
         Self { games }
     }
 

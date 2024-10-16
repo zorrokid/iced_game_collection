@@ -9,6 +9,7 @@ use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
+use model::ToGameListModel;
 use screen::add_emulator;
 use screen::add_game_main;
 use screen::add_system;
@@ -96,8 +97,9 @@ impl IcedGameCollection {
                     let action = home.update(home_message);
                     match action {
                         home::Action::ViewGames => {
-                            self.screen =
-                                Screen::Games(screen::Games::new(self.collection.games.clone()));
+                            self.screen = Screen::Games(screen::Games::new(
+                                self.collection.to_game_list_model(),
+                            ));
                             Task::none()
                         }
                         home::Action::AddSystem => {
@@ -151,8 +153,9 @@ impl IcedGameCollection {
                         games::Action::EditGame(_) => Task::none(),
                         games::Action::DeleteGame(id) => {
                             self.collection.games.retain(|g| g.id != id);
-                            self.screen =
-                                Screen::Games(screen::Games::new(self.collection.games.clone()));
+                            self.screen = Screen::Games(screen::Games::new(
+                                self.collection.to_game_list_model(),
+                            ));
                             Task::none()
                         }
                     }
@@ -170,8 +173,9 @@ impl IcedGameCollection {
                         }
                         add_game_main::Action::SubmitGame(game) => {
                             self.collection.games.push(game);
-                            self.screen =
-                                Screen::Games(screen::Games::new(self.collection.games.clone()));
+                            self.screen = Screen::Games(screen::Games::new(
+                                self.collection.to_game_list_model(),
+                            ));
                             Task::none()
                         }
                         add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
@@ -224,8 +228,9 @@ impl IcedGameCollection {
                     let action = view_game.update(view_game_message);
                     match action {
                         view_game::Action::GoToGames => {
-                            self.screen =
-                                Screen::Games(screen::Games::new(self.collection.games.clone()));
+                            self.screen = Screen::Games(screen::Games::new(
+                                self.collection.to_game_list_model(),
+                            ));
                             Task::none()
                         }
                         view_game::Action::RunWithEmulator(emulator, file) => {
