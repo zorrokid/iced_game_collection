@@ -220,6 +220,19 @@ impl IcedGameCollection {
                             self.screen = Screen::Home(screen::Home::new());
                             Task::none()
                         }
+                        add_emulator::Action::DeleteEmulator(id) => {
+                            self.collection.emulators.retain(|e| e.id != id);
+                            self.screen = Screen::AddEmulator(screen::AddEmulator::new(
+                                self.collection.emulators.clone(),
+                                self.collection.systems.clone(),
+                            ));
+                            Task::none()
+                        }
+                        add_emulator::Action::EditEmulator(id) => {
+                            // TODO
+                            print!("Editing emulator {}", id);
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()

@@ -1,5 +1,5 @@
 use crate::model::{get_new_id, Emulator, System};
-use iced::widget::{button, column, pick_list, text, text_input, Column};
+use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 
 pub struct AddEmulator {
@@ -17,12 +17,16 @@ pub enum Message {
     ArgumentsChanged(String),
     Submit(Emulator),
     GoHome,
+    EditEmulator(i32),
+    DeleteEmulator(i32),
 }
 
 pub enum Action {
     SubmitEmulator(Emulator),
     GoHome,
     None,
+    EditEmulator(i32),
+    DeleteEmulator(i32),
 }
 
 impl AddEmulator {
@@ -71,6 +75,8 @@ impl AddEmulator {
                 Action::None
             }
             Message::GoHome => Action::GoHome,
+            Message::EditEmulator(id) => Action::EditEmulator(id),
+            Message::DeleteEmulator(id) => Action::DeleteEmulator(id),
         }
     }
 
@@ -90,7 +96,14 @@ impl AddEmulator {
         let emulators_list = self
             .emulators
             .iter()
-            .map(|emulator| text(emulator.name.to_string()).into())
+            .map(|emulator| {
+                row![
+                    text(emulator.name.to_string()),
+                    button("Edit").on_press(Message::EditEmulator(emulator.id)),
+                    button("Delete").on_press(Message::DeleteEmulator(emulator.id)),
+                ]
+                .into()
+            })
             .collect::<Vec<Element<Message>>>();
         let back_button = button("Back").on_press(Message::GoHome);
         column![
