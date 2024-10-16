@@ -21,7 +21,6 @@ pub enum Action {
     AddRelease,
     GoHome,
     NameChanged(String),
-    None,
     SubmitGame(Game),
 }
 
@@ -32,10 +31,6 @@ impl AddGameMainScreen {
             releases,
             games,
         }
-    }
-
-    pub fn title(&self) -> String {
-        "Add Game".to_string()
     }
 
     pub fn update(&mut self, message: Message) -> Action {

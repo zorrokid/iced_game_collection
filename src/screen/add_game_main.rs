@@ -65,7 +65,6 @@ impl AddGameMain {
                             Action::None
                         }
                         add_game_main_screen::Action::SubmitGame(game) => Action::SubmitGame(game),
-                        add_game_main_screen::Action::None => Action::None,
                     }
                 } else {
                     Action::None

@@ -149,7 +149,10 @@ impl IcedGameCollection {
                             self.screen = Screen::ViewGame(view_game);
                             Task::none()
                         }
-                        games::Action::EditGame(_) => Task::none(),
+                        games::Action::EditGame(id) => {
+                            print!("Editing game {}", id);
+                            Task::none()
+                        }
                         games::Action::DeleteGame(id) => {
                             self.collection.games.retain(|g| g.id != id);
                             self.screen = Screen::Games(screen::Games::new(

@@ -1,4 +1,4 @@
-use iced::widget::{button, column, text};
+use iced::widget::{button, column};
 
 pub struct Home {}
 

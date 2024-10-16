@@ -46,10 +46,6 @@ impl AddReleaseScreen {
         }
     }
 
-    pub fn title(&self) -> String {
-        "Add Game".to_string()
-    }
-
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Submit => {
