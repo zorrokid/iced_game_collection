@@ -18,7 +18,6 @@ pub enum Action {
     ViewGame(i32),
     EditGame(i32),
     DeleteGame(i32),
-    None,
 }
 
 impl Games {

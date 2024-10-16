@@ -140,7 +140,6 @@ impl IcedGameCollection {
                             self.screen = Screen::Home(home);
                             Task::none()
                         }
-                        games::Action::None => Task::none(),
                         games::Action::ViewGame(id) => {
                             let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
                             let view_game = view_game::ViewGame::new(
