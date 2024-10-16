@@ -151,6 +151,8 @@ impl IcedGameCollection {
                         games::Action::EditGame(_) => Task::none(),
                         games::Action::DeleteGame(id) => {
                             self.collection.games.retain(|g| g.id != id);
+                            self.screen =
+                                Screen::Games(screen::Games::new(self.collection.games.clone()));
                             Task::none()
                         }
                     }
