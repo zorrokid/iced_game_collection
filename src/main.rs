@@ -10,11 +10,11 @@ use error::Error;
 use iced::{exit, Task};
 use model::Collection;
 use model::ToGameListModel;
-use screen::add_emulator;
 use screen::add_game_main;
 use screen::add_system;
 use screen::games;
 use screen::home;
+use screen::manage_emulators;
 use screen::view_game;
 use serde_json::to_string_pretty;
 
@@ -41,7 +41,7 @@ enum Message {
     Home(home::Message),
     Games(games::Message),
     AddSystem(add_system::Message),
-    AddEmulator(add_emulator::Message),
+    ManageEmulators(manage_emulators::Message),
     AddGameMain(add_game_main::Message),
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
@@ -66,7 +66,7 @@ impl IcedGameCollection {
             Screen::Games(games) => games.title(),
             Screen::AddSystem(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
-            Screen::AddEmulator(add_emulator) => add_emulator.title(),
+            Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
         }
     }
@@ -119,8 +119,8 @@ impl IcedGameCollection {
                             Self::save_collection_async(self.collection.clone()),
                             Message::CollectionSavedOnExit,
                         ),
-                        home::Action::AddEmulator => {
-                            self.screen = Screen::AddEmulator(screen::AddEmulator::new(
+                        home::Action::ManageEmulators => {
+                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
                             ));
@@ -206,29 +206,32 @@ impl IcedGameCollection {
                 }
                 exit()
             }
-            Message::AddEmulator(add_emulator_message) => {
-                if let Screen::AddEmulator(add_emulator) = &mut self.screen {
+            Message::ManageEmulators(add_emulator_message) => {
+                if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
                     let action = add_emulator.update(add_emulator_message);
                     match action {
-                        add_emulator::Action::SubmitEmulator(emulator) => {
+                        manage_emulators::Action::SubmitEmulator(emulator) => {
                             self.collection.emulators.push(emulator);
-                            self.screen = Screen::Home(screen::Home::new());
-                            Task::none()
-                        }
-                        add_emulator::Action::None => Task::none(),
-                        add_emulator::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
-                            Task::none()
-                        }
-                        add_emulator::Action::DeleteEmulator(id) => {
-                            self.collection.emulators.retain(|e| e.id != id);
-                            self.screen = Screen::AddEmulator(screen::AddEmulator::new(
+                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
                             ));
                             Task::none()
                         }
-                        add_emulator::Action::EditEmulator(id) => {
+                        manage_emulators::Action::None => Task::none(),
+                        manage_emulators::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                        manage_emulators::Action::DeleteEmulator(id) => {
+                            self.collection.emulators.retain(|e| e.id != id);
+                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                                self.collection.emulators.clone(),
+                                self.collection.systems.clone(),
+                            ));
+                            Task::none()
+                        }
+                        manage_emulators::Action::EditEmulator(id) => {
                             // TODO
                             print!("Editing emulator {}", id);
                             Task::none()
@@ -279,7 +282,9 @@ impl IcedGameCollection {
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
-            Screen::AddEmulator(add_emulator) => add_emulator.view().map(Message::AddEmulator),
+            Screen::ManageEmulators(add_emulator) => {
+                add_emulator.view().map(Message::ManageEmulators)
+            }
             Screen::ViewGame(view_game) => view_game.view().map(Message::ViewGame),
         }
     }

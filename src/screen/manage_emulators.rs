@@ -2,7 +2,7 @@ use crate::model::{get_new_id, Emulator, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 
-pub struct AddEmulator {
+pub struct ManageEmulators {
     pub emulator: Emulator,
     pub emulators: Vec<Emulator>,
     pub systems: Vec<System>,
@@ -29,7 +29,7 @@ pub enum Action {
     DeleteEmulator(i32),
 }
 
-impl AddEmulator {
+impl ManageEmulators {
     pub fn new(emulators: Vec<Emulator>, systems: Vec<System>) -> Self {
         Self {
             emulator: Emulator {
@@ -46,7 +46,7 @@ impl AddEmulator {
     }
 
     pub fn title(&self) -> String {
-        "Add Emulator".to_string()
+        "Manage emulators".to_string()
     }
 
     pub fn update(&mut self, message: Message) -> Action {
