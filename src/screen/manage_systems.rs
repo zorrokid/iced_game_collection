@@ -1,9 +1,9 @@
 use crate::model::{get_new_id, System};
-use iced::widget::{button, column, text, text_input, Column};
+use iced::widget::{button, column, row, text, text_input, Column};
 
 // TODO: move AddSystem under Add Release?
 pub struct ManageSystems {
-    pub name: String,
+    pub system: System,
     pub systems: Vec<System>,
     pub error: Option<String>,
 }
@@ -13,18 +13,28 @@ pub enum Message {
     NameChanged(String),
     GoHome,
     Submit,
+    EditSystem(i32),
+    DeleteSystem(i32),
 }
 
 pub enum Action {
     SubmitSystem(System),
     GoHome,
     None,
+    EditSystem(i32),
+    DeleteSystem(i32),
 }
 
 impl ManageSystems {
-    pub fn new(systems: Vec<System>) -> Self {
+    pub fn new(systems: Vec<System>, edit_system: Option<System>) -> Self {
         Self {
-            name: "".to_string(),
+            system: match edit_system {
+                Some(system) => system,
+                None => System {
+                    id: get_new_id(&systems),
+                    name: "".to_string(),
+                },
+            },
             systems,
             error: None,
         }
@@ -37,31 +47,38 @@ impl ManageSystems {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::NameChanged(name) => {
-                self.name = name;
+                self.system.name = name;
                 Action::None
             }
             Message::Submit => {
-                if self.name.is_empty() {
+                if self.system.name.is_empty() {
                     self.error = Some("Name cannot be empty".to_string());
                     return Action::None;
                 } else {
-                    Action::SubmitSystem(System {
-                        id: get_new_id(&self.systems),
-                        name: self.name.clone(),
-                    })
+                    Action::SubmitSystem(self.system.clone())
                 }
             }
             Message::GoHome => Action::GoHome,
+            Message::EditSystem(id) => Action::EditSystem(id),
+            Message::DeleteSystem(id) => Action::DeleteSystem(id),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
+        let name_input_field =
+            text_input("Enter name", &self.system.name).on_input(Message::NameChanged);
         let add_button = button("Submit").on_press(Message::Submit);
         let systems_list = self
             .systems
             .iter()
-            .map(|system| text(system.to_string()).into())
+            .map(|system| {
+                row![
+                    text(system.to_string()),
+                    button("Edit").on_press(Message::EditSystem(system.id)),
+                    button("Delete").on_press(Message::DeleteSystem(system.id)),
+                ]
+                .into()
+            })
             .collect::<Vec<iced::Element<Message>>>();
         let error = if let Some(error) = &self.error {
             text(error)

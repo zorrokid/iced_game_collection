@@ -81,12 +81,30 @@ impl IcedGameCollection {
                             self.collection.systems.push(system);
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
+                                None,
                             ));
                             Task::none()
                         }
                         manage_systems::Action::None => Task::none(),
                         manage_systems::Action::GoHome => {
                             self.screen = Screen::Home(screen::Home::new());
+                            Task::none()
+                        }
+                        manage_systems::Action::EditSystem(id) => {
+                            let edit_system =
+                                self.collection.systems.iter().find(|s| s.id == id).cloned();
+                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                                self.collection.systems.clone(),
+                                edit_system,
+                            ));
+                            Task::none()
+                        }
+                        manage_systems::Action::DeleteSystem(id) => {
+                            self.collection.systems.retain(|s| s.id != id);
+                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                                self.collection.systems.clone(),
+                                None,
+                            ));
                             Task::none()
                         }
                     }
@@ -107,6 +125,7 @@ impl IcedGameCollection {
                         home::Action::ManageSystems => {
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
+                                None,
                             ));
                             Task::none()
                         }
