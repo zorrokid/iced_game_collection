@@ -71,7 +71,7 @@ impl ManageEmulators {
                 Action::None
             }
             Message::Submit(emulator) => {
-                if self.emulator.name.is_empty() {
+                if self.emulator.name.is_empty() || self.emulator.executable.is_empty() {
                     return Action::None;
                 }
                 Action::SubmitEmulator(emulator)
