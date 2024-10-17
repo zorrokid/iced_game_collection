@@ -30,14 +30,21 @@ pub enum Action {
 }
 
 impl ManageEmulators {
-    pub fn new(emulators: Vec<Emulator>, systems: Vec<System>) -> Self {
+    pub fn new(
+        emulators: Vec<Emulator>,
+        systems: Vec<System>,
+        edit_emulator: Option<Emulator>,
+    ) -> Self {
         Self {
-            emulator: Emulator {
-                id: get_new_id(&emulators),
-                name: "".to_string(),
-                executable: "".to_string(),
-                arguments: "".to_string(),
-                system_id: 0,
+            emulator: match edit_emulator {
+                Some(emulator) => emulator,
+                None => Emulator {
+                    id: get_new_id(&emulators),
+                    name: "".to_string(),
+                    executable: "".to_string(),
+                    arguments: "".to_string(),
+                    system_id: 0,
+                },
             },
             emulators,
             systems,

@@ -125,6 +125,7 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
+                                None,
                             ));
                             Task::none()
                         }
@@ -213,10 +214,20 @@ impl IcedGameCollection {
                     let action = add_emulator.update(add_emulator_message);
                     match action {
                         manage_emulators::Action::SubmitEmulator(emulator) => {
-                            self.collection.emulators.push(emulator);
+                            if let Some(existing_emulator) = self
+                                .collection
+                                .emulators
+                                .iter_mut()
+                                .find(|e| e.id == emulator.id)
+                            {
+                                *existing_emulator = emulator.clone();
+                            } else {
+                                self.collection.emulators.push(emulator);
+                            }
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
+                                None,
                             ));
                             Task::none()
                         }
@@ -230,12 +241,22 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
+                                None,
                             ));
                             Task::none()
                         }
                         manage_emulators::Action::EditEmulator(id) => {
-                            // TODO
-                            print!("Editing emulator {}", id);
+                            let edit_emulator = self
+                                .collection
+                                .emulators
+                                .iter()
+                                .find(|e| e.id == id)
+                                .cloned();
+                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                                self.collection.emulators.clone(),
+                                self.collection.systems.clone(),
+                                edit_emulator,
+                            ));
                             Task::none()
                         }
                     }
