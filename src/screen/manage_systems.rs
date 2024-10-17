@@ -1,8 +1,8 @@
 use crate::model::{get_new_id, System};
 use iced::widget::{button, column, text, text_input, Column};
 
-// TODO: move AddSystem under Add Release
-pub struct AddSystem {
+// TODO: move AddSystem under Add Release?
+pub struct ManageSystems {
     pub name: String,
     pub systems: Vec<System>,
     pub error: Option<String>,
@@ -21,7 +21,7 @@ pub enum Action {
     None,
 }
 
-impl AddSystem {
+impl ManageSystems {
     pub fn new(systems: Vec<System>) -> Self {
         Self {
             name: "".to_string(),
@@ -31,7 +31,7 @@ impl AddSystem {
     }
 
     pub fn title(&self) -> String {
-        format!("Add System {}", self.name)
+        "Manage systems".to_string()
     }
 
     pub fn update(&mut self, message: Message) -> Action {

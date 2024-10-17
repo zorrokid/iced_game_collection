@@ -11,10 +11,10 @@ use iced::{exit, Task};
 use model::Collection;
 use model::ToGameListModel;
 use screen::add_game_main;
-use screen::add_system;
 use screen::games;
 use screen::home;
 use screen::manage_emulators;
+use screen::manage_systems;
 use screen::view_game;
 use serde_json::to_string_pretty;
 
@@ -40,7 +40,7 @@ struct IcedGameCollection {
 enum Message {
     Home(home::Message),
     Games(games::Message),
-    AddSystem(add_system::Message),
+    ManageSystems(manage_systems::Message),
     ManageEmulators(manage_emulators::Message),
     AddGameMain(add_game_main::Message),
     Loaded(Result<Collection, Error>),
@@ -64,7 +64,7 @@ impl IcedGameCollection {
         match &self.screen {
             Screen::Home(home) => home.title(),
             Screen::Games(games) => games.title(),
-            Screen::AddSystem(add_system) => add_system.title(),
+            Screen::ManageSystems(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
@@ -73,17 +73,19 @@ impl IcedGameCollection {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::AddSystem(add_system_message) => {
-                if let Screen::AddSystem(add_system) = &mut self.screen {
+            Message::ManageSystems(add_system_message) => {
+                if let Screen::ManageSystems(add_system) = &mut self.screen {
                     let action = add_system.update(add_system_message);
                     match action {
-                        add_system::Action::SubmitSystem(system) => {
+                        manage_systems::Action::SubmitSystem(system) => {
                             self.collection.systems.push(system);
-                            self.screen = Screen::Home(screen::Home::new());
+                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                                self.collection.systems.clone(),
+                            ));
                             Task::none()
                         }
-                        add_system::Action::None => Task::none(),
-                        add_system::Action::GoHome => {
+                        manage_systems::Action::None => Task::none(),
+                        manage_systems::Action::GoHome => {
                             self.screen = Screen::Home(screen::Home::new());
                             Task::none()
                         }
@@ -102,8 +104,8 @@ impl IcedGameCollection {
                             ));
                             Task::none()
                         }
-                        home::Action::AddSystem => {
-                            self.screen = Screen::AddSystem(screen::AddSystem::new(
+                        home::Action::ManageSystems => {
+                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
                             ));
                             Task::none()
@@ -280,7 +282,7 @@ impl IcedGameCollection {
         match &self.screen {
             Screen::Home(home) => home.view().map(Message::Home),
             Screen::Games(games) => games.view().map(Message::Games),
-            Screen::AddSystem(add_system) => add_system.view().map(Message::AddSystem),
+            Screen::ManageSystems(add_system) => add_system.view().map(Message::ManageSystems),
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
             Screen::ManageEmulators(add_emulator) => {
                 add_emulator.view().map(Message::ManageEmulators)
