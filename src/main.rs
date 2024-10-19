@@ -78,7 +78,16 @@ impl IcedGameCollection {
                     let action = add_system.update(add_system_message);
                     match action {
                         manage_systems::Action::SubmitSystem(system) => {
-                            self.collection.systems.push(system);
+                            if let Some(existing_system) = self
+                                .collection
+                                .systems
+                                .iter_mut()
+                                .find(|s| s.id == system.id)
+                            {
+                                *existing_system = system.clone();
+                            } else {
+                                self.collection.systems.push(system);
+                            }
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
                                 None,
