@@ -6,7 +6,6 @@ pub struct ManageEmulators {
     pub emulator: Emulator,
     pub emulators: Vec<Emulator>,
     pub systems: Vec<System>,
-    pub selected_system: Option<System>,
 }
 
 #[derive(Debug, Clone)]
@@ -48,7 +47,6 @@ impl ManageEmulators {
             },
             emulators,
             systems,
-            selected_system: None,
         }
     }
 
@@ -78,7 +76,6 @@ impl ManageEmulators {
             }
             Message::SystemSelected(system) => {
                 self.emulator.system_id = system.id;
-                self.selected_system = Some(system);
                 Action::None
             }
             Message::GoHome => Action::GoHome,
@@ -94,7 +91,9 @@ impl ManageEmulators {
             .on_input(Message::ExecutableChanged);
         let systems_select = pick_list(
             self.systems.as_slice(),
-            self.selected_system.as_ref(),
+            self.systems
+                .iter()
+                .find(|s| s.id == self.emulator.system_id),
             Message::SystemSelected,
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)
