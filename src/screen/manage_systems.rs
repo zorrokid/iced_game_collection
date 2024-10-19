@@ -5,7 +5,6 @@ use iced::widget::{button, column, row, text, text_input, Column};
 pub struct ManageSystems {
     pub system: System,
     pub systems: Vec<System>,
-    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +35,6 @@ impl ManageSystems {
                 },
             },
             systems,
-            error: None,
         }
     }
 
@@ -52,7 +50,6 @@ impl ManageSystems {
             }
             Message::Submit => {
                 if self.system.name.is_empty() {
-                    self.error = Some("Name cannot be empty".to_string());
                     return Action::None;
                 } else {
                     Action::SubmitSystem(self.system.clone())
@@ -80,15 +77,9 @@ impl ManageSystems {
                 .into()
             })
             .collect::<Vec<iced::Element<Message>>>();
-        let error = if let Some(error) = &self.error {
-            text(error)
-        } else {
-            text("")
-        };
         let back_button = button("Back").on_press(Message::GoHome);
         column![
             back_button,
-            error,
             name_input_field,
             add_button,
             Column::with_children(systems_list)
