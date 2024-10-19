@@ -1,12 +1,10 @@
-use crate::model::{get_new_id, Game, Release};
+use crate::model::Game;
 use iced::widget::{button, column, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
 pub struct AddGameMainScreen {
-    name: String,
-    releases: Vec<Release>,
-    games: Vec<Game>,
+    game: Game,
 }
 
 #[derive(Debug, Clone)]
@@ -25,12 +23,8 @@ pub enum Action {
 }
 
 impl AddGameMainScreen {
-    pub fn new(name: String, releases: Vec<Release>, games: Vec<Game>) -> Self {
-        Self {
-            name,
-            releases,
-            games,
-        }
+    pub fn new(game: Game) -> Self {
+        Self { game }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -38,21 +32,19 @@ impl AddGameMainScreen {
             Message::AddRelease => Action::AddRelease,
             Message::GoHome => Action::GoHome,
             Message::NameChanged(name) => {
-                self.name = name.clone();
+                self.game.name = name.clone();
                 Action::NameChanged(name)
             }
-            Message::SubmitGame => Action::SubmitGame(Game {
-                id: get_new_id(&self.games),
-                name: self.name.clone(),
-                releases: self.releases.clone(),
-            }),
+            Message::SubmitGame => Action::SubmitGame(self.game.clone()),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let back_button = button("Back").on_press(Message::GoHome);
-        let name_input_field = text_input("Enter name", &self.name).on_input(Message::NameChanged);
+        let name_input_field =
+            text_input("Enter name", &self.game.name).on_input(Message::NameChanged);
         let releases_list = self
+            .game
             .releases
             .iter()
             .map(|release| text(release.to_string()).into())

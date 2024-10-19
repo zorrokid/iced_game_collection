@@ -1,6 +1,6 @@
 use std::vec;
 
-use crate::model::{Game, Release, System};
+use crate::model::{get_new_id, Game, System};
 use crate::screen::add_game_screen::add_game_main_screen;
 use crate::screen::add_game_screen::add_release_screen;
 use crate::screen::add_game_screen::AddGameScreen;
@@ -9,10 +9,8 @@ use iced::Task;
 #[derive(Debug, Clone)]
 pub struct AddGameMain {
     screen: AddGameScreen,
-    name: String,
-    releases: Vec<Release>,
     systems: Vec<System>,
-    games: Vec<Game>,
+    game: Game,
 }
 
 #[derive(Debug, Clone)]
@@ -29,17 +27,21 @@ pub enum Action {
 }
 
 impl AddGameMain {
-    pub fn new(systems: Vec<System>, games: Vec<Game>) -> Self {
+    pub fn new(systems: Vec<System>, games: Vec<Game>, edit_game: Option<Game>) -> Self {
+        let game = match edit_game {
+            Some(game) => game,
+            None => Game {
+                id: get_new_id(&games),
+                name: "".to_string(),
+                releases: vec![],
+            },
+        };
         Self {
             screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
-                std::string::String::new(),
-                vec![],
-                games.clone(),
+                game.clone(),
             )),
-            name: "".to_string(),
-            releases: vec![],
+            game,
             systems,
-            games,
         }
     }
 
@@ -61,7 +63,7 @@ impl AddGameMain {
                             Action::None
                         }
                         add_game_main_screen::Action::NameChanged(name) => {
-                            self.name = name;
+                            self.game.name = name;
                             Action::None
                         }
                         add_game_main_screen::Action::SubmitGame(game) => Action::SubmitGame(game),
@@ -75,24 +77,16 @@ impl AddGameMain {
                     let action = add_release_screen.update(add_release_screen_message);
                     match action {
                         add_release_screen::Action::ReleaseAdded(name) => {
-                            self.releases.push(name);
+                            self.game.releases.push(name);
                             self.screen = AddGameScreen::AddGameMainScreen(
-                                add_game_main_screen::AddGameMainScreen::new(
-                                    self.name.clone(),
-                                    self.releases.clone(),
-                                    self.games.clone(),
-                                ),
+                                add_game_main_screen::AddGameMainScreen::new(self.game.clone()),
                             );
                             Action::None
                         }
                         add_release_screen::Action::None => Action::None,
                         add_release_screen::Action::GoBack => {
                             self.screen = AddGameScreen::AddGameMainScreen(
-                                add_game_main_screen::AddGameMainScreen::new(
-                                    self.name.clone(),
-                                    self.releases.clone(),
-                                    self.games.clone(),
-                                ),
+                                add_game_main_screen::AddGameMainScreen::new(self.game.clone()),
                             );
                             Action::None
                         }

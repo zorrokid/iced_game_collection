@@ -142,6 +142,7 @@ impl IcedGameCollection {
                             self.screen = Screen::AddGameMain(screen::AddGameMain::new(
                                 self.collection.systems.clone(),
                                 self.collection.games.clone(),
+                                None,
                             ));
                             Task::none()
                         }
@@ -181,7 +182,14 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         games::Action::EditGame(id) => {
-                            print!("Editing game {}", id);
+                            let edit_game =
+                                self.collection.games.iter().find(|g| g.id == id).unwrap();
+
+                            self.screen = Screen::AddGameMain(screen::AddGameMain::new(
+                                self.collection.systems.clone(),
+                                self.collection.games.clone(),
+                                Some(edit_game.clone()),
+                            ));
                             Task::none()
                         }
                         games::Action::DeleteGame(id) => {
@@ -205,7 +213,13 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         add_game_main::Action::SubmitGame(game) => {
-                            self.collection.games.push(game);
+                            if let Some(existing_game) =
+                                self.collection.games.iter_mut().find(|g| g.id == game.id)
+                            {
+                                *existing_game = game.clone();
+                            } else {
+                                self.collection.games.push(game);
+                            }
                             self.screen = Screen::Games(screen::Games::new(
                                 self.collection.to_game_list_model(),
                             ));
