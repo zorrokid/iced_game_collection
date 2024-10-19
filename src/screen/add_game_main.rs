@@ -66,7 +66,9 @@ impl AddGameMain {
                             self.game.name = name;
                             Action::None
                         }
-                        add_game_main_screen::Action::SubmitGame(game) => Action::SubmitGame(game),
+                        add_game_main_screen::Action::SubmitGame => {
+                            Action::SubmitGame(self.game.clone())
+                        }
                     }
                 } else {
                     Action::None
