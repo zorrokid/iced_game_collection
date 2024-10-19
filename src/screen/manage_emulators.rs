@@ -14,7 +14,7 @@ pub enum Message {
     SystemSelected(System),
     ExecutableChanged(String),
     ArgumentsChanged(String),
-    Submit(Emulator),
+    Submit,
     GoHome,
     EditEmulator(i32),
     DeleteEmulator(i32),
@@ -68,11 +68,11 @@ impl ManageEmulators {
                 self.emulator.arguments = arguments;
                 Action::None
             }
-            Message::Submit(emulator) => {
+            Message::Submit => {
                 if self.emulator.name.is_empty() || self.emulator.executable.is_empty() {
                     return Action::None;
                 }
-                Action::SubmitEmulator(emulator)
+                Action::SubmitEmulator(self.emulator.clone())
             }
             Message::SystemSelected(system) => {
                 self.emulator.system_id = system.id;
@@ -98,7 +98,7 @@ impl ManageEmulators {
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)
             .on_input(Message::ArgumentsChanged);
-        let add_button = button("Submit").on_press(Message::Submit(self.emulator.clone()));
+        let add_button = button("Submit").on_press(Message::Submit);
         let emulators_list = self
             .emulators
             .iter()
