@@ -4,6 +4,9 @@ use iced::Element;
 
 #[derive(Debug, Clone)]
 pub struct AddGameMainScreen {
+    // maybe add game main would hold the game and here only the fields being edited
+    // each change would send a message to the main screen to update the game
+    // submit would only sent action without payload
     game: Game,
 }
 
@@ -19,7 +22,7 @@ pub enum Action {
     AddRelease,
     GoHome,
     NameChanged(String),
-    SubmitGame(Game),
+    SubmitGame,
 }
 
 impl AddGameMainScreen {
@@ -35,7 +38,7 @@ impl AddGameMainScreen {
                 self.game.name = name.clone();
                 Action::NameChanged(name)
             }
-            Message::SubmitGame => Action::SubmitGame(self.game.clone()),
+            Message::SubmitGame => Action::SubmitGame,
         }
     }
 
