@@ -84,14 +84,8 @@ impl AddGameMain {
                 {
                     let action = manage_releases_screen.update(manage_releases_screen_message);
                     match action {
-                        manage_releases_screen::Action::SubmitRelease(name) => {
-                            if let Some(release) =
-                                self.game.releases.iter_mut().find(|r| r.id == name.id)
-                            {
-                                *release = name.clone();
-                            } else {
-                                self.game.releases.push(name);
-                            }
+                        manage_releases_screen::Action::SubmitRelease(release) => {
+                            self.game.add_or_update_release(release);
                             self.screen = AddGameScreen::ManageReleasesScreen(
                                 manage_releases_screen::ManageReleasesScreen::new(
                                     self.systems.clone(),

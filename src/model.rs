@@ -9,6 +9,12 @@ pub struct Game {
     pub releases: Vec<Release>,
 }
 
+impl Game {
+    pub fn add_or_update_release(&mut self, release: Release) {
+        add_or_update(&mut self.releases, release);
+    }
+}
+
 pub struct GameListModel {
     pub id: i32,
     pub name: String,
