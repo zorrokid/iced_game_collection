@@ -70,7 +70,7 @@ impl ManageSystems {
             .iter()
             .map(|system| {
                 row![
-                    text(system.to_string()),
+                    text(system.to_string()).width(iced::Length::Fixed(300.0)),
                     button("Edit").on_press(Message::EditSystem(system.id)),
                     button("Delete").on_press(Message::DeleteSystem(system.id)),
                 ]

@@ -98,7 +98,7 @@ impl ManageReleasesScreen {
             .iter()
             .map(|release| {
                 row![
-                    text(release.to_string()),
+                    text(release.to_string()).width(iced::Length::Fixed(300.0)),
                     button("Edit").on_press(Message::Edit(release.id)),
                     button("Delete").on_press(Message::Delete(release.id))
                 ]

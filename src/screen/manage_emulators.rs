@@ -104,7 +104,7 @@ impl ManageEmulators {
             .iter()
             .map(|emulator| {
                 row![
-                    text(emulator.name.to_string()),
+                    text(emulator.name.to_string()).width(iced::Length::Fixed(300.0)),
                     button("Edit").on_press(Message::EditEmulator(emulator.id)),
                     button("Delete").on_press(Message::DeleteEmulator(emulator.id)),
                 ]

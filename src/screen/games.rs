@@ -41,8 +41,7 @@ impl Games {
     pub fn view(&self) -> iced::Element<Message> {
         let games = self.games.iter().map(|game| {
             row![
-                text(game.id.to_string()),
-                text(game.name.clone()),
+                text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),
                 button("Edit").on_press(Message::EditGame(game.id)),
                 button("Delete").on_press(Message::DeleteGame(game.id)),
