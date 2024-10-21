@@ -39,11 +39,21 @@ impl Home {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let view_games_button = button("View Games").on_press(Message::ViewGames);
-        let add_game_button = button("Add Game").on_press(Message::AddGame);
-        let manage_systems_button = button("Manage systems").on_press(Message::ManageSystems);
-        let manage_emulators_button = button("Manage emulators").on_press(Message::ManageEmulators);
-        let exit_button = button("Exit").on_press(Message::Exit);
+        let view_games_button = button("View Games")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ViewGames);
+        let add_game_button = button("Add Game")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::AddGame);
+        let manage_systems_button = button("Manage systems")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ManageSystems);
+        let manage_emulators_button = button("Manage emulators")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ManageEmulators);
+        let exit_button = button("Save & Exit")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::Exit);
 
         column![
             view_games_button,
