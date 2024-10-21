@@ -237,8 +237,8 @@ impl IcedGameCollection {
                     self.collection = games;
                     Task::none()
                 }
-                Err(_) => {
-                    eprintln!("Failed to load games");
+                Err(err) => {
+                    eprintln!("Failed to load collection: {}", err);
                     Task::none()
                 }
             },
