@@ -2,7 +2,7 @@ use std::vec;
 
 use crate::model::{get_new_id, Game, System};
 use crate::screen::add_game_screen::add_game_main_screen;
-use crate::screen::add_game_screen::add_release_screen;
+use crate::screen::add_game_screen::manage_releases_screen;
 use crate::screen::add_game_screen::AddGameScreen;
 use iced::Task;
 
@@ -16,7 +16,7 @@ pub struct AddGameMain {
 #[derive(Debug, Clone)]
 pub enum Message {
     AddGameMainScreen(add_game_main_screen::Message),
-    AddReleaseScreen(add_release_screen::Message),
+    ManageReleasesScreen(manage_releases_screen::Message),
 }
 
 pub enum Action {
@@ -38,7 +38,7 @@ impl AddGameMain {
         };
         Self {
             screen: AddGameScreen::AddGameMainScreen(add_game_main_screen::AddGameMainScreen::new(
-                game.clone(),
+                game.name.clone(),
             )),
             game,
             systems,
@@ -56,9 +56,12 @@ impl AddGameMain {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
                         add_game_main_screen::Action::GoHome => Action::GoHome,
-                        add_game_main_screen::Action::AddRelease => {
-                            self.screen = AddGameScreen::AddReleaseScreen(
-                                add_release_screen::AddReleaseScreen::new(self.systems.clone()),
+                        add_game_main_screen::Action::ManageReleases => {
+                            self.screen = AddGameScreen::ManageReleasesScreen(
+                                manage_releases_screen::ManageReleasesScreen::new(
+                                    self.systems.clone(),
+                                    self.game.releases.clone(),
+                                ),
                             );
                             Action::None
                         }
@@ -74,26 +77,32 @@ impl AddGameMain {
                     Action::None
                 }
             }
-            Message::AddReleaseScreen(add_release_screen_message) => {
-                if let AddGameScreen::AddReleaseScreen(add_release_screen) = &mut self.screen {
-                    let action = add_release_screen.update(add_release_screen_message);
+            Message::ManageReleasesScreen(manage_releases_screen_message) => {
+                if let AddGameScreen::ManageReleasesScreen(manage_releases_screen) =
+                    &mut self.screen
+                {
+                    let action = manage_releases_screen.update(manage_releases_screen_message);
                     match action {
-                        add_release_screen::Action::ReleaseAdded(name) => {
+                        manage_releases_screen::Action::ReleaseAdded(name) => {
                             self.game.releases.push(name);
                             self.screen = AddGameScreen::AddGameMainScreen(
-                                add_game_main_screen::AddGameMainScreen::new(self.game.clone()),
+                                add_game_main_screen::AddGameMainScreen::new(
+                                    self.game.name.clone(),
+                                ),
                             );
                             Action::None
                         }
-                        add_release_screen::Action::None => Action::None,
-                        add_release_screen::Action::GoBack => {
+                        manage_releases_screen::Action::None => Action::None,
+                        manage_releases_screen::Action::GoBack => {
                             self.screen = AddGameScreen::AddGameMainScreen(
-                                add_game_main_screen::AddGameMainScreen::new(self.game.clone()),
+                                add_game_main_screen::AddGameMainScreen::new(
+                                    self.game.name.clone(),
+                                ),
                             );
                             Action::None
                         }
-                        add_release_screen::Action::Run(task) => {
-                            Action::Run(task.map(Message::AddReleaseScreen))
+                        manage_releases_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::ManageReleasesScreen))
                         }
                     }
                 } else {
@@ -108,8 +117,8 @@ impl AddGameMain {
             AddGameScreen::AddGameMainScreen(sub_screen) => {
                 sub_screen.view().map(Message::AddGameMainScreen)
             }
-            AddGameScreen::AddReleaseScreen(sub_screen2) => {
-                sub_screen2.view().map(Message::AddReleaseScreen)
+            AddGameScreen::ManageReleasesScreen(sub_screen2) => {
+                sub_screen2.view().map(Message::ManageReleasesScreen)
             }
         }
     }

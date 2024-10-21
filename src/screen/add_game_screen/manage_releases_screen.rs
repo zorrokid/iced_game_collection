@@ -3,19 +3,20 @@ use std::path::PathBuf;
 use crate::error::Error;
 use crate::model::{Release, System};
 use iced::widget::{button, column, pick_list, text, text_input, Column};
-use iced::Task;
+use iced::{Element, Task};
 
 // TODO create of main and sub screens for add release
 // - add release main
 // -- add release screen
 // -- add system screen
 #[derive(Debug, Clone)]
-pub struct AddReleaseScreen {
+pub struct ManageReleasesScreen {
     pub name: String,
     pub systems: Vec<System>,
     pub selected_system: Option<System>,
     pub files: Vec<String>,
     pub error: String,
+    pub releases: Vec<Release>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,14 +36,15 @@ pub enum Action {
     Run(Task<Message>),
 }
 
-impl AddReleaseScreen {
-    pub fn new(systems: Vec<System>) -> Self {
+impl ManageReleasesScreen {
+    pub fn new(systems: Vec<System>, releases: Vec<Release>) -> Self {
         Self {
             name: "".to_string(),
             systems,
             selected_system: None,
             files: vec![],
             error: "".to_string(),
+            releases,
         }
     }
 
@@ -90,7 +92,13 @@ impl AddReleaseScreen {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let title = text("Sub screen 2");
+        let releases_label = text("Releases");
+        let releases_list = self
+            .releases
+            .iter()
+            .map(|release| text(release.to_string()).into())
+            .collect::<Vec<Element<Message>>>();
+
         let release_name_input_field =
             text_input("Enter release name", &self.name).on_input(Message::NameChanged);
         let systems_select = pick_list(
@@ -110,7 +118,8 @@ impl AddReleaseScreen {
         let error = text(self.error.clone());
         column![
             back_button,
-            title,
+            releases_label,
+            Column::with_children(releases_list),
             release_name_input_field,
             systems_select,
             Column::with_children(files_list),
