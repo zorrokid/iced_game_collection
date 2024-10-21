@@ -13,7 +13,6 @@ use iced::{Element, Task};
 pub struct ManageReleasesScreen {
     pub release: Release,
     pub systems: Vec<System>,
-    pub error: String,
     pub releases: Vec<Release>,
 }
 
@@ -50,26 +49,22 @@ impl ManageReleasesScreen {
                 None => Release {
                     id: get_new_id(&releases),
                     name: "".to_string(),
-                    system_id: 0, // TODO: should this be Option?
+                    system_id: 0,
                     files: vec![],
                 },
             },
             systems,
-            error: "".to_string(),
             releases,
         }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::Submit => {
-                if self.release.name.is_empty() {
-                    self.error = "Name cannot be empty".to_string();
-                    return Action::None;
-                }
-                Action::SubmitRelease(self.release.clone())
-            }
-
+            Message::Submit => match (self.release.system_id, self.release.name.is_empty()) {
+                (0, _) => Action::None,
+                (_, true) => Action::None,
+                _ => Action::SubmitRelease(self.release.clone()),
+            },
             Message::NameChanged(name) => {
                 self.release.name = name.clone();
                 Action::None
@@ -138,7 +133,6 @@ impl ManageReleasesScreen {
         let back_button = button("Back").on_press(Message::GoBack);
 
         let submit_button = button("Submit").on_press(Message::Submit);
-        let error = text(self.error.clone());
         column![
             back_button,
             releases_label,
@@ -148,7 +142,6 @@ impl ManageReleasesScreen {
             Column::with_children(files_list),
             add_file_button,
             submit_button,
-            error,
         ]
         .into()
     }
