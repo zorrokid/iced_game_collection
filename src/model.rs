@@ -39,7 +39,7 @@ impl Display for System {
 pub struct Release {
     pub id: i32,
     pub name: String,
-    pub system: System,
+    pub system_id: i32,
     pub files: Vec<String>,
 }
 
@@ -75,6 +75,12 @@ impl HasId for System {
 }
 
 impl HasId for Emulator {
+    fn id(&self) -> i32 {
+        self.id
+    }
+}
+
+impl HasId for Release {
     fn id(&self) -> i32 {
         self.id
     }

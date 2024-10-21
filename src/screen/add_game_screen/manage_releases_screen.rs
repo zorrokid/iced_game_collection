@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::error::Error;
-use crate::model::{Release, System};
+use crate::model::{get_new_id, Release, System};
 use iced::widget::{button, column, pick_list, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -11,10 +11,8 @@ use iced::{Element, Task};
 // -- add system screen
 #[derive(Debug, Clone)]
 pub struct ManageReleasesScreen {
-    pub name: String,
+    pub release: Release,
     pub systems: Vec<System>,
-    pub selected_system: Option<System>,
-    pub files: Vec<String>,
     pub error: String,
     pub releases: Vec<Release>,
 }
@@ -39,10 +37,13 @@ pub enum Action {
 impl ManageReleasesScreen {
     pub fn new(systems: Vec<System>, releases: Vec<Release>) -> Self {
         Self {
-            name: "".to_string(),
+            release: Release {
+                id: get_new_id(&releases),
+                name: "".to_string(),
+                system_id: 0, // TODO: should this be Option?
+                files: vec![],
+            },
             systems,
-            selected_system: None,
-            files: vec![],
             error: "".to_string(),
             releases,
         }
@@ -50,25 +51,13 @@ impl ManageReleasesScreen {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::Submit => {
-                if let Some(system) = &self.selected_system {
-                    Action::ReleaseAdded(Release {
-                        id: 0, // TODO: maybe use Option, set id when saving to db?
-                        name: self.name.clone(),
-                        system: system.clone(),
-                        files: self.files.clone(),
-                    })
-                } else {
-                    self.error = "System not selected".to_string();
-                    Action::None
-                }
-            }
+            Message::Submit => Action::ReleaseAdded(self.release.clone()),
             Message::NameChanged(name) => {
-                self.name = name.clone();
+                self.release.name = name.clone();
                 Action::None
             }
             Message::SystemSelected(system) => {
-                self.selected_system = Some(system);
+                self.release.system_id = system.id;
                 Action::None
             }
             Message::SelectFile => {
@@ -83,7 +72,7 @@ impl ManageReleasesScreen {
             }
             Message::FileAdded(result) => {
                 if let Ok(path) = result {
-                    self.files.push(path.to_string_lossy().to_string());
+                    self.release.files.push(path.to_string_lossy().to_string());
                 }
                 Action::None
             }
@@ -100,13 +89,20 @@ impl ManageReleasesScreen {
             .collect::<Vec<Element<Message>>>();
 
         let release_name_input_field =
-            text_input("Enter release name", &self.name).on_input(Message::NameChanged);
+            text_input("Enter release name", &self.release.name).on_input(Message::NameChanged);
+
+        let selected_system = self
+            .systems
+            .iter()
+            .find(|system| system.id == self.release.system_id);
+
         let systems_select = pick_list(
             self.systems.as_slice(),
-            self.selected_system.as_ref(),
+            selected_system,
             Message::SystemSelected,
         );
         let files_list = self
+            .release
             .files
             .iter()
             .map(|file| text(file).into())

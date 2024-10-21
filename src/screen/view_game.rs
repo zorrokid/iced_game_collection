@@ -1,4 +1,4 @@
-use crate::model::{Emulator, Game};
+use crate::model::{Emulator, Game, System};
 use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
@@ -44,7 +44,7 @@ impl ViewGame {
                 let emulators_for_system = self
                     .emulators
                     .iter()
-                    .filter(|emulator| emulator.system_id == release.system.id)
+                    .filter(|emulator| emulator.system_id == release.system_id)
                     .collect::<Vec<&Emulator>>();
                 let files_list = release
                     .files
