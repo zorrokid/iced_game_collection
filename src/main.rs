@@ -9,8 +9,6 @@ use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
-use model::DeleteSystem;
-use model::ToGameListModel;
 use screen::add_game_main;
 use screen::games;
 use screen::home;
@@ -79,16 +77,7 @@ impl IcedGameCollection {
                     let action = add_system.update(add_system_message);
                     match action {
                         manage_systems::Action::SubmitSystem(system) => {
-                            if let Some(existing_system) = self
-                                .collection
-                                .systems
-                                .iter_mut()
-                                .find(|s| s.id == system.id)
-                            {
-                                *existing_system = system.clone();
-                            } else {
-                                self.collection.systems.push(system);
-                            }
+                            self.collection.add_or_update_system(system);
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
                                 None,
@@ -214,13 +203,7 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         add_game_main::Action::SubmitGame(game) => {
-                            if let Some(existing_game) =
-                                self.collection.games.iter_mut().find(|g| g.id == game.id)
-                            {
-                                *existing_game = game.clone();
-                            } else {
-                                self.collection.games.push(game);
-                            }
+                            self.collection.add_or_update_game(game);
                             self.screen = Screen::Games(screen::Games::new(
                                 self.collection.to_game_list_model(),
                             ));
@@ -257,16 +240,7 @@ impl IcedGameCollection {
                     let action = add_emulator.update(add_emulator_message);
                     match action {
                         manage_emulators::Action::SubmitEmulator(emulator) => {
-                            if let Some(existing_emulator) = self
-                                .collection
-                                .emulators
-                                .iter_mut()
-                                .find(|e| e.id == emulator.id)
-                            {
-                                *existing_emulator = emulator.clone();
-                            } else {
-                                self.collection.emulators.push(emulator);
-                            }
+                            self.collection.add_or_update_emulator(emulator);
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),

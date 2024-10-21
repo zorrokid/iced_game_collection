@@ -93,22 +93,8 @@ pub struct Collection {
     pub emulators: Vec<Emulator>,
 }
 
-pub trait ToGameListModel {
-    fn to_game_list_model(&self) -> Vec<GameListModel>;
-}
-
-pub trait DeleteSystem {
-    fn delete_system(&mut self, system_id: i32);
-}
-
-impl ToGameListModel for Collection {
-    fn to_game_list_model(&self) -> Vec<GameListModel> {
-        self.games.iter().map(GameListModel::from).collect()
-    }
-}
-
-impl DeleteSystem for Collection {
-    fn delete_system(&mut self, system_id: i32) {
+impl Collection {
+    pub fn delete_system(&mut self, system_id: i32) {
         self.games.iter_mut().for_each(|game| {
             game.releases
                 .retain(|release| release.system_id != system_id)
@@ -116,6 +102,20 @@ impl DeleteSystem for Collection {
         self.emulators
             .retain(|emulator| emulator.system_id != system_id);
         self.systems.retain(|system| system.id != system_id);
+    }
+    pub fn add_or_update_game(&mut self, game: Game) {
+        add_or_update(&mut self.games, game);
+    }
+
+    pub fn add_or_update_system(&mut self, system: System) {
+        add_or_update(&mut self.systems, system);
+    }
+
+    pub fn add_or_update_emulator(&mut self, emulator: Emulator) {
+        add_or_update(&mut self.emulators, emulator);
+    }
+    pub fn to_game_list_model(&self) -> Vec<GameListModel> {
+        self.games.iter().map(GameListModel::from).collect()
     }
 }
 
@@ -125,4 +125,12 @@ pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
         .max_by_key(|item| item.id())
         .map(|item| item.id() + 1)
         .unwrap_or(1)
+}
+
+fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
+    if let Some(existing_item) = items.iter_mut().find(|i| i.id() == item.id()) {
+        *existing_item = item;
+    } else {
+        items.push(item);
+    }
 }
