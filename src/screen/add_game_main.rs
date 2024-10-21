@@ -85,9 +85,10 @@ impl AddGameMain {
                     match action {
                         manage_releases_screen::Action::ReleaseAdded(name) => {
                             self.game.releases.push(name);
-                            self.screen = AddGameScreen::AddGameMainScreen(
-                                add_game_main_screen::AddGameMainScreen::new(
-                                    self.game.name.clone(),
+                            self.screen = AddGameScreen::ManageReleasesScreen(
+                                manage_releases_screen::ManageReleasesScreen::new(
+                                    self.systems.clone(),
+                                    self.game.releases.clone(),
                                 ),
                             );
                             Action::None
