@@ -61,6 +61,7 @@ impl AddGameMain {
                                 manage_releases_screen::ManageReleasesScreen::new(
                                     self.systems.clone(),
                                     self.game.releases.clone(),
+                                    None,
                                 ),
                             );
                             Action::None
@@ -83,12 +84,19 @@ impl AddGameMain {
                 {
                     let action = manage_releases_screen.update(manage_releases_screen_message);
                     match action {
-                        manage_releases_screen::Action::ReleaseAdded(name) => {
-                            self.game.releases.push(name);
+                        manage_releases_screen::Action::SubmitRelease(name) => {
+                            if let Some(release) =
+                                self.game.releases.iter_mut().find(|r| r.id == name.id)
+                            {
+                                *release = name.clone();
+                            } else {
+                                self.game.releases.push(name);
+                            }
                             self.screen = AddGameScreen::ManageReleasesScreen(
                                 manage_releases_screen::ManageReleasesScreen::new(
                                     self.systems.clone(),
                                     self.game.releases.clone(),
+                                    None,
                                 ),
                             );
                             Action::None
@@ -104,6 +112,28 @@ impl AddGameMain {
                         }
                         manage_releases_screen::Action::Run(task) => {
                             Action::Run(task.map(Message::ManageReleasesScreen))
+                        }
+                        manage_releases_screen::Action::Delete(id) => {
+                            self.game.releases.retain(|r| r.id != id);
+                            self.screen = AddGameScreen::ManageReleasesScreen(
+                                manage_releases_screen::ManageReleasesScreen::new(
+                                    self.systems.clone(),
+                                    self.game.releases.clone(),
+                                    None,
+                                ),
+                            );
+                            Action::None
+                        }
+                        manage_releases_screen::Action::Edit(id) => {
+                            let release = self.game.releases.iter().find(|r| r.id == id).unwrap();
+                            self.screen = AddGameScreen::ManageReleasesScreen(
+                                manage_releases_screen::ManageReleasesScreen::new(
+                                    self.systems.clone(),
+                                    self.game.releases.clone(),
+                                    Some(release.clone()),
+                                ),
+                            );
+                            Action::None
                         }
                     }
                 } else {

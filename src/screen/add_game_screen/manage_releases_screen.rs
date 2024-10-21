@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::model::{get_new_id, Release, System};
-use iced::widget::{button, column, pick_list, text, text_input, Column};
+use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
 // TODO create of main and sub screens for add release
@@ -25,23 +25,34 @@ pub enum Message {
     GoBack,
     FileAdded(Result<PathBuf, Error>),
     SelectFile,
+    Edit(i32),
+    Delete(i32),
 }
 
 pub enum Action {
-    ReleaseAdded(Release),
+    SubmitRelease(Release),
     GoBack,
     None,
     Run(Task<Message>),
+    Edit(i32),
+    Delete(i32),
 }
 
 impl ManageReleasesScreen {
-    pub fn new(systems: Vec<System>, releases: Vec<Release>) -> Self {
+    pub fn new(
+        systems: Vec<System>,
+        releases: Vec<Release>,
+        edit_release: Option<Release>,
+    ) -> Self {
         Self {
-            release: Release {
-                id: get_new_id(&releases),
-                name: "".to_string(),
-                system_id: 0, // TODO: should this be Option?
-                files: vec![],
+            release: match edit_release {
+                Some(release) => release,
+                None => Release {
+                    id: get_new_id(&releases),
+                    name: "".to_string(),
+                    system_id: 0, // TODO: should this be Option?
+                    files: vec![],
+                },
             },
             systems,
             error: "".to_string(),
@@ -51,7 +62,14 @@ impl ManageReleasesScreen {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::Submit => Action::ReleaseAdded(self.release.clone()),
+            Message::Submit => {
+                if self.release.name.is_empty() {
+                    self.error = "Name cannot be empty".to_string();
+                    return Action::None;
+                }
+                Action::SubmitRelease(self.release.clone())
+            }
+
             Message::NameChanged(name) => {
                 self.release.name = name.clone();
                 Action::None
@@ -77,6 +95,8 @@ impl ManageReleasesScreen {
                 Action::None
             }
             Message::GoBack => Action::GoBack,
+            Message::Delete(id) => Action::Delete(id),
+            Message::Edit(id) => Action::Edit(id),
         }
     }
 
@@ -85,7 +105,14 @@ impl ManageReleasesScreen {
         let releases_list = self
             .releases
             .iter()
-            .map(|release| text(release.to_string()).into())
+            .map(|release| {
+                row![
+                    text(release.to_string()),
+                    button("Edit").on_press(Message::Edit(release.id)),
+                    button("Delete").on_press(Message::Delete(release.id))
+                ]
+                .into()
+            })
             .collect::<Vec<Element<Message>>>();
 
         let release_name_input_field =

@@ -1,4 +1,4 @@
-use crate::model::{Emulator, Game, System};
+use crate::model::{Emulator, Game};
 use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
