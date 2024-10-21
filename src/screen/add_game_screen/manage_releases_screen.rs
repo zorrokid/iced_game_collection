@@ -74,14 +74,10 @@ impl ManageReleasesScreen {
                 Action::None
             }
             Message::SelectFile => {
-                // Why do we need to wrap the Task in Run-action?
-                // - since update returns an Action, we need to wrap the Task in an Action
-                // - also the Task::perform needs to be returned to the runtime
-                Action::Run(
-                    // Async operation pick_file has to be run in a separate thread
-                    // the outcome of pick_file is sent back to the main thread as a FileAdded-Message
-                    Task::perform(pick_file(), Message::FileAdded),
-                )
+                // We need to wrap the Task in an Action, because with Action we can pass the Task back to the main update-function which
+                // returns a Task<Message> which is then passed back to the iced runtime. Iced runtime passes the Message with the result from the
+                // Task back to the update function.
+                Action::Run(Task::perform(pick_file(), Message::FileAdded))
             }
             Message::FileAdded(result) => {
                 if let Ok(path) = result {
