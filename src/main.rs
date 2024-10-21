@@ -9,6 +9,7 @@ use async_std::io::WriteExt;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
+use model::DeleteSystem;
 use model::ToGameListModel;
 use screen::add_game_main;
 use screen::games;
@@ -109,7 +110,7 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         manage_systems::Action::DeleteSystem(id) => {
-                            self.collection.systems.retain(|s| s.id != id);
+                            self.collection.delete_system(id);
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
                                 None,

@@ -97,9 +97,25 @@ pub trait ToGameListModel {
     fn to_game_list_model(&self) -> Vec<GameListModel>;
 }
 
+pub trait DeleteSystem {
+    fn delete_system(&mut self, system_id: i32);
+}
+
 impl ToGameListModel for Collection {
     fn to_game_list_model(&self) -> Vec<GameListModel> {
         self.games.iter().map(GameListModel::from).collect()
+    }
+}
+
+impl DeleteSystem for Collection {
+    fn delete_system(&mut self, system_id: i32) {
+        self.games.iter_mut().for_each(|game| {
+            game.releases
+                .retain(|release| release.system_id != system_id)
+        });
+        self.emulators
+            .retain(|emulator| emulator.system_id != system_id);
+        self.systems.retain(|system| system.id != system_id);
     }
 }
 
