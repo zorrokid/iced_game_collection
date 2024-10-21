@@ -13,6 +13,9 @@ impl Game {
     pub fn add_or_update_release(&mut self, release: Release) {
         add_or_update(&mut self.releases, release);
     }
+    pub fn delete_release(&mut self, release_id: i32) {
+        self.releases.retain(|release| release.id != release_id);
+    }
 }
 
 pub struct GameListModel {
@@ -108,6 +111,13 @@ impl Collection {
         self.emulators
             .retain(|emulator| emulator.system_id != system_id);
         self.systems.retain(|system| system.id != system_id);
+    }
+
+    pub fn delete_game(&mut self, game_id: i32) {
+        self.games.retain(|game| game.id != game_id);
+    }
+    pub fn delete_emulator(&mut self, emulator_id: i32) {
+        self.emulators.retain(|emulator| emulator.id != emulator_id);
     }
     pub fn add_or_update_game(&mut self, game: Game) {
         add_or_update(&mut self.games, game);

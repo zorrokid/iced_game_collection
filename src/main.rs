@@ -183,7 +183,7 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         games::Action::DeleteGame(id) => {
-                            self.collection.games.retain(|g| g.id != id);
+                            self.collection.delete_game(id);
                             self.screen = Screen::Games(screen::Games::new(
                                 self.collection.to_game_list_model(),
                             ));
@@ -254,7 +254,7 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         manage_emulators::Action::DeleteEmulator(id) => {
-                            self.collection.emulators.retain(|e| e.id != id);
+                            self.collection.delete_emulator(id);
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),

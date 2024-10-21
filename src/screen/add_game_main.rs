@@ -108,7 +108,7 @@ impl AddGameMain {
                             Action::Run(task.map(Message::ManageReleasesScreen))
                         }
                         manage_releases_screen::Action::Delete(id) => {
-                            self.game.releases.retain(|r| r.id != id);
+                            self.game.delete_release(id);
                             self.screen = AddGameScreen::ManageReleasesScreen(
                                 manage_releases_screen::ManageReleasesScreen::new(
                                     self.systems.clone(),
