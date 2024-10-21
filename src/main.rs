@@ -90,11 +90,9 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         manage_systems::Action::EditSystem(id) => {
-                            let edit_system =
-                                self.collection.systems.iter().find(|s| s.id == id).cloned();
                             self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                                 self.collection.systems.clone(),
-                                edit_system,
+                                self.collection.get_system(id),
                             ));
                             Task::none()
                         }
@@ -263,16 +261,10 @@ impl IcedGameCollection {
                             Task::none()
                         }
                         manage_emulators::Action::EditEmulator(id) => {
-                            let edit_emulator = self
-                                .collection
-                                .emulators
-                                .iter()
-                                .find(|e| e.id == id)
-                                .cloned();
                             self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
                                 self.collection.emulators.clone(),
                                 self.collection.systems.clone(),
-                                edit_emulator,
+                                self.collection.get_emulator(id),
                             ));
                             Task::none()
                         }

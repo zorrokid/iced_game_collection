@@ -16,6 +16,9 @@ impl Game {
     pub fn delete_release(&mut self, release_id: i32) {
         self.releases.retain(|release| release.id != release_id);
     }
+    pub fn get_release(&self, id: i32) -> Option<Release> {
+        get_cloned(&self.releases, id)
+    }
 }
 
 pub struct GameListModel {
@@ -133,6 +136,12 @@ impl Collection {
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
         self.games.iter().map(GameListModel::from).collect()
     }
+    pub fn get_system(&self, id: i32) -> Option<System> {
+        get_cloned(&self.systems, id)
+    }
+    pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
+        get_cloned(&self.emulators, id)
+    }
 }
 
 pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
@@ -149,4 +158,8 @@ fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
     } else {
         items.push(item);
     }
+}
+
+fn get_cloned<T: HasId + Clone>(items: &Vec<T>, id: i32) -> Option<T> {
+    items.iter().find(|item| item.id() == id).cloned()
 }

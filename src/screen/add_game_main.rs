@@ -119,12 +119,11 @@ impl AddGameMain {
                             Action::None
                         }
                         manage_releases_screen::Action::Edit(id) => {
-                            let release = self.game.releases.iter().find(|r| r.id == id).unwrap();
                             self.screen = AddGameScreen::ManageReleasesScreen(
                                 manage_releases_screen::ManageReleasesScreen::new(
                                     self.systems.clone(),
                                     self.game.releases.clone(),
-                                    Some(release.clone()),
+                                    self.game.get_release(id),
                                 ),
                             );
                             Action::None
