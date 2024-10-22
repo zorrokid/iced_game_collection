@@ -371,7 +371,6 @@ impl IcedGameCollection {
     }
 
     async fn run_with_emulator_async(file: String, emulator: model::Emulator) -> Result<(), Error> {
-        // spawn emulator
         println!("Running {} with emulator {}", file, emulator.name);
         let mut child = Command::new(&emulator.executable)
             .arg(&file)
