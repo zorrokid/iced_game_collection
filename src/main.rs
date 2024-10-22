@@ -75,255 +75,18 @@ impl IcedGameCollection {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ManageSystems(add_system_message) => {
-                if let Screen::ManageSystems(add_system) = &mut self.screen {
-                    let action = add_system.update(add_system_message);
-                    match action {
-                        manage_systems::Action::SubmitSystem(system) => {
-                            self.collection.add_or_update_system(system);
-                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        manage_systems::Action::None => Task::none(),
-                        manage_systems::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
-                            Task::none()
-                        }
-                        manage_systems::Action::EditSystem(id) => {
-                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                                self.collection.systems.clone(),
-                                self.collection.get_system(id),
-                            ));
-                            Task::none()
-                        }
-                        manage_systems::Action::DeleteSystem(id) => {
-                            self.collection.delete_system(id);
-                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            Message::Home(home_message) => {
-                if let Screen::Home(home) = &mut self.screen {
-                    let action = home.update(home_message);
-                    match action {
-                        home::Action::ViewGames => {
-                            self.screen = Screen::Games(screen::Games::new(
-                                self.collection.to_game_list_model(),
-                            ));
-                            Task::none()
-                        }
-                        home::Action::ManageSystems => {
-                            self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        home::Action::AddGame => {
-                            self.screen = Screen::AddGameMain(screen::AddGameMain::new(
-                                self.collection.systems.clone(),
-                                self.collection.games.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        home::Action::Exit => Task::perform(
-                            Self::save_collection_async(self.collection.clone()),
-                            Message::CollectionSavedOnExit,
-                        ),
-                        home::Action::ManageEmulators => {
-                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                                self.collection.emulators.clone(),
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            Message::Games(games_message) => {
-                if let Screen::Games(games) = &mut self.screen {
-                    let action = games.update(games_message);
-                    match action {
-                        games::Action::GoHome => {
-                            let home = home::Home::new();
-                            self.screen = Screen::Home(home);
-                            Task::none()
-                        }
-                        games::Action::ViewGame(id) => {
-                            let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
-                            let view_game = view_game::ViewGame::new(
-                                game.clone(),
-                                self.collection.emulators.clone(),
-                            );
-                            self.screen = Screen::ViewGame(view_game);
-                            Task::none()
-                        }
-                        games::Action::EditGame(id) => {
-                            let edit_game =
-                                self.collection.games.iter().find(|g| g.id == id).unwrap();
-
-                            self.screen = Screen::AddGameMain(screen::AddGameMain::new(
-                                self.collection.systems.clone(),
-                                self.collection.games.clone(),
-                                Some(edit_game.clone()),
-                            ));
-                            Task::none()
-                        }
-                        games::Action::DeleteGame(id) => {
-                            self.collection.delete_game(id);
-                            self.screen = Screen::Games(screen::Games::new(
-                                self.collection.to_game_list_model(),
-                            ));
-                            Task::none()
-                        }
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            Message::AddGameMain(add_game_main_message) => {
-                if let Screen::AddGameMain(add_game_main) = &mut self.screen {
-                    let action = add_game_main.update(add_game_main_message);
-                    match action {
-                        add_game_main::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
-                            Task::none()
-                        }
-                        add_game_main::Action::SubmitGame(game) => {
-                            self.collection.add_or_update_game(game);
-                            self.screen = Screen::Games(screen::Games::new(
-                                self.collection.to_game_list_model(),
-                            ));
-                            Task::none()
-                        }
-                        add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
-                        add_game_main::Action::None => Task::none(),
-                        add_game_main::Action::Error(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e));
-                            Task::none()
-                        }
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            Message::Loaded(collection) => match collection {
-                Ok(games) => {
-                    self.collection = games;
-                    Task::none()
-                }
-                Err(err) => {
-                    eprintln!("Failed to load collection: {}", err);
-                    Task::none()
-                }
-            },
-            Message::CollectionSavedOnExit(result) => {
-                if let Err(e) = result {
-                    match e {
-                        Error::IoError(e) => eprintln!("Failed to save collection: {}", e),
-                        _ => eprintln!("Failed to save collection"),
-                    }
-                }
-                exit()
-            }
-            Message::ManageEmulators(add_emulator_message) => {
-                if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
-                    let action = add_emulator.update(add_emulator_message);
-                    match action {
-                        manage_emulators::Action::SubmitEmulator(emulator) => {
-                            self.collection.add_or_update_emulator(emulator);
-                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                                self.collection.emulators.clone(),
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        manage_emulators::Action::None => Task::none(),
-                        manage_emulators::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
-                            Task::none()
-                        }
-                        manage_emulators::Action::DeleteEmulator(id) => {
-                            self.collection.delete_emulator(id);
-                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                                self.collection.emulators.clone(),
-                                self.collection.systems.clone(),
-                                None,
-                            ));
-                            Task::none()
-                        }
-                        manage_emulators::Action::EditEmulator(id) => {
-                            self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                                self.collection.emulators.clone(),
-                                self.collection.systems.clone(),
-                                self.collection.get_emulator(id),
-                            ));
-                            Task::none()
-                        }
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            Message::ViewGame(view_game_message) => {
-                if let Screen::ViewGame(view_game) = &mut self.screen {
-                    let action = view_game.update(view_game_message);
-                    match action {
-                        view_game::Action::GoToGames => {
-                            self.screen = Screen::Games(screen::Games::new(
-                                self.collection.to_game_list_model(),
-                            ));
-                            Task::none()
-                        }
-                        view_game::Action::RunWithEmulator(emulator, file) => {
-                            println!("Running with emulator: {}", file);
-                            Task::perform(
-                                Self::run_with_emulator_async(file, emulator.clone()),
-                                Message::FinishedRunningWithEmulator,
-                            )
-                        }
-                    }
-                } else {
-                    Task::none()
-                }
-            }
+            Message::ManageSystems(message) => self.update_manage_systems(message),
+            Message::Home(message) => self.update_home(message),
+            Message::Games(message) => self.update_games(message),
+            Message::AddGameMain(message) => self.update_add_game(message),
+            Message::Loaded(result) => self.update_loaded(result),
+            Message::CollectionSavedOnExit(result) => self.update_collection_saved_on_exit(result),
+            Message::ManageEmulators(message) => self.update_manage_emulators(message),
+            Message::ViewGame(message) => self.update_view_game(message),
             Message::FinishedRunningWithEmulator(result) => {
-                match result {
-                    Ok(()) => {
-                        println!("Finished running with emulator");
-                    }
-                    Err(_) => println!("Failed to run with emulator"),
-                }
-
-                Task::none()
+                self.update_finished_running_emulator(result)
             }
-            Message::Error(error_message) => {
-                if let Screen::Error(error) = &mut self.screen {
-                    let action = error.update(error_message);
-                    match action {
-                        error_screen::Action::GoHome => {
-                            self.screen = Screen::Home(screen::Home::new());
-                        }
-                    }
-                }
-                Task::none()
-            }
+            Message::Error(message) => self.update_error(message),
         }
     }
 
@@ -339,6 +102,260 @@ impl IcedGameCollection {
             Screen::ViewGame(view_game) => view_game.view().map(Message::ViewGame),
             Screen::Error(error) => error.view().map(Message::Error),
         }
+    }
+
+    fn update_manage_systems(&mut self, message: manage_systems::Message) -> Task<Message> {
+        if let Screen::ManageSystems(add_system) = &mut self.screen {
+            let action = add_system.update(message);
+            match action {
+                manage_systems::Action::SubmitSystem(system) => {
+                    self.collection.add_or_update_system(system);
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                manage_systems::Action::None => Task::none(),
+                manage_systems::Action::GoHome => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                manage_systems::Action::EditSystem(id) => {
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                        self.collection.systems.clone(),
+                        self.collection.get_system(id),
+                    ));
+                    Task::none()
+                }
+                manage_systems::Action::DeleteSystem(id) => {
+                    self.collection.delete_system(id);
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_home(&mut self, message: home::Message) -> Task<Message> {
+        if let Screen::Home(home) = &mut self.screen {
+            let action = home.update(message);
+            match action {
+                home::Action::ViewGames => {
+                    self.screen =
+                        Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
+                    Task::none()
+                }
+                home::Action::ManageSystems => {
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                home::Action::AddGame => {
+                    self.screen = Screen::AddGameMain(screen::AddGameMain::new(
+                        self.collection.systems.clone(),
+                        self.collection.games.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                home::Action::Exit => Task::perform(
+                    Self::save_collection_async(self.collection.clone()),
+                    Message::CollectionSavedOnExit,
+                ),
+                home::Action::ManageEmulators => {
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                        self.collection.emulators.clone(),
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_games(&mut self, message: games::Message) -> Task<Message> {
+        if let Screen::Games(games) = &mut self.screen {
+            let action = games.update(message);
+            match action {
+                games::Action::GoHome => {
+                    let home = home::Home::new();
+                    self.screen = Screen::Home(home);
+                    Task::none()
+                }
+                games::Action::ViewGame(id) => {
+                    let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
+                    let view_game =
+                        view_game::ViewGame::new(game.clone(), self.collection.emulators.clone());
+                    self.screen = Screen::ViewGame(view_game);
+                    Task::none()
+                }
+                games::Action::EditGame(id) => {
+                    let edit_game = self.collection.games.iter().find(|g| g.id == id).unwrap();
+
+                    self.screen = Screen::AddGameMain(screen::AddGameMain::new(
+                        self.collection.systems.clone(),
+                        self.collection.games.clone(),
+                        Some(edit_game.clone()),
+                    ));
+                    Task::none()
+                }
+                games::Action::DeleteGame(id) => {
+                    self.collection.delete_game(id);
+                    self.screen =
+                        Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_add_game(&mut self, message: add_game_main::Message) -> Task<Message> {
+        if let Screen::AddGameMain(add_game_main) = &mut self.screen {
+            let action = add_game_main.update(message);
+            match action {
+                add_game_main::Action::GoHome => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                add_game_main::Action::SubmitGame(game) => {
+                    self.collection.add_or_update_game(game);
+                    self.screen =
+                        Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
+                    Task::none()
+                }
+                add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
+                add_game_main::Action::None => Task::none(),
+                add_game_main::Action::Error(e) => {
+                    self.screen = Screen::Error(screen::Error::new(e));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_manage_emulators(&mut self, message: manage_emulators::Message) -> Task<Message> {
+        if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
+            let action = add_emulator.update(message);
+            match action {
+                manage_emulators::Action::SubmitEmulator(emulator) => {
+                    self.collection.add_or_update_emulator(emulator);
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                        self.collection.emulators.clone(),
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                manage_emulators::Action::None => Task::none(),
+                manage_emulators::Action::GoHome => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                manage_emulators::Action::DeleteEmulator(id) => {
+                    self.collection.delete_emulator(id);
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                        self.collection.emulators.clone(),
+                        self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                manage_emulators::Action::EditEmulator(id) => {
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
+                        self.collection.emulators.clone(),
+                        self.collection.systems.clone(),
+                        self.collection.get_emulator(id),
+                    ));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_view_game(&mut self, message: view_game::Message) -> Task<Message> {
+        if let Screen::ViewGame(view_game) = &mut self.screen {
+            let action = view_game.update(message);
+            match action {
+                view_game::Action::GoToGames => {
+                    self.screen =
+                        Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
+                    Task::none()
+                }
+                view_game::Action::RunWithEmulator(emulator, file) => {
+                    println!("Running with emulator: {}", file);
+                    Task::perform(
+                        Self::run_with_emulator_async(file, emulator.clone()),
+                        Message::FinishedRunningWithEmulator,
+                    )
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_loaded(&mut self, result: Result<Collection, Error>) -> Task<Message> {
+        match result {
+            Ok(games) => {
+                self.collection = games;
+                Task::none()
+            }
+            Err(err) => {
+                eprintln!("Failed to load collection: {}", err);
+                Task::none()
+            }
+        }
+    }
+
+    fn update_collection_saved_on_exit(&mut self, result: Result<(), Error>) -> Task<Message> {
+        if let Err(e) = result {
+            match e {
+                Error::IoError(e) => eprintln!("Failed to save collection: {}", e),
+                _ => eprintln!("Failed to save collection"),
+            }
+        }
+        exit()
+    }
+
+    fn update_error(&mut self, message: error_screen::Message) -> Task<Message> {
+        if let Screen::Error(error) = &mut self.screen {
+            let action = error.update(message);
+            match action {
+                error_screen::Action::GoHome => {
+                    self.screen = Screen::Home(screen::Home::new());
+                }
+            }
+        }
+        Task::none()
+    }
+
+    fn update_finished_running_emulator(&mut self, result: Result<(), Error>) -> Task<Message> {
+        match result {
+            Ok(()) => {
+                println!("Finished running with emulator");
+            }
+            Err(_) => println!("Failed to run with emulator"),
+        }
+
+        Task::none()
     }
 
     async fn load_collection_async() -> Result<Collection, Error> {
