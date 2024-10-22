@@ -1,5 +1,8 @@
-use crate::model::{get_new_id, System};
+use crate::error::Error;
+use crate::model::{get_new_id, FolderType, System};
 use iced::widget::{button, column, row, text, text_input, Column};
+use iced::Task;
+use std::path::PathBuf;
 
 // TODO: move AddSystem under Add Release?
 pub struct ManageSystems {
@@ -14,6 +17,8 @@ pub enum Message {
     Submit,
     EditSystem(i32),
     DeleteSystem(i32),
+    SelectFolder(FolderType),
+    FolderAdded(Result<(PathBuf, FolderType), Error>),
 }
 
 pub enum Action {
@@ -22,6 +27,7 @@ pub enum Action {
     None,
     EditSystem(i32),
     DeleteSystem(i32),
+    Run(Task<Message>),
 }
 
 impl ManageSystems {
@@ -32,6 +38,8 @@ impl ManageSystems {
                 None => System {
                     id: get_new_id(&systems),
                     name: "".to_string(),
+                    roms_source_path: "".to_string(),
+                    roms_destination_path: "".to_string(),
                 },
             },
             systems,
@@ -58,6 +66,25 @@ impl ManageSystems {
             Message::GoHome => Action::GoHome,
             Message::EditSystem(id) => Action::EditSystem(id),
             Message::DeleteSystem(id) => Action::DeleteSystem(id),
+            Message::SelectFolder(folder_type) => Action::Run(Task::perform(
+                pick_folder(folder_type),
+                Message::FolderAdded,
+            )),
+            Message::FolderAdded(Ok((path, folder_type))) => {
+                match folder_type {
+                    FolderType::Source => {
+                        self.system.roms_source_path = path.to_string_lossy().to_string()
+                    }
+                    FolderType::Destination => {
+                        self.system.roms_destination_path = path.to_string_lossy().to_string()
+                    }
+                }
+                Action::None
+            }
+            Message::FolderAdded(Err(err)) => {
+                print!("Error adding folder: {:?}", err);
+                Action::None
+            }
         }
     }
 
@@ -77,13 +104,42 @@ impl ManageSystems {
                 .into()
             })
             .collect::<Vec<iced::Element<Message>>>();
+
+        let folders_title = text("Select source and destination folders for roms/software images");
+        let add_source_folder_button =
+            button("Select source folder").on_press(Message::SelectFolder(FolderType::Source));
+
+        let source_folder_text = text(format!("Source: {}", self.system.roms_source_path));
+
+        let add_destination_folder_button = button("Select destination folder")
+            .on_press(Message::SelectFolder(FolderType::Destination));
+
+        let destination_folder_text = text(format!(
+            "Destination: {}",
+            self.system.roms_destination_path
+        ));
+
         let back_button = button("Back").on_press(Message::GoHome);
         column![
             back_button,
             name_input_field,
+            folders_title,
+            add_source_folder_button,
+            source_folder_text,
+            add_destination_folder_button,
+            destination_folder_text,
             add_button,
             Column::with_children(systems_list)
         ]
         .into()
     }
+}
+
+async fn pick_folder(folder_type: FolderType) -> Result<(PathBuf, FolderType), Error> {
+    let file_handle = rfd::AsyncFileDialog::new()
+        .set_title("Choose a folder")
+        .pick_folder()
+        .await
+        .ok_or(Error::DialogClosed)?;
+    Ok((file_handle.path().to_owned(), folder_type))
 }

@@ -104,6 +104,7 @@ impl IcedGameCollection {
                             ));
                             Task::none()
                         }
+                        manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
                     }
                 } else {
                     Task::none()

@@ -39,6 +39,8 @@ impl From<&Game> for GameListModel {
 pub struct System {
     pub id: i32,
     pub name: String,
+    pub roms_source_path: String,
+    pub roms_destination_path: String,
 }
 
 impl Display for System {
@@ -162,4 +164,10 @@ fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
 
 fn get_cloned<T: HasId + Clone>(items: &Vec<T>, id: i32) -> Option<T> {
     items.iter().find(|item| item.id() == id).cloned()
+}
+
+#[derive(Debug, Clone)]
+pub enum FolderType {
+    Source,
+    Destination,
 }
