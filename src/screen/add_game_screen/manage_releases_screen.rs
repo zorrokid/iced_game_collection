@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use async_std::fs;
+use async_std::path::{Path, PathBuf};
 
 use crate::error::Error;
 use crate::model::{get_new_id, Release, System};
@@ -74,14 +75,32 @@ impl ManageReleasesScreen {
                 Action::None
             }
             Message::SelectFile => {
-                // We need to wrap the Task in an Action, because with Action we can pass the Task back to the main update-function which
-                // returns a Task<Message> which is then passed back to the iced runtime. Iced runtime passes the Message with the result from the
-                // Task back to the update function.
-                Action::Run(Task::perform(pick_file(), Message::FileAdded))
+                let selected_system = self
+                    .systems
+                    .iter()
+                    .find(|system| system.id == self.release.system_id);
+                if let Some(system) = selected_system {
+                    let source_path = system.roms_source_path.clone();
+                    let destination_path = system.roms_destination_path.clone();
+                    // We need to wrap the Task in an Action, because with Action we can pass the Task back to the main update-function which
+                    // returns a Task<Message> which is then passed back to the iced runtime. Iced runtime passes the Message with the result from the
+                    // Task back to the update function.
+                    Action::Run(Task::perform(
+                        pick_file(source_path, destination_path),
+                        Message::FileAdded,
+                    ))
+                } else {
+                    Action::None
+                }
             }
             Message::FileAdded(result) => {
                 if let Ok(path) = result {
-                    self.release.files.push(path.to_string_lossy().to_string());
+                    if let Some(file_name) = path
+                        .file_name()
+                        .and_then(|os_str| os_str.to_str().map(|s| s.to_string()))
+                    {
+                        self.release.files.push(file_name);
+                    }
                 }
                 Action::None
             }
@@ -143,11 +162,25 @@ impl ManageReleasesScreen {
     }
 }
 
-async fn pick_file() -> Result<PathBuf, Error> {
+async fn pick_file(source_path: String, destination_path: String) -> Result<PathBuf, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
+        .set_directory(source_path)
         .pick_file()
         .await
         .ok_or(Error::DialogClosed)?;
-    Ok(file_handle.path().to_owned())
+
+    let file_name = file_handle
+        .path()
+        .file_name()
+        .ok_or(Error::IoError("file name not available".to_string()))?
+        .to_owned();
+
+    let destination_path = Path::new(&destination_path).join(file_name);
+
+    fs::copy(file_handle.path(), &destination_path)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
+
+    Ok(destination_path)
 }
