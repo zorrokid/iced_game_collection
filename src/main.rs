@@ -10,6 +10,7 @@ use error::Error;
 use iced::{exit, Task};
 use model::Collection;
 use screen::add_game_main;
+use screen::error as error_screen;
 use screen::games;
 use screen::home;
 use screen::manage_emulators;
@@ -46,6 +47,7 @@ enum Message {
     CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
     FinishedRunningWithEmulator(Result<(), Error>),
+    Error(error_screen::Message),
 }
 
 impl IcedGameCollection {
@@ -67,6 +69,7 @@ impl IcedGameCollection {
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
+            Screen::Error(error) => error.title(),
         }
     }
 
@@ -210,6 +213,10 @@ impl IcedGameCollection {
                         }
                         add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
                         add_game_main::Action::None => Task::none(),
+                        add_game_main::Action::Error(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e));
+                            Task::none()
+                        }
                     }
                 } else {
                     Task::none()
@@ -306,6 +313,17 @@ impl IcedGameCollection {
 
                 Task::none()
             }
+            Message::Error(error_message) => {
+                if let Screen::Error(error) = &mut self.screen {
+                    let action = error.update(error_message);
+                    match action {
+                        error_screen::Action::GoHome => {
+                            self.screen = Screen::Home(screen::Home::new());
+                        }
+                    }
+                }
+                Task::none()
+            }
         }
     }
 
@@ -319,6 +337,7 @@ impl IcedGameCollection {
                 add_emulator.view().map(Message::ManageEmulators)
             }
             Screen::ViewGame(view_game) => view_game.view().map(Message::ViewGame),
+            Screen::Error(error) => error.view().map(Message::Error),
         }
     }
 

@@ -24,6 +24,7 @@ pub enum Action {
     SubmitGame(crate::model::Game),
     None,
     Run(Task<Message>),
+    Error(String),
 }
 
 impl AddGameMain {
@@ -128,6 +129,7 @@ impl AddGameMain {
                             );
                             Action::None
                         }
+                        manage_releases_screen::Action::Error(message) => Action::Error(message),
                     }
                 } else {
                     Action::None

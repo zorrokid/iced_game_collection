@@ -27,6 +27,7 @@ pub enum Message {
     SelectFile,
     Edit(i32),
     Delete(i32),
+    FilesDeleted(Result<i32, Error>),
 }
 
 pub enum Action {
@@ -36,6 +37,7 @@ pub enum Action {
     Run(Task<Message>),
     Edit(i32),
     Delete(i32),
+    Error(String),
 }
 
 impl ManageReleasesScreen {
@@ -105,8 +107,35 @@ impl ManageReleasesScreen {
                 Action::None
             }
             Message::GoBack => Action::GoBack,
-            Message::Delete(id) => Action::Delete(id),
+            Message::Delete(id) => {
+                match self
+                    .releases
+                    .iter()
+                    .find(|release| release.id == id)
+                    .and_then(|release| {
+                        self.systems
+                            .iter()
+                            .find(|system| system.id == release.system_id)
+                            .map(|system| {
+                                Action::Run(Task::perform(
+                                    delete_files(
+                                        release.files.clone(),
+                                        system.roms_destination_path.clone(),
+                                        id,
+                                    ),
+                                    Message::FilesDeleted,
+                                ))
+                            })
+                    }) {
+                    Some(action) => action,
+                    None => Action::None,
+                }
+            }
             Message::Edit(id) => Action::Edit(id),
+            Message::FilesDeleted(result) => match result {
+                Ok(id) => Action::Delete(id),
+                Err(e) => Action::Error(format!("Failed to delete files: {}", e)),
+            },
         }
     }
 
@@ -183,4 +212,18 @@ async fn pick_file(source_path: String, destination_path: String) -> Result<Path
         .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
 
     Ok(destination_path)
+}
+
+async fn delete_files(
+    file_names: Vec<String>,
+    path: String,
+    release_id: i32,
+) -> Result<i32, Error> {
+    for file_name in file_names {
+        let file_path = Path::new(&path).join(file_name);
+        fs::remove_file(file_path)
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to delete file: {}", e)))?;
+    }
+    Ok(release_id)
 }
