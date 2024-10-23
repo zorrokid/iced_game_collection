@@ -55,6 +55,8 @@ pub struct Release {
     pub name: String,
     pub system_id: i32,
     pub files: Vec<String>,
+    // Release can be a single game or compilation of games
+    pub games: Vec<i32>,
 }
 
 impl Display for Release {
