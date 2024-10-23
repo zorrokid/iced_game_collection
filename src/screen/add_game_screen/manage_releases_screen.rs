@@ -1,8 +1,7 @@
-use async_std::fs;
-use async_std::path::{Path, PathBuf};
-
 use crate::error::Error;
+use crate::files::{delete_files, pick_file};
 use crate::model::{get_new_id, Release, System};
+use async_std::path::PathBuf;
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -54,6 +53,7 @@ impl ManageReleasesScreen {
                     name: "".to_string(),
                     system_id: 0,
                     files: vec![],
+                    games: vec![],
                 },
             },
             systems,
@@ -189,41 +189,4 @@ impl ManageReleasesScreen {
         ]
         .into()
     }
-}
-
-async fn pick_file(source_path: String, destination_path: String) -> Result<PathBuf, Error> {
-    let file_handle = rfd::AsyncFileDialog::new()
-        .set_title("Choose a file")
-        .set_directory(source_path)
-        .pick_file()
-        .await
-        .ok_or(Error::DialogClosed)?;
-
-    let file_name = file_handle
-        .path()
-        .file_name()
-        .ok_or(Error::IoError("file name not available".to_string()))?
-        .to_owned();
-
-    let destination_path = Path::new(&destination_path).join(file_name);
-
-    fs::copy(file_handle.path(), &destination_path)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
-
-    Ok(destination_path)
-}
-
-async fn delete_files(
-    file_names: Vec<String>,
-    path: String,
-    release_id: i32,
-) -> Result<i32, Error> {
-    for file_name in file_names {
-        let file_path = Path::new(&path).join(file_name);
-        fs::remove_file(file_path)
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to delete file: {}", e)))?;
-    }
-    Ok(release_id)
 }
