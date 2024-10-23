@@ -102,11 +102,19 @@ impl HasId for Release {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct GameNew {
+    pub id: i32,
+    pub name: String,
+}
+
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Collection {
     pub games: Vec<Game>,
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
+    pub games_new: Vec<GameNew>,
+    pub releaes: Vec<Release>,
 }
 
 impl Collection {

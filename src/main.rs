@@ -11,6 +11,7 @@ use error::Error;
 use iced::{exit, Task};
 use model::Collection;
 use screen::add_game_main;
+use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games;
 use screen::home;
@@ -44,6 +45,7 @@ enum Message {
     ManageSystems(manage_systems::Message),
     ManageEmulators(manage_emulators::Message),
     AddGameMain(add_game_main::Message),
+    AddReleaseMain(add_release_main::Message),
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
@@ -68,6 +70,7 @@ impl IcedGameCollection {
             Screen::Games(games) => games.title(),
             Screen::ManageSystems(add_system) => add_system.title(),
             Screen::AddGameMain(add_game_main) => add_game_main.title(),
+            Screen::AddReleaseMain(add_release_main) => add_release_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
             Screen::Error(error) => error.title(),
@@ -80,6 +83,7 @@ impl IcedGameCollection {
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
             Message::AddGameMain(message) => self.update_add_game(message),
+            Message::AddReleaseMain(message) => self.update_add_release(message),
             Message::Loaded(result) => self.update_loaded(result),
             Message::CollectionSavedOnExit(result) => self.update_collection_saved_on_exit(result),
             Message::ManageEmulators(message) => self.update_manage_emulators(message),
@@ -97,6 +101,9 @@ impl IcedGameCollection {
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::ManageSystems(add_system) => add_system.view().map(Message::ManageSystems),
             Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
+            Screen::AddReleaseMain(add_release_main) => {
+                add_release_main.view().map(Message::AddReleaseMain)
+            }
             Screen::ManageEmulators(add_emulator) => {
                 add_emulator.view().map(Message::ManageEmulators)
             }
@@ -168,6 +175,10 @@ impl IcedGameCollection {
                     ));
                     Task::none()
                 }
+                home::Action::AddRelease => {
+                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new());
+                    Task::none()
+                }
                 home::Action::Exit => Task::perform(
                     Self::save_collection_async(self.collection.clone()),
                     Message::CollectionSavedOnExit,
@@ -218,6 +229,27 @@ impl IcedGameCollection {
                     self.collection.delete_game(id);
                     self.screen =
                         Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_add_release(&mut self, message: add_release_main::Message) -> Task<Message> {
+        if let Screen::AddReleaseMain(add_release_main) = &mut self.screen {
+            let action = add_release_main.update(message);
+            match action {
+                add_release_main::Action::Back => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                add_release_main::Action::SubmitRelease(_release) => Task::none(),
+                add_release_main::Action::Run(task) => task.map(Message::AddReleaseMain),
+                add_release_main::Action::None => Task::none(),
+                add_release_main::Action::Error(e) => {
+                    self.screen = Screen::Error(screen::Error::new(e));
                     Task::none()
                 }
             }
