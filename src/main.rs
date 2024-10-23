@@ -1,4 +1,5 @@
 mod error;
+mod files;
 mod model;
 mod screen;
 
@@ -212,6 +213,8 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::DeleteGame(id) => {
+                    // TODO: before game can be deleted, files related to releases must be deleted first
+                    //  - only in case relase has only this game
                     self.collection.delete_game(id);
                     self.screen =
                         Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
