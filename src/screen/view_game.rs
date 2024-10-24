@@ -1,9 +1,10 @@
-use crate::model::{Emulator, Game};
+use crate::model::{Emulator, GameNew, Release};
 use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
-    game: Game,
+    game: GameNew,
     emulators: Vec<Emulator>,
+    releases: Vec<Release>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,8 +20,12 @@ pub enum Action {
 }
 
 impl ViewGame {
-    pub fn new(game: Game, emulators: Vec<Emulator>) -> Self {
-        Self { game, emulators }
+    pub fn new(game: GameNew, emulators: Vec<Emulator>, releases: Vec<Release>) -> Self {
+        Self {
+            game,
+            emulators,
+            releases,
+        }
     }
 
     pub fn title(&self) -> String {
@@ -37,7 +42,6 @@ impl ViewGame {
     pub fn view(&self) -> iced::Element<Message> {
         let title = text(self.game.name.clone()).size(30);
         let releases_list = self
-            .game
             .releases
             .iter()
             .map(|release| {

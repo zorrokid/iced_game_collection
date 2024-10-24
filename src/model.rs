@@ -26,8 +26,8 @@ pub struct GameListModel {
     pub name: String,
 }
 
-impl From<&Game> for GameListModel {
-    fn from(game: &Game) -> Self {
+impl From<&GameNew> for GameListModel {
+    fn from(game: &GameNew) -> Self {
         GameListModel {
             id: game.id,
             name: game.name.clone(),
@@ -149,6 +149,9 @@ impl Collection {
     pub fn add_or_update_game(&mut self, game: Game) {
         add_or_update(&mut self.games, game);
     }
+    pub fn add_or_update_release(&mut self, release: Release) {
+        add_or_update(&mut self.releaes, release);
+    }
 
     pub fn add_or_update_game_new(&mut self, game: GameNew) {
         add_or_update(&mut self.games_new, game);
@@ -162,13 +165,25 @@ impl Collection {
         add_or_update(&mut self.emulators, emulator);
     }
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
-        self.games.iter().map(GameListModel::from).collect()
+        self.games_new.iter().map(GameListModel::from).collect()
     }
     pub fn get_system(&self, id: i32) -> Option<System> {
         get_cloned(&self.systems, id)
     }
     pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
         get_cloned(&self.emulators, id)
+    }
+    pub fn get_game(&self, id: i32) -> Option<GameNew> {
+        get_cloned(&self.games_new, id)
+    }
+    pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {
+        let releases_with_game = self
+            .releaes
+            .iter()
+            .filter(|r| r.games.contains(&id))
+            .cloned()
+            .collect();
+        releases_with_game
     }
 }
 

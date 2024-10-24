@@ -87,10 +87,7 @@ impl AddReleaseMainScreen {
                 }
                 Action::None
             }
-            Message::Submit => {
-                // TODO: validate?
-                Action::Submit(self.release.clone())
-            }
+            Message::Submit => Action::Submit(self.release.clone()),
         }
     }
 

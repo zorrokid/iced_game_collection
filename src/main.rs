@@ -211,10 +211,16 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::ViewGame(id) => {
-                    let game = self.collection.games.iter().find(|g| g.id == id).unwrap();
-                    let view_game =
-                        view_game::ViewGame::new(game.clone(), self.collection.emulators.clone());
-                    self.screen = Screen::ViewGame(view_game);
+                    let game = self.collection.get_game(id);
+                    let releases = self.collection.get_releases_with_game(id);
+                    if let Some(game) = game {
+                        let view_game = view_game::ViewGame::new(
+                            game,
+                            self.collection.emulators.clone(),
+                            releases,
+                        );
+                        self.screen = Screen::ViewGame(view_game);
+                    }
                     Task::none()
                 }
                 games::Action::EditGame(id) => {
@@ -249,7 +255,11 @@ impl IcedGameCollection {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
-                add_release_main::Action::SubmitRelease(_release) => Task::none(),
+                add_release_main::Action::SubmitRelease(release) => {
+                    self.collection.add_or_update_release(release);
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
                 add_release_main::Action::Run(task) => task.map(Message::AddReleaseMain),
                 add_release_main::Action::None => Task::none(),
                 add_release_main::Action::Error(e) => {
