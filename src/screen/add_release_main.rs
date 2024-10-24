@@ -1,3 +1,4 @@
+use crate::model::{GameNew, Release, System};
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::manage_games_screen;
 use crate::screen::add_release_screen::manage_systems_screen;
@@ -7,6 +8,10 @@ use iced::{Element, Task};
 #[derive(Debug, Clone)]
 pub struct AddReleaseMain {
     screen: AddReleaseScreen,
+    games: Vec<GameNew>,
+    // release to be added or edited, sub screens will submit events to update this
+    release: Release,
+    systems: Vec<System>,
 }
 
 #[derive(Debug, Clone)]
@@ -18,18 +23,32 @@ pub enum Message {
 
 pub enum Action {
     Back,
-    SubmitRelease(crate::model::Release),
+    SubmitRelease(Release),
     None,
     Run(Task<Message>),
     Error(String),
+    SubmitGame(GameNew),
+    DeleteSystem(i32),
+    SubmitSystem(System),
 }
 
 impl AddReleaseMain {
-    pub fn new() -> Self {
+    pub fn new(games: Vec<GameNew>, edit_release: Option<Release>, systems: Vec<System>) -> Self {
+        let release = match edit_release {
+            Some(release) => release,
+            None => Release {
+                id: 0,
+                files: vec![],
+                games: vec![],
+                system_id: 0,
+                name: "".to_string(),
+            },
+        };
         Self {
-            screen: AddReleaseScreen::AddReleaseMainScreen(
-                add_release_main_screen::AddReleaseMainScreen::new(),
-            ),
+            screen: create_main_screen(&games, &release, &systems),
+            games,
+            release,
+            systems,
         }
     }
 
@@ -45,18 +64,57 @@ impl AddReleaseMain {
                     match action {
                         add_release_main_screen::Action::ManageGames => {
                             self.screen = AddReleaseScreen::ManageGamesScreen(
-                                manage_games_screen::ManageGamesScreen::new(),
+                                manage_games_screen::ManageGamesScreen::new(
+                                    self.games.clone(),
+                                    None,
+                                ),
                             );
+                            Action::None
                         }
                         add_release_main_screen::Action::ManageSystems => {
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems_screen::ManageSystemsScreen::new(),
+                                manage_systems_screen::ManageSystemsScreen::new(
+                                    self.systems.clone(),
+                                    None,
+                                ),
                             );
+                            Action::None
                         }
-                        add_release_main_screen::Action::Back => {
-                            return Action::Back;
+                        add_release_main_screen::Action::Back => Action::Back,
+                        add_release_main_screen::Action::GameSelected(game) => {
+                            self.release.games.push(game.id);
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
+                        }
+                        add_release_main_screen::Action::None => Action::None,
+                        add_release_main_screen::Action::NameChanged(name) => {
+                            self.release.name = name;
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
+                        }
+                        add_release_main_screen::Action::SystemSelected(system) => {
+                            self.release.system_id = system.id;
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
+                        }
+                        add_release_main_screen::Action::AddFile(file) => {
+                            self.release.files.push(file);
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
+                        }
+                        add_release_main_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::AddReleaseMainScreen))
+                        }
+                        add_release_main_screen::Action::Submit(release) => {
+                            Action::SubmitRelease(release)
                         }
                     }
+                } else {
+                    Action::None
                 }
             }
             Message::ManageGamesScreen(sub_screen_message) => {
@@ -64,11 +122,24 @@ impl AddReleaseMain {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
                         manage_games_screen::Action::Back => {
-                            self.screen = AddReleaseScreen::AddReleaseMainScreen(
-                                add_release_main_screen::AddReleaseMainScreen::new(),
-                            );
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
                         }
+                        manage_games_screen::Action::SubmitGame(game) => {
+                            // TODO: would be better if local games wouldn't need to be updated explicitly
+                            // but rather the list would reflect always what's in main (through a reference)?
+                            self.games.push(game.clone());
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::SubmitGame(game)
+                        }
+                        manage_games_screen::Action::DeleteGame(id) => Action::None,
+                        manage_games_screen::Action::EditGame(id) => Action::None,
+                        manage_games_screen::Action::None => Action::None,
                     }
+                } else {
+                    Action::None
                 }
             }
             Message::ManageSystemsScreen(sub_screen_message) => {
@@ -76,15 +147,31 @@ impl AddReleaseMain {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
                         manage_systems_screen::Action::Back => {
-                            self.screen = AddReleaseScreen::AddReleaseMainScreen(
-                                add_release_main_screen::AddReleaseMainScreen::new(),
-                            );
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::None
+                        }
+                        manage_systems_screen::Action::DeleteSystem(id) => Action::DeleteSystem(id),
+                        manage_systems_screen::Action::EditSystem(id) => Action::None,
+                        manage_systems_screen::Action::None => Action::None,
+                        manage_systems_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::ManageSystemsScreen))
+                        }
+                        manage_systems_screen::Action::SubmitSystem(system) => {
+                            // TODO: would be better if local systems wouldn't need to be updated explicitly
+                            // but rather the list would reflect always what's in main (through a reference)?
+                            self.systems.push(system.clone());
+                            self.screen =
+                                create_main_screen(&self.games, &self.release, &self.systems);
+                            Action::SubmitSystem(system)
                         }
                     }
+                } else {
+                    Action::None
                 }
             }
+            _ => Action::None,
         }
-        Action::None
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -100,4 +187,16 @@ impl AddReleaseMain {
             }
         }
     }
+}
+
+fn create_main_screen(
+    games: &Vec<GameNew>,
+    release: &Release,
+    systems: &Vec<System>,
+) -> AddReleaseScreen {
+    AddReleaseScreen::AddReleaseMainScreen(add_release_main_screen::AddReleaseMainScreen::new(
+        games.clone(),
+        release.clone(),
+        systems.clone(),
+    ))
 }

@@ -1,6 +1,17 @@
 use crate::error::Error;
+use crate::model::FolderType;
 use async_std::fs;
 use async_std::path::{Path, PathBuf};
+use std::path::PathBuf as StdPathBuf;
+
+pub async fn pick_folder(folder_type: FolderType) -> Result<(StdPathBuf, FolderType), Error> {
+    let file_handle = rfd::AsyncFileDialog::new()
+        .set_title("Choose a folder")
+        .pick_folder()
+        .await
+        .ok_or(Error::DialogClosed)?;
+    Ok((file_handle.path().to_owned(), folder_type))
+}
 
 pub async fn pick_file(source_path: String, destination_path: String) -> Result<PathBuf, Error> {
     let file_handle = rfd::AsyncFileDialog::new()

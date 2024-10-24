@@ -102,10 +102,22 @@ impl HasId for Release {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct GameNew {
     pub id: i32,
     pub name: String,
+}
+
+impl Display for GameNew {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl HasId for GameNew {
+    fn id(&self) -> i32 {
+        self.id
+    }
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
@@ -136,6 +148,10 @@ impl Collection {
     }
     pub fn add_or_update_game(&mut self, game: Game) {
         add_or_update(&mut self.games, game);
+    }
+
+    pub fn add_or_update_game_new(&mut self, game: GameNew) {
+        add_or_update(&mut self.games_new, game);
     }
 
     pub fn add_or_update_system(&mut self, system: System) {

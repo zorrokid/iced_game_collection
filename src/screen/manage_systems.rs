@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::files::pick_folder;
 use crate::model::{get_new_id, FolderType, System};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Task;
@@ -133,13 +134,4 @@ impl ManageSystems {
         ]
         .into()
     }
-}
-
-async fn pick_folder(folder_type: FolderType) -> Result<(PathBuf, FolderType), Error> {
-    let file_handle = rfd::AsyncFileDialog::new()
-        .set_title("Choose a folder")
-        .pick_folder()
-        .await
-        .ok_or(Error::DialogClosed)?;
-    Ok((file_handle.path().to_owned(), folder_type))
 }

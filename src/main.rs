@@ -60,7 +60,7 @@ impl IcedGameCollection {
                 screen: Screen::Home(home::Home::new()),
                 collection: Collection::default(),
             },
-            Task::perform(Self::load_collection_async(), Message::Loaded),
+            Task::perform(load_collection_async(), Message::Loaded),
         )
     }
 
@@ -176,11 +176,15 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::AddRelease => {
-                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new());
+                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(
+                        self.collection.games_new.clone(),
+                        None,
+                        self.collection.systems.clone(),
+                    ));
                     Task::none()
                 }
                 home::Action::Exit => Task::perform(
-                    Self::save_collection_async(self.collection.clone()),
+                    save_collection_async(self.collection.clone()),
                     Message::CollectionSavedOnExit,
                 ),
                 home::Action::ManageEmulators => {
@@ -250,6 +254,18 @@ impl IcedGameCollection {
                 add_release_main::Action::None => Task::none(),
                 add_release_main::Action::Error(e) => {
                     self.screen = Screen::Error(screen::Error::new(e));
+                    Task::none()
+                }
+                add_release_main::Action::SubmitGame(game) => {
+                    self.collection.add_or_update_game_new(game);
+                    Task::none()
+                }
+                add_release_main::Action::DeleteSystem(id) => {
+                    self.collection.delete_system(id);
+                    Task::none()
+                }
+                add_release_main::Action::SubmitSystem(system) => {
+                    self.collection.add_or_update_system(system);
                     Task::none()
                 }
             }
@@ -393,35 +409,6 @@ impl IcedGameCollection {
         Task::none()
     }
 
-    async fn load_collection_async() -> Result<Collection, Error> {
-        let mut file = AsyncFile::open(COLLECTION_FILE_NAME).await.map_err(|e| {
-            Error::IoError(format!("Failed to open {}: {}", COLLECTION_FILE_NAME, e))
-        })?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).await.map_err(|e| {
-            Error::IoError(format!("Failed to read {}: {}", COLLECTION_FILE_NAME, e))
-        })?;
-        let games = serde_json::from_str(&contents).map_err(|e| {
-            Error::IoError(format!(
-                "Failed to deserialize {}: {}",
-                COLLECTION_FILE_NAME, e
-            ))
-        })?;
-        Ok(games)
-    }
-
-    async fn save_collection_async(collection: Collection) -> Result<(), Error> {
-        let json = to_string_pretty(&collection)
-            .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
-        let mut file = AsyncFile::create(COLLECTION_FILE_NAME).await.map_err(|e| {
-            Error::IoError(format!("Failed to create {}: {}", COLLECTION_FILE_NAME, e))
-        })?;
-        file.write(json.as_bytes()).await.map_err(|e| {
-            Error::IoError(format!("Failed to write {}: {}", COLLECTION_FILE_NAME, e))
-        })?;
-        Ok(())
-    }
-
     async fn run_with_emulator_async(file: String, emulator: model::Emulator) -> Result<(), Error> {
         println!("Running {} with emulator {}", file, emulator.name);
         let mut child = Command::new(&emulator.executable)
@@ -442,4 +429,33 @@ impl IcedGameCollection {
 
         Ok(())
     }
+}
+
+async fn load_collection_async() -> Result<Collection, Error> {
+    let mut file = AsyncFile::open(COLLECTION_FILE_NAME)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to open {}: {}", COLLECTION_FILE_NAME, e)))?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to read {}: {}", COLLECTION_FILE_NAME, e)))?;
+    let games = serde_json::from_str(&contents).map_err(|e| {
+        Error::IoError(format!(
+            "Failed to deserialize {}: {}",
+            COLLECTION_FILE_NAME, e
+        ))
+    })?;
+    Ok(games)
+}
+
+async fn save_collection_async(collection: Collection) -> Result<(), Error> {
+    let json = to_string_pretty(&collection)
+        .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
+    let mut file = AsyncFile::create(COLLECTION_FILE_NAME)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to create {}: {}", COLLECTION_FILE_NAME, e)))?;
+    file.write(json.as_bytes())
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to write {}: {}", COLLECTION_FILE_NAME, e)))?;
+    Ok(())
 }
