@@ -213,7 +213,12 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::EditGame(id) => {
-                    let edit_game = self.collection.games.iter().find(|g| g.id == id).unwrap();
+                    let edit_game = self
+                        .collection
+                        .games_new
+                        .iter()
+                        .find(|g| g.id == id)
+                        .unwrap();
 
                     // TODO
                     Task::none()

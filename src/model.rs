@@ -2,24 +2,12 @@ use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+/*#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Game {
     pub id: i32,
     pub name: String,
     pub releases: Vec<Release>,
-}
-
-impl Game {
-    pub fn add_or_update_release(&mut self, release: Release) {
-        add_or_update(&mut self.releases, release);
-    }
-    pub fn delete_release(&mut self, release_id: i32) {
-        self.releases.retain(|release| release.id != release_id);
-    }
-    pub fn get_release(&self, id: i32) -> Option<Release> {
-        get_cloned(&self.releases, id)
-    }
-}
+}*/
 
 pub struct GameListModel {
     pub id: i32,
@@ -78,7 +66,7 @@ pub trait HasId {
     fn id(&self) -> i32;
 }
 
-impl HasId for Game {
+impl HasId for GameNew {
     fn id(&self) -> i32 {
         self.id
     }
@@ -114,15 +102,8 @@ impl Display for GameNew {
     }
 }
 
-impl HasId for GameNew {
-    fn id(&self) -> i32 {
-        self.id
-    }
-}
-
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Collection {
-    pub games: Vec<Game>,
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
     pub games_new: Vec<GameNew>,
@@ -131,23 +112,18 @@ pub struct Collection {
 
 impl Collection {
     pub fn delete_system(&mut self, system_id: i32) {
-        self.games.iter_mut().for_each(|game| {
-            game.releases
-                .retain(|release| release.system_id != system_id)
-        });
+        self.releaes
+            .retain(|release| release.system_id != system_id);
         self.emulators
             .retain(|emulator| emulator.system_id != system_id);
         self.systems.retain(|system| system.id != system_id);
     }
 
     pub fn delete_game(&mut self, game_id: i32) {
-        self.games.retain(|game| game.id != game_id);
+        self.games_new.retain(|game| game.id != game_id);
     }
     pub fn delete_emulator(&mut self, emulator_id: i32) {
         self.emulators.retain(|emulator| emulator.id != emulator_id);
-    }
-    pub fn add_or_update_game(&mut self, game: Game) {
-        add_or_update(&mut self.games, game);
     }
     pub fn add_or_update_release(&mut self, release: Release) {
         add_or_update(&mut self.releaes, release);
