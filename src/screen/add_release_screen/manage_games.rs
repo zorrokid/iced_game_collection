@@ -3,7 +3,7 @@ use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
-pub struct ManageGamesScreen {
+pub struct ManageGames {
     games: Vec<GameNew>,
     game: GameNew,
 }
@@ -26,7 +26,7 @@ pub enum Action {
     None,
 }
 
-impl ManageGamesScreen {
+impl ManageGames {
     pub fn new(games: Vec<GameNew>, edit_game: Option<GameNew>) -> Self {
         Self {
             game: match edit_game {
@@ -55,7 +55,7 @@ impl ManageGamesScreen {
 
     pub fn view(&self) -> iced::Element<Message> {
         let back_button = button("Back").on_press(Message::Back);
-        let title = text("Manage Games Screen");
+        let title = text("Manage Games");
         let name_input_field =
             text_input("Enter name", &self.game.name).on_input(Message::NameChanged);
         let submit_button = button("Submit").on_press(Message::SubmitGame);
