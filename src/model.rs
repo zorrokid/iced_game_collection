@@ -100,12 +100,12 @@ pub struct Collection {
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
     pub games_new: Vec<GameNew>,
-    pub releaes: Vec<Release>,
+    pub releases: Vec<Release>,
 }
 
 impl Collection {
     pub fn delete_system(&mut self, system_id: i32) {
-        self.releaes
+        self.releases
             .retain(|release| release.system_id != system_id);
         self.emulators
             .retain(|emulator| emulator.system_id != system_id);
@@ -119,7 +119,7 @@ impl Collection {
         self.emulators.retain(|emulator| emulator.id != emulator_id);
     }
     pub fn add_or_update_release(&mut self, release: Release) {
-        add_or_update(&mut self.releaes, release);
+        add_or_update(&mut self.releases, release);
     }
 
     pub fn add_or_update_game_new(&mut self, game: GameNew) {
@@ -147,7 +147,7 @@ impl Collection {
     }
     pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {
         let releases_with_game = self
-            .releaes
+            .releases
             .iter()
             .filter(|r| r.games.contains(&id))
             .cloned()
