@@ -165,7 +165,7 @@ impl IcedGameCollection {
                 }
                 home::Action::AddRelease => {
                     self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(
-                        self.collection.games_new.clone(),
+                        self.collection.games.clone(),
                         None,
                         self.collection.systems.clone(),
                     ));
@@ -213,12 +213,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::EditGame(id) => {
-                    let edit_game = self
-                        .collection
-                        .games_new
-                        .iter()
-                        .find(|g| g.id == id)
-                        .unwrap();
+                    let edit_game = self.collection.games.iter().find(|g| g.id == id).unwrap();
 
                     // TODO
                     Task::none()

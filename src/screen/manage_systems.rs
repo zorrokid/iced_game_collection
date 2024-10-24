@@ -5,7 +5,7 @@ use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Task;
 use std::path::PathBuf;
 
-// TODO: move AddSystem under Add Release?
+#[derive(Debug, Clone)]
 pub struct ManageSystems {
     pub system: System,
     pub systems: Vec<System>,

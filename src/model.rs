@@ -99,7 +99,7 @@ impl Display for GameNew {
 pub struct Collection {
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
-    pub games_new: Vec<GameNew>,
+    pub games: Vec<GameNew>,
     pub releases: Vec<Release>,
 }
 
@@ -113,7 +113,7 @@ impl Collection {
     }
 
     pub fn delete_game(&mut self, game_id: i32) {
-        self.games_new.retain(|game| game.id != game_id);
+        self.games.retain(|game| game.id != game_id);
     }
     pub fn delete_emulator(&mut self, emulator_id: i32) {
         self.emulators.retain(|emulator| emulator.id != emulator_id);
@@ -123,7 +123,7 @@ impl Collection {
     }
 
     pub fn add_or_update_game_new(&mut self, game: GameNew) {
-        add_or_update(&mut self.games_new, game);
+        add_or_update(&mut self.games, game);
     }
 
     pub fn add_or_update_system(&mut self, system: System) {
@@ -134,7 +134,7 @@ impl Collection {
         add_or_update(&mut self.emulators, emulator);
     }
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
-        self.games_new.iter().map(GameListModel::from).collect()
+        self.games.iter().map(GameListModel::from).collect()
     }
     pub fn get_system(&self, id: i32) -> Option<System> {
         get_cloned(&self.systems, id)
@@ -143,7 +143,7 @@ impl Collection {
         get_cloned(&self.emulators, id)
     }
     pub fn get_game(&self, id: i32) -> Option<GameNew> {
-        get_cloned(&self.games_new, id)
+        get_cloned(&self.games, id)
     }
     pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {
         let releases_with_game = self

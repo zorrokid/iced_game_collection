@@ -1,7 +1,8 @@
 use crate::model::{GameNew, Release, System};
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::manage_games_screen;
-use crate::screen::add_release_screen::manage_systems_screen;
+//use crate::screen::add_release_screen::manage_systems_screen;
+use crate::manage_systems;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
 
@@ -18,7 +19,7 @@ pub struct AddReleaseMain {
 pub enum Message {
     AddReleaseMainScreen(add_release_main_screen::Message),
     ManageGamesScreen(manage_games_screen::Message),
-    ManageSystemsScreen(manage_systems_screen::Message),
+    ManageSystemsScreen(manage_systems::Message),
 }
 
 pub enum Action {
@@ -73,10 +74,7 @@ impl AddReleaseMain {
                         }
                         add_release_main_screen::Action::ManageSystems => {
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems_screen::ManageSystemsScreen::new(
-                                    self.systems.clone(),
-                                    None,
-                                ),
+                                manage_systems::ManageSystems::new(self.systems.clone(), None),
                             );
                             Action::None
                         }
@@ -146,18 +144,18 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageSystemsScreen(sub_screen) = &mut self.screen {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
-                        manage_systems_screen::Action::Back => {
+                        manage_systems::Action::GoHome => {
                             self.screen =
                                 create_main_screen(&self.games, &self.release, &self.systems);
                             Action::None
                         }
-                        manage_systems_screen::Action::DeleteSystem(id) => Action::DeleteSystem(id),
-                        manage_systems_screen::Action::EditSystem(id) => Action::None,
-                        manage_systems_screen::Action::None => Action::None,
-                        manage_systems_screen::Action::Run(task) => {
+                        manage_systems::Action::DeleteSystem(id) => Action::DeleteSystem(id),
+                        manage_systems::Action::EditSystem(id) => Action::None,
+                        manage_systems::Action::None => Action::None,
+                        manage_systems::Action::Run(task) => {
                             Action::Run(task.map(Message::ManageSystemsScreen))
                         }
-                        manage_systems_screen::Action::SubmitSystem(system) => {
+                        manage_systems::Action::SubmitSystem(system) => {
                             // TODO: would be better if local systems wouldn't need to be updated explicitly
                             // but rather the list would reflect always what's in main (through a reference)?
                             self.systems.push(system.clone());
