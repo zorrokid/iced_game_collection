@@ -7,6 +7,7 @@ use async_process::Command;
 use async_std::fs::File as AsyncFile;
 use async_std::io::ReadExt;
 use async_std::io::WriteExt;
+use async_std::path::Path;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
@@ -218,6 +219,7 @@ impl IcedGameCollection {
                             game,
                             self.collection.emulators.clone(),
                             releases,
+                            self.collection.systems.clone(),
                         );
                         self.screen = Screen::ViewGame(view_game);
                     }
@@ -360,13 +362,10 @@ impl IcedGameCollection {
                         Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
                     Task::none()
                 }
-                view_game::Action::RunWithEmulator(emulator, file) => {
-                    println!("Running with emulator: {}", file);
-                    Task::perform(
-                        Self::run_with_emulator_async(file, emulator.clone()),
-                        Message::FinishedRunningWithEmulator,
-                    )
-                }
+                view_game::Action::RunWithEmulator(emulator, file, path) => Task::perform(
+                    Self::run_with_emulator_async(file, emulator.clone(), path),
+                    Message::FinishedRunningWithEmulator,
+                ),
             }
         } else {
             Task::none()
@@ -419,10 +418,15 @@ impl IcedGameCollection {
         Task::none()
     }
 
-    async fn run_with_emulator_async(file: String, emulator: model::Emulator) -> Result<(), Error> {
+    async fn run_with_emulator_async(
+        file: String,
+        emulator: model::Emulator,
+        path: String,
+    ) -> Result<(), Error> {
+        let file_path = Path::new(&path).join(&file);
         println!("Running {} with emulator {}", file, emulator.name);
         let mut child = Command::new(&emulator.executable)
-            .arg(&file)
+            .arg(&file_path)
             .arg(&emulator.arguments)
             .spawn()
             .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
