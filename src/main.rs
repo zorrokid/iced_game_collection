@@ -16,6 +16,7 @@ use screen::error as error_screen;
 use screen::games;
 use screen::home;
 use screen::manage_emulators;
+use screen::manage_games;
 use screen::manage_systems;
 use screen::view_game;
 use serde_json::to_string_pretty;
@@ -43,6 +44,7 @@ enum Message {
     Home(home::Message),
     Games(games::Message),
     ManageSystems(manage_systems::Message),
+    ManageGames(manage_games::Message),
     ManageEmulators(manage_emulators::Message),
     AddReleaseMain(add_release_main::Message),
     Loaded(Result<Collection, Error>),
@@ -68,6 +70,7 @@ impl IcedGameCollection {
             Screen::Home(home) => home.title(),
             Screen::Games(games) => games.title(),
             Screen::ManageSystems(add_system) => add_system.title(),
+            Screen::ManageGames(manage_games) => manage_games.title(),
             Screen::AddReleaseMain(add_release_main) => add_release_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
@@ -78,6 +81,7 @@ impl IcedGameCollection {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ManageSystems(message) => self.update_manage_systems(message),
+            Message::ManageGames(message) => self.update_manage_games(message),
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
             Message::AddReleaseMain(message) => self.update_add_release(message),
@@ -97,6 +101,7 @@ impl IcedGameCollection {
             Screen::Home(home) => home.view().map(Message::Home),
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::ManageSystems(add_system) => add_system.view().map(Message::ManageSystems),
+            Screen::ManageGames(manage_games) => manage_games.view().map(Message::ManageGames),
             Screen::AddReleaseMain(add_release_main) => {
                 add_release_main.view().map(Message::AddReleaseMain)
             }
@@ -147,6 +152,31 @@ impl IcedGameCollection {
         }
     }
 
+    fn update_manage_games(&mut self, message: manage_games::Message) -> Task<Message> {
+        if let Screen::ManageGames(manage_games) = &mut self.screen {
+            let action = manage_games.update(message);
+            match action {
+                manage_games::Action::Back => {
+                    self.screen = Screen::Home(home::Home::new());
+                    Task::none()
+                }
+                manage_games::Action::SubmitGame(game) => {
+                    self.collection.games.push(game.clone());
+                    self.screen = Screen::ManageGames(screen::ManageGames::new(
+                        self.collection.games.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                manage_games::Action::DeleteGame(_id) => Task::none(),
+                manage_games::Action::EditGame(_id) => Task::none(),
+                manage_games::Action::None => Task::none(),
+            }
+        } else {
+            Task::none()
+        }
+    }
+
     fn update_home(&mut self, message: home::Message) -> Task<Message> {
         if let Screen::Home(home) = &mut self.screen {
             let action = home.update(message);
@@ -159,6 +189,13 @@ impl IcedGameCollection {
                 home::Action::ManageSystems => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(
                         self.collection.systems.clone(),
+                        None,
+                    ));
+                    Task::none()
+                }
+                home::Action::ManageGames => {
+                    self.screen = Screen::ManageGames(screen::ManageGames::new(
+                        self.collection.games.clone(),
                         None,
                     ));
                     Task::none()
@@ -194,8 +231,7 @@ impl IcedGameCollection {
             let action = games.update(message);
             match action {
                 games::Action::GoHome => {
-                    let home = home::Home::new();
-                    self.screen = Screen::Home(home);
+                    self.screen = Screen::Home(home::Home::new());
                     Task::none()
                 }
                 games::Action::ViewGame(id) => {

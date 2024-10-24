@@ -40,6 +40,10 @@ impl ManageGames {
         }
     }
 
+    pub fn title(&self) -> String {
+        "Manage Games".to_string()
+    }
+
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Back => Action::Back,
