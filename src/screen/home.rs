@@ -5,7 +5,6 @@ pub struct Home {}
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewGames,
-    AddGame,
     AddRelease,
     ManageSystems,
     ManageEmulators,
@@ -14,7 +13,6 @@ pub enum Message {
 
 pub enum Action {
     ViewGames,
-    AddGame,
     AddRelease,
     ManageSystems,
     ManageEmulators,
@@ -34,7 +32,6 @@ impl Home {
         match message {
             Message::ViewGames => Action::ViewGames,
             Message::ManageSystems => Action::ManageSystems,
-            Message::AddGame => Action::AddGame,
             Message::AddRelease => Action::AddRelease,
             Message::ManageEmulators => Action::ManageEmulators,
             Message::Exit => Action::Exit,
@@ -45,9 +42,6 @@ impl Home {
         let view_games_button = button("View Games")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ViewGames);
-        let add_game_button = button("Add Game")
-            .width(iced::Length::Fixed(200.0))
-            .on_press(Message::AddGame);
         let add_release_button = button("Add release")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::AddRelease);
@@ -63,7 +57,6 @@ impl Home {
 
         column![
             view_games_button,
-            add_game_button,
             add_release_button,
             manage_systems_button,
             manage_emulators_button,

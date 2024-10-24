@@ -11,7 +11,6 @@ use async_std::path::Path;
 use error::Error;
 use iced::{exit, Task};
 use model::Collection;
-use screen::add_game_main;
 use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games;
@@ -45,7 +44,6 @@ enum Message {
     Games(games::Message),
     ManageSystems(manage_systems::Message),
     ManageEmulators(manage_emulators::Message),
-    AddGameMain(add_game_main::Message),
     AddReleaseMain(add_release_main::Message),
     Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
@@ -70,7 +68,6 @@ impl IcedGameCollection {
             Screen::Home(home) => home.title(),
             Screen::Games(games) => games.title(),
             Screen::ManageSystems(add_system) => add_system.title(),
-            Screen::AddGameMain(add_game_main) => add_game_main.title(),
             Screen::AddReleaseMain(add_release_main) => add_release_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
@@ -83,7 +80,6 @@ impl IcedGameCollection {
             Message::ManageSystems(message) => self.update_manage_systems(message),
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
-            Message::AddGameMain(message) => self.update_add_game(message),
             Message::AddReleaseMain(message) => self.update_add_release(message),
             Message::Loaded(result) => self.update_loaded(result),
             Message::CollectionSavedOnExit(result) => self.update_collection_saved_on_exit(result),
@@ -101,7 +97,6 @@ impl IcedGameCollection {
             Screen::Home(home) => home.view().map(Message::Home),
             Screen::Games(games) => games.view().map(Message::Games),
             Screen::ManageSystems(add_system) => add_system.view().map(Message::ManageSystems),
-            Screen::AddGameMain(add_game_main) => add_game_main.view().map(Message::AddGameMain),
             Screen::AddReleaseMain(add_release_main) => {
                 add_release_main.view().map(Message::AddReleaseMain)
             }
@@ -168,14 +163,6 @@ impl IcedGameCollection {
                     ));
                     Task::none()
                 }
-                home::Action::AddGame => {
-                    self.screen = Screen::AddGameMain(screen::AddGameMain::new(
-                        self.collection.systems.clone(),
-                        self.collection.games.clone(),
-                        None,
-                    ));
-                    Task::none()
-                }
                 home::Action::AddRelease => {
                     self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(
                         self.collection.games_new.clone(),
@@ -228,11 +215,7 @@ impl IcedGameCollection {
                 games::Action::EditGame(id) => {
                     let edit_game = self.collection.games.iter().find(|g| g.id == id).unwrap();
 
-                    self.screen = Screen::AddGameMain(screen::AddGameMain::new(
-                        self.collection.systems.clone(),
-                        self.collection.games.clone(),
-                        Some(edit_game.clone()),
-                    ));
+                    // TODO
                     Task::none()
                 }
                 games::Action::DeleteGame(id) => {
@@ -278,32 +261,6 @@ impl IcedGameCollection {
                 }
                 add_release_main::Action::SubmitSystem(system) => {
                     self.collection.add_or_update_system(system);
-                    Task::none()
-                }
-            }
-        } else {
-            Task::none()
-        }
-    }
-
-    fn update_add_game(&mut self, message: add_game_main::Message) -> Task<Message> {
-        if let Screen::AddGameMain(add_game_main) = &mut self.screen {
-            let action = add_game_main.update(message);
-            match action {
-                add_game_main::Action::GoHome => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
-                add_game_main::Action::SubmitGame(game) => {
-                    self.collection.add_or_update_game(game);
-                    self.screen =
-                        Screen::Games(screen::Games::new(self.collection.to_game_list_model()));
-                    Task::none()
-                }
-                add_game_main::Action::Run(task) => task.map(Message::AddGameMain),
-                add_game_main::Action::None => Task::none(),
-                add_game_main::Action::Error(e) => {
-                    self.screen = Screen::Error(screen::Error::new(e));
                     Task::none()
                 }
             }
