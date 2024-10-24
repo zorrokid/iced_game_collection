@@ -1,11 +1,11 @@
-use crate::model::{get_new_id, GameNew};
+use crate::model::{get_new_id, Game};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
 pub struct ManageGames {
-    games: Vec<GameNew>,
-    game: GameNew,
+    games: Vec<Game>,
+    game: Game,
 }
 
 #[derive(Debug, Clone)]
@@ -20,18 +20,18 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub enum Action {
     Back,
-    SubmitGame(GameNew),
+    SubmitGame(Game),
     DeleteGame(i32),
     EditGame(i32),
     None,
 }
 
 impl ManageGames {
-    pub fn new(games: Vec<GameNew>, edit_game: Option<GameNew>) -> Self {
+    pub fn new(games: Vec<Game>, edit_game: Option<Game>) -> Self {
         Self {
             game: match edit_game {
                 Some(game) => game,
-                None => GameNew {
+                None => Game {
                     id: get_new_id(&games),
                     name: "".to_string(),
                 },

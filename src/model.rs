@@ -7,8 +7,8 @@ pub struct GameListModel {
     pub name: String,
 }
 
-impl From<&GameNew> for GameListModel {
-    fn from(game: &GameNew) -> Self {
+impl From<&Game> for GameListModel {
+    fn from(game: &Game) -> Self {
         GameListModel {
             id: game.id,
             name: game.name.clone(),
@@ -59,7 +59,7 @@ pub trait HasId {
     fn id(&self) -> i32;
 }
 
-impl HasId for GameNew {
+impl HasId for Game {
     fn id(&self) -> i32 {
         self.id
     }
@@ -84,12 +84,12 @@ impl HasId for Release {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct GameNew {
+pub struct Game {
     pub id: i32,
     pub name: String,
 }
 
-impl Display for GameNew {
+impl Display for Game {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
     }
@@ -99,7 +99,7 @@ impl Display for GameNew {
 pub struct Collection {
     pub systems: Vec<System>,
     pub emulators: Vec<Emulator>,
-    pub games: Vec<GameNew>,
+    pub games: Vec<Game>,
     pub releases: Vec<Release>,
 }
 
@@ -122,7 +122,7 @@ impl Collection {
         add_or_update(&mut self.releases, release);
     }
 
-    pub fn add_or_update_game_new(&mut self, game: GameNew) {
+    pub fn add_or_update_game_new(&mut self, game: Game) {
         add_or_update(&mut self.games, game);
     }
 
@@ -142,7 +142,7 @@ impl Collection {
     pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
         get_cloned(&self.emulators, id)
     }
-    pub fn get_game(&self, id: i32) -> Option<GameNew> {
+    pub fn get_game(&self, id: i32) -> Option<Game> {
         get_cloned(&self.games, id)
     }
     pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {

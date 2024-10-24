@@ -1,14 +1,14 @@
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{GameNew, Release, System};
+use crate::model::{Game, Release, System};
 use async_std::path::PathBuf;
 use iced::widget::{button, column, pick_list, text, text_input, Column};
 use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMainScreen {
-    games: Vec<GameNew>,
-    selected_game: Option<GameNew>,
+    games: Vec<Game>,
+    selected_game: Option<Game>,
     release: Release,
     systems: Vec<System>,
 }
@@ -18,7 +18,7 @@ pub enum Message {
     ManageGames,
     ManageSystems,
     Back,
-    GameSelected(GameNew),
+    GameSelected(Game),
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
@@ -30,7 +30,7 @@ pub enum Action {
     ManageGames,
     ManageSystems,
     Back,
-    GameSelected(GameNew),
+    GameSelected(Game),
     NameChanged(String),
     None,
     SystemSelected(System),
@@ -40,7 +40,7 @@ pub enum Action {
 }
 
 impl AddReleaseMainScreen {
-    pub fn new(games: Vec<GameNew>, release: Release, systems: Vec<System>) -> Self {
+    pub fn new(games: Vec<Game>, release: Release, systems: Vec<System>) -> Self {
         Self {
             games,
             selected_game: None,
@@ -133,7 +133,7 @@ impl AddReleaseMainScreen {
         let manage_systems_button = button("Manage Systems")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageSystems);
-        let available_games: Vec<GameNew> = self
+        let available_games: Vec<Game> = self
             .games
             .iter()
             .filter(|g| !self.release.games.contains(&g.id))

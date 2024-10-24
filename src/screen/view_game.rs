@@ -1,8 +1,8 @@
-use crate::model::{Emulator, GameNew, Release, System};
+use crate::model::{Emulator, Game, Release, System};
 use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
-    game: GameNew,
+    game: Game,
     emulators: Vec<Emulator>,
     releases: Vec<Release>,
     systems: Vec<System>,
@@ -22,7 +22,7 @@ pub enum Action {
 
 impl ViewGame {
     pub fn new(
-        game: GameNew,
+        game: Game,
         emulators: Vec<Emulator>,
         releases: Vec<Release>,
         systems: Vec<System>,
