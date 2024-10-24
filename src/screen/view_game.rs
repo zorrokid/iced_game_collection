@@ -1,30 +1,37 @@
-use crate::model::{Emulator, GameNew, Release};
+use crate::model::{Emulator, GameNew, Release, System};
 use iced::widget::{button, column, row, text, Column, Row};
 
 pub struct ViewGame {
     game: GameNew,
     emulators: Vec<Emulator>,
     releases: Vec<Release>,
+    systems: Vec<System>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(Emulator, String),
+    RunWithEmulator(Emulator, String, String),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(Emulator, String),
+    RunWithEmulator(Emulator, String, String),
 }
 
 impl ViewGame {
-    pub fn new(game: GameNew, emulators: Vec<Emulator>, releases: Vec<Release>) -> Self {
+    pub fn new(
+        game: GameNew,
+        emulators: Vec<Emulator>,
+        releases: Vec<Release>,
+        systems: Vec<System>,
+    ) -> Self {
         Self {
             game,
             emulators,
             releases,
+            systems,
         }
     }
 
@@ -35,16 +42,24 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(emulator, file) => Action::RunWithEmulator(emulator, file),
+            Message::RunWithEmulator(emulator, file, path) => {
+                Action::RunWithEmulator(emulator, file, path)
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let title = text(self.game.name.clone()).size(30);
+
         let releases_list = self
             .releases
             .iter()
             .map(|release| {
+                let system = self
+                    .systems
+                    .iter()
+                    .find(|s| s.id == release.system_id)
+                    .unwrap();
                 let emulators_for_system = self
                     .emulators
                     .iter()
@@ -61,12 +76,18 @@ impl ViewGame {
                                     .on_press(Message::RunWithEmulator(
                                         (*emulator).clone(),
                                         file.clone(),
+                                        system.roms_destination_path.clone(),
                                     ))
                                     .into()
                             })
                             .collect::<Vec<iced::Element<Message>>>();
 
-                        row!(text(file), Row::with_children(emulator_buttons),).into()
+                        row!(
+                            text(file),
+                            text(system.name.clone()),
+                            Row::with_children(emulator_buttons),
+                        )
+                        .into()
                     })
                     .collect::<Vec<iced::Element<Message>>>();
 
