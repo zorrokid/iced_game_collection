@@ -1,6 +1,6 @@
 use crate::manage_games;
 use crate::manage_systems;
-use crate::model::{Game, Release, System};
+use crate::model::{get_new_id, Game, Release, ReleaseListModel, System};
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
@@ -12,6 +12,7 @@ pub struct AddReleaseMain {
     // release to be added or edited, sub screens will submit events to update this
     release: Release,
     systems: Vec<System>,
+    releases: Vec<ReleaseListModel>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,11 +34,16 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(games: Vec<Game>, edit_release: Option<Release>, systems: Vec<System>) -> Self {
+    pub fn new(
+        games: Vec<Game>,
+        edit_release: Option<Release>,
+        systems: Vec<System>,
+        releases: Vec<ReleaseListModel>,
+    ) -> Self {
         let release = match edit_release {
             Some(release) => release,
             None => Release {
-                id: 0,
+                id: get_new_id(&releases),
                 files: vec![],
                 games: vec![],
                 system_id: 0,
@@ -49,6 +55,7 @@ impl AddReleaseMain {
             games,
             release,
             systems,
+            releases,
         }
     }
 

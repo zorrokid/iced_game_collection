@@ -16,6 +16,27 @@ impl From<&Game> for GameListModel {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ReleaseListModel {
+    pub id: i32,
+    pub name: String,
+}
+
+impl From<&Release> for ReleaseListModel {
+    fn from(release: &Release) -> Self {
+        ReleaseListModel {
+            id: release.id,
+            name: release.name.clone(),
+        }
+    }
+}
+
+impl HasId for ReleaseListModel {
+    fn id(&self) -> i32 {
+        self.id
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
     pub id: i32,
@@ -135,6 +156,9 @@ impl Collection {
     }
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
         self.games.iter().map(GameListModel::from).collect()
+    }
+    pub fn to_release_list_model(&self) -> Vec<ReleaseListModel> {
+        self.releases.iter().map(ReleaseListModel::from).collect()
     }
     pub fn get_system(&self, id: i32) -> Option<System> {
         get_cloned(&self.systems, id)

@@ -205,6 +205,7 @@ impl IcedGameCollection {
                         self.collection.games.clone(),
                         None,
                         self.collection.systems.clone(),
+                        self.collection.to_release_list_model(),
                     ));
                     Task::none()
                 }
