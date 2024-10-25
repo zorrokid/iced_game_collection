@@ -12,7 +12,6 @@ pub struct AddReleaseMain {
     // release to be added or edited, sub screens will submit events to update this
     release: Release,
     systems: Vec<System>,
-    releases: Vec<ReleaseListModel>,
 }
 
 #[derive(Debug, Clone)]
@@ -55,7 +54,6 @@ impl AddReleaseMain {
             games,
             release,
             systems,
-            releases,
         }
     }
 
