@@ -44,7 +44,11 @@ impl Games {
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),
                 button("Edit").on_press(Message::EditGame(game.id)),
-                button("Delete").on_press(Message::DeleteGame(game.id)),
+                button("Delete").on_press_maybe(if game.can_delete {
+                    Some(Message::DeleteGame(game.id))
+                } else {
+                    None
+                }),
             ]
             .into()
         });

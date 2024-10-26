@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct GameListModel {
     pub id: i32,
     pub name: String,
+    pub can_delete: bool,
 }
 
 impl From<&Game> for GameListModel {
@@ -12,6 +13,7 @@ impl From<&Game> for GameListModel {
         GameListModel {
             id: game.id,
             name: game.name.clone(),
+            can_delete: false,
         }
     }
 }
@@ -155,7 +157,17 @@ impl Collection {
         add_or_update(&mut self.emulators, emulator);
     }
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
-        self.games.iter().map(GameListModel::from).collect()
+        let mut list_models: Vec<GameListModel> =
+            self.games.iter().map(GameListModel::from).collect();
+        for game in &mut list_models {
+            let has_release = self
+                .releases
+                .iter()
+                .find(|r| r.games.contains(&game.id))
+                .is_some();
+            game.can_delete = !has_release;
+        }
+        list_models
     }
     pub fn to_release_list_model(&self) -> Vec<ReleaseListModel> {
         self.releases.iter().map(ReleaseListModel::from).collect()
