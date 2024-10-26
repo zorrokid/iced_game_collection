@@ -92,7 +92,6 @@ impl AddReleaseMainScreen {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let title = text("Add Release Main Screen");
         let back_button = button("Back").on_press(Message::Back);
         let release_name_input_field =
             text_input("Enter release name", &self.release.name).on_input(Message::NameChanged);
@@ -146,11 +145,10 @@ impl AddReleaseMainScreen {
         );
         let submit_button = button("Submit").on_press(Message::Submit);
         column![
-            title,
+            back_button,
             release_name_input_field,
             selected_games_title,
             Column::with_children(selected_games_list),
-            back_button,
             game_picker,
             manage_games_button,
             systems_select,
