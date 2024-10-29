@@ -70,7 +70,7 @@ impl AddReleaseMain {
                     match action {
                         add_release_main_screen::Action::ManageGames => {
                             self.screen = AddReleaseScreen::ManageGamesScreen(
-                                manage_games::ManageGames::new(self.games.clone(), None),
+                                manage_games::ManageGames::new(None),
                             );
                             Action::None
                         }

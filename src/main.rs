@@ -154,10 +154,7 @@ impl IcedGameCollection {
                 }
                 manage_games::Action::SubmitGame(game) => {
                     db.write().unwrap().add_or_update_game_new(game);
-                    self.screen = Screen::ManageGames(screen::ManageGames::new(
-                        db.read().unwrap().get_games(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageGames(screen::ManageGames::new(None));
                     Task::none()
                 }
                 manage_games::Action::DeleteGame(_id) => Task::none(),
@@ -184,10 +181,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::ManageGames => {
-                    self.screen = Screen::ManageGames(screen::ManageGames::new(
-                        db.read().unwrap().get_games(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageGames(screen::ManageGames::new(None));
                     Task::none()
                 }
                 home::Action::AddRelease => {

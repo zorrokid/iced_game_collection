@@ -28,7 +28,9 @@ pub enum Action {
 }
 
 impl ManageGames {
-    pub fn new(games: Vec<Game>, edit_game: Option<Game>) -> Self {
+    pub fn new(edit_game: Option<Game>) -> Self {
+        let db = crate::database::Database::get_instance();
+        let games = db.read().unwrap().get_games();
         Self {
             game: match edit_game {
                 Some(game) => game,
