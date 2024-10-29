@@ -76,7 +76,7 @@ impl AddReleaseMain {
                         }
                         add_release_main_screen::Action::ManageSystems => {
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(self.systems.clone(), None),
+                                manage_systems::ManageSystems::new(None),
                             );
                             Action::None
                         }
@@ -155,10 +155,7 @@ impl AddReleaseMain {
                         manage_systems::Action::EditSystem(id) => {
                             let edit_system = self.systems.iter().find(|s| s.id == id).cloned();
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(
-                                    self.systems.clone(),
-                                    edit_system,
-                                ),
+                                manage_systems::ManageSystems::new(edit_system),
                             );
                             Action::None
                         }

@@ -117,10 +117,7 @@ impl IcedGameCollection {
             match action {
                 manage_systems::Action::SubmitSystem(system) => {
                     db.write().unwrap().add_or_update_system(system);
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
                 manage_systems::Action::None => Task::none(),
@@ -130,17 +127,13 @@ impl IcedGameCollection {
                 }
                 manage_systems::Action::EditSystem(id) => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                        db.read().unwrap().get_systems(),
                         db.read().unwrap().get_system(id),
                     ));
                     Task::none()
                 }
                 manage_systems::Action::DeleteSystem(id) => {
                     db.write().unwrap().delete_system(id);
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
                 manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
@@ -187,10 +180,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::ManageSystems => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
                 home::Action::ManageGames => {

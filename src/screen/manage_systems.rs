@@ -33,7 +33,9 @@ pub enum Action {
 }
 
 impl ManageSystems {
-    pub fn new(systems: Vec<System>, edit_system: Option<System>) -> Self {
+    pub fn new(edit_system: Option<System>) -> Self {
+        let db = crate::database::Database::get_instance();
+        let systems = db.read().unwrap().get_systems();
         Self {
             system: match edit_system {
                 Some(system) => system,
