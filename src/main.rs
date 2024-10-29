@@ -204,8 +204,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::ViewGame(id) => {
-                    let view_game = view_game::ViewGame::new(id);
-                    self.screen = Screen::ViewGame(view_game);
+                    self.screen = Screen::ViewGame(view_game::ViewGame::new(id));
                     Task::none()
                 }
                 games::Action::EditGame(_id) => {
