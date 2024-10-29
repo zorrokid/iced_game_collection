@@ -111,12 +111,10 @@ impl IcedGameCollection {
     }
 
     fn update_manage_systems(&mut self, message: manage_systems::Message) -> Task<Message> {
-        let db = Database::get_instance();
         if let Screen::ManageSystems(add_system) = &mut self.screen {
             let action = add_system.update(message);
             match action {
-                manage_systems::Action::SubmitSystem(system) => {
-                    db.write().unwrap().add_or_update_system(system);
+                manage_systems::Action::SystemSubmitted => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
@@ -129,8 +127,7 @@ impl IcedGameCollection {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(Some(id)));
                     Task::none()
                 }
-                manage_systems::Action::DeleteSystem(id) => {
-                    db.write().unwrap().delete_system(id);
+                manage_systems::Action::SystemDeleted => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
@@ -201,7 +198,6 @@ impl IcedGameCollection {
     fn update_games(&mut self, message: games::Message) -> Task<Message> {
         if let Screen::Games(games) = &mut self.screen {
             let action = games.update(message);
-            let db = Database::get_instance();
             match action {
                 games::Action::GoHome => {
                     self.screen = Screen::Home(home::Home::new());
@@ -216,10 +212,7 @@ impl IcedGameCollection {
                     // TODO
                     Task::none()
                 }
-                games::Action::DeleteGame(id) => {
-                    // TODO: before game can be deleted, files related to releases must be deleted first
-                    //  - only in case relase has only this game
-                    db.write().unwrap().delete_game(id);
+                games::Action::GameDeleted => {
                     self.screen = Screen::Games(screen::Games::new());
                     Task::none()
                 }

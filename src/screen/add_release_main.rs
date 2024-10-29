@@ -127,9 +127,7 @@ impl AddReleaseMain {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }
-                        manage_systems::Action::DeleteSystem(id) => {
-                            let db = crate::database::Database::get_instance();
-                            db.write().unwrap().delete_system(id);
+                        manage_systems::Action::SystemDeleted => {
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
                                 manage_systems::ManageSystems::new(None),
                             );
@@ -145,9 +143,7 @@ impl AddReleaseMain {
                         manage_systems::Action::Run(task) => {
                             Action::Run(task.map(Message::ManageSystemsScreen))
                         }
-                        manage_systems::Action::SubmitSystem(system) => {
-                            let db = crate::database::Database::get_instance();
-                            db.write().unwrap().add_or_update_system(system);
+                        manage_systems::Action::SystemSubmitted => {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }

@@ -24,12 +24,12 @@ pub enum Message {
 }
 
 pub enum Action {
-    SubmitSystem(System),
     GoHome,
     None,
     EditSystem(i32),
-    DeleteSystem(i32),
     Run(Task<Message>),
+    SystemDeleted,
+    SystemSubmitted,
 }
 
 impl ManageSystems {
@@ -61,16 +61,23 @@ impl ManageSystems {
                 self.system.name = name;
                 Action::None
             }
-            Message::Submit => {
-                if self.system.name.is_empty() {
-                    return Action::None;
-                } else {
-                    Action::SubmitSystem(self.system.clone())
+            Message::Submit => match &mut self.system.name {
+                name if name.is_empty() => Action::None,
+                _ => {
+                    let db = crate::database::Database::get_instance();
+                    db.write()
+                        .unwrap()
+                        .add_or_update_system(self.system.clone());
+                    Action::SystemSubmitted
                 }
-            }
+            },
             Message::GoHome => Action::GoHome,
             Message::EditSystem(id) => Action::EditSystem(id),
-            Message::DeleteSystem(id) => Action::DeleteSystem(id),
+            Message::DeleteSystem(id) => {
+                let db = crate::database::Database::get_instance();
+                db.write().unwrap().delete_system(id);
+                Action::SystemDeleted
+            }
             Message::SelectFolder(folder_type) => Action::Run(Task::perform(
                 pick_folder(folder_type),
                 Message::FolderAdded,

@@ -17,7 +17,7 @@ pub enum Action {
     GoHome,
     ViewGame(i32),
     EditGame(i32),
-    DeleteGame(i32),
+    GameDeleted,
 }
 
 impl Games {
@@ -35,7 +35,7 @@ impl Games {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
             Message::EditGame(id) => Action::EditGame(id),
-            Message::DeleteGame(id) => Action::DeleteGame(id),
+            Message::DeleteGame(_id) => Action::GameDeleted,
             Message::GoHome => Action::GoHome,
         }
     }
