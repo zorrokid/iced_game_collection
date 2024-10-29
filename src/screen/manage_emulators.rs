@@ -1,4 +1,5 @@
-use crate::model::{get_new_id, Emulator, System};
+use crate::database::get_new_id;
+use crate::model::{Emulator, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 

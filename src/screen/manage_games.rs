@@ -1,4 +1,5 @@
-use crate::model::{get_new_id, Game};
+use crate::database::get_new_id;
+use crate::model::Game;
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 

@@ -53,6 +53,23 @@ impl Display for System {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SystemListModel {
+    pub id: i32,
+    pub name: String,
+    pub can_delete: bool,
+}
+
+impl From<&System> for SystemListModel {
+    fn from(system: &System) -> Self {
+        SystemListModel {
+            id: system.id,
+            name: system.name.clone(),
+            can_delete: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Release {
     pub id: i32,
@@ -106,6 +123,18 @@ impl HasId for Release {
     }
 }
 
+impl HasId for SystemListModel {
+    fn id(&self) -> i32 {
+        self.id
+    }
+}
+
+impl Display for SystemListModel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
     pub id: i32,
@@ -127,7 +156,7 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub fn delete_system(&mut self, system_id: i32) {
+    /*pub fn delete_system(&mut self, system_id: i32) {
         self.releases
             .retain(|release| release.system_id != system_id);
         self.emulators
@@ -172,6 +201,21 @@ impl Collection {
     pub fn to_release_list_model(&self) -> Vec<ReleaseListModel> {
         self.releases.iter().map(ReleaseListModel::from).collect()
     }
+
+    pub fn to_system_list_model(&self) -> Vec<SystemListModel> {
+        let mut list_models: Vec<SystemListModel> =
+            self.systems.iter().map(SystemListModel::from).collect();
+        for system in &mut list_models {
+            let has_release = self
+                .releases
+                .iter()
+                .find(|r| r.system_id == system.id)
+                .is_some();
+            system.can_delete = !has_release;
+        }
+        list_models
+    }
+
     pub fn get_system(&self, id: i32) -> Option<System> {
         get_cloned(&self.systems, id)
     }
@@ -189,18 +233,18 @@ impl Collection {
             .cloned()
             .collect();
         releases_with_game
-    }
+    }*/
 }
 
-pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
+/*pub fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
     items
         .iter()
         .max_by_key(|item| item.id())
         .map(|item| item.id() + 1)
         .unwrap_or(1)
-}
+}*/
 
-fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
+/*fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
     if let Some(existing_item) = items.iter_mut().find(|i| i.id() == item.id()) {
         *existing_item = item;
     } else {
@@ -210,7 +254,7 @@ fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
 
 fn get_cloned<T: HasId + Clone>(items: &Vec<T>, id: i32) -> Option<T> {
     items.iter().find(|item| item.id() == id).cloned()
-}
+}*/
 
 #[derive(Debug, Clone)]
 pub enum FolderType {

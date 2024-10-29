@@ -1,6 +1,7 @@
+use crate::database::get_new_id;
 use crate::manage_games;
 use crate::manage_systems;
-use crate::model::{get_new_id, Game, Release, ReleaseListModel, System};
+use crate::model::{Game, Release, ReleaseListModel, System};
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};

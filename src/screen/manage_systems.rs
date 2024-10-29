@@ -1,6 +1,7 @@
+use crate::database::get_new_id;
 use crate::error::Error;
 use crate::files::pick_folder;
-use crate::model::{get_new_id, FolderType, System};
+use crate::model::{FolderType, System};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Task;
 use std::path::PathBuf;
