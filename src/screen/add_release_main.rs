@@ -1,7 +1,7 @@
 use crate::database::get_new_id;
 use crate::manage_games;
 use crate::manage_systems;
-use crate::model::{Game, Release, ReleaseListModel, System};
+use crate::model::{Game, Release, System};
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
@@ -34,12 +34,11 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(
-        games: Vec<Game>,
-        edit_release: Option<Release>,
-        systems: Vec<System>,
-        releases: Vec<ReleaseListModel>,
-    ) -> Self {
+    pub fn new(edit_release: Option<Release>) -> Self {
+        let db = crate::database::Database::get_instance();
+        let games = db.read().unwrap().get_games();
+        let releases = db.read().unwrap().to_release_list_model();
+        let systems = db.read().unwrap().get_systems();
         let release = match edit_release {
             Some(release) => release,
             None => Release {

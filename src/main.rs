@@ -185,12 +185,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::AddRelease => {
-                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(
-                        db.read().unwrap().get_games(),
-                        None,
-                        db.read().unwrap().get_systems(),
-                        db.read().unwrap().to_release_list_model(),
-                    ));
+                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(None));
                     Task::none()
                 }
                 home::Action::Exit => Task::perform(
