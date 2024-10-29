@@ -199,11 +199,7 @@ impl IcedGameCollection {
                     Message::CollectionSavedOnExit,
                 ),
                 home::Action::ManageEmulators => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                        db.read().unwrap().get_emulators(),
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
             }
@@ -300,11 +296,7 @@ impl IcedGameCollection {
             match action {
                 manage_emulators::Action::SubmitEmulator(emulator) => {
                     db.write().unwrap().add_or_update_emulator(emulator);
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                        db.read().unwrap().get_emulators(),
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
                 manage_emulators::Action::None => Task::none(),
@@ -314,17 +306,11 @@ impl IcedGameCollection {
                 }
                 manage_emulators::Action::DeleteEmulator(id) => {
                     db.write().unwrap().delete_emulator(id);
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                        db.read().unwrap().get_emulators(),
-                        db.read().unwrap().get_systems(),
-                        None,
-                    ));
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
                 manage_emulators::Action::EditEmulator(id) => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                        db.read().unwrap().get_emulators(),
-                        db.read().unwrap().get_systems(),
                         db.read().unwrap().get_emulator(id),
                     ));
                     Task::none()
