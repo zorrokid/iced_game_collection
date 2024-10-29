@@ -237,14 +237,12 @@ impl IcedGameCollection {
     fn update_add_release(&mut self, message: add_release_main::Message) -> Task<Message> {
         if let Screen::AddReleaseMain(add_release_main) = &mut self.screen {
             let action = add_release_main.update(message);
-            let db = Database::get_instance();
             match action {
                 add_release_main::Action::Back => {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
-                add_release_main::Action::SubmitRelease(release) => {
-                    db.write().unwrap().add_or_update_release(release);
+                add_release_main::Action::ReleaseSubmitted => {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
@@ -252,18 +250,6 @@ impl IcedGameCollection {
                 add_release_main::Action::None => Task::none(),
                 add_release_main::Action::Error(e) => {
                     self.screen = Screen::Error(screen::Error::new(e));
-                    Task::none()
-                }
-                add_release_main::Action::SubmitGame(game) => {
-                    db.write().unwrap().add_or_update_game_new(game);
-                    Task::none()
-                }
-                add_release_main::Action::DeleteSystem(id) => {
-                    db.write().unwrap().delete_system(id);
-                    Task::none()
-                }
-                add_release_main::Action::SubmitSystem(system) => {
-                    db.write().unwrap().add_or_update_system(system);
                     Task::none()
                 }
             }

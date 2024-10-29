@@ -1,7 +1,7 @@
 use crate::database::get_new_id;
 use crate::manage_games;
 use crate::manage_systems;
-use crate::model::{Game, Release, System};
+use crate::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
@@ -9,10 +9,8 @@ use iced::{Element, Task};
 #[derive(Debug, Clone)]
 pub struct AddReleaseMain {
     screen: AddReleaseScreen,
-    games: Vec<Game>,
     // release to be added or edited, sub screens will submit events to update this
     release: Release,
-    systems: Vec<System>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,17 +25,13 @@ pub enum Action {
     None,
     Run(Task<Message>),
     Error(String),
-    DeleteSystem(i32),
-    SubmitSystem(System),
     ReleaseSubmitted,
 }
 
 impl AddReleaseMain {
     pub fn new(edit_release: Option<Release>) -> Self {
         let db = crate::database::Database::get_instance();
-        let games = db.read().unwrap().get_games();
         let releases = db.read().unwrap().to_release_list_model();
-        let systems = db.read().unwrap().get_systems();
         let release = match edit_release {
             Some(release) => release,
             None => Release {
@@ -50,9 +44,7 @@ impl AddReleaseMain {
         };
         Self {
             screen: create_main_screen(&release),
-            games,
             release,
-            systems,
         }
     }
 
@@ -143,7 +135,14 @@ impl AddReleaseMain {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }
-                        manage_systems::Action::DeleteSystem(id) => Action::DeleteSystem(id),
+                        manage_systems::Action::DeleteSystem(id) => {
+                            let db = crate::database::Database::get_instance();
+                            db.write().unwrap().delete_system(id);
+                            self.screen = AddReleaseScreen::ManageSystemsScreen(
+                                manage_systems::ManageSystems::new(None),
+                            );
+                            Action::None
+                        }
                         manage_systems::Action::EditSystem(id) => {
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
                                 manage_systems::ManageSystems::new(Some(id)),
@@ -155,11 +154,10 @@ impl AddReleaseMain {
                             Action::Run(task.map(Message::ManageSystemsScreen))
                         }
                         manage_systems::Action::SubmitSystem(system) => {
-                            // TODO: would be better if local systems wouldn't need to be updated explicitly
-                            // but rather the list would reflect always what's in main (through a reference)?
-                            self.systems.push(system.clone());
+                            let db = crate::database::Database::get_instance();
+                            db.write().unwrap().add_or_update_system(system);
                             self.screen = create_main_screen(&self.release);
-                            Action::SubmitSystem(system)
+                            Action::None
                         }
                     }
                 } else {
