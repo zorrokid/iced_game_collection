@@ -21,12 +21,12 @@ pub enum Action {
 }
 
 impl ViewGame {
-    pub fn new(
-        game: Game,
-        emulators: Vec<Emulator>,
-        releases: Vec<Release>,
-        systems: Vec<System>,
-    ) -> Self {
+    pub fn new(game_id: i32) -> Self {
+        let db = crate::database::Database::get_instance();
+        let game = db.read().unwrap().get_game(game_id).unwrap();
+        let emulators = db.read().unwrap().get_emulators();
+        let releases = db.read().unwrap().get_releases_with_game(game_id);
+        let systems = db.read().unwrap().get_systems();
         Self {
             game,
             emulators,

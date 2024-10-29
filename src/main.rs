@@ -126,9 +126,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 manage_systems::Action::EditSystem(id) => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(
-                        db.read().unwrap().get_system(id),
-                    ));
+                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(Some(id)));
                     Task::none()
                 }
                 manage_systems::Action::DeleteSystem(id) => {
@@ -169,11 +167,9 @@ impl IcedGameCollection {
     fn update_home(&mut self, message: home::Message) -> Task<Message> {
         if let Screen::Home(home) = &mut self.screen {
             let action = home.update(message);
-            let db = Database::get_instance();
             match action {
                 home::Action::ViewGames => {
-                    self.screen =
-                        Screen::Games(screen::Games::new(db.read().unwrap().to_game_list_model()));
+                    self.screen = Screen::Games(screen::Games::new());
                     Task::none()
                 }
                 home::Action::ManageSystems => {
@@ -188,11 +184,15 @@ impl IcedGameCollection {
                     self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(None));
                     Task::none()
                 }
-                home::Action::Exit => Task::perform(
-                    // TODO: use save in db
-                    save_collection_async(db.read().unwrap().get_collection()),
-                    Message::CollectionSavedOnExit,
-                ),
+                home::Action::Exit => {
+                    // TODO: use save in db instead
+                    let db = Database::get_instance();
+                    let collection = db.read().unwrap().get_collection();
+                    Task::perform(
+                        save_collection_async(collection),
+                        Message::CollectionSavedOnExit,
+                    )
+                }
                 home::Action::ManageEmulators => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
@@ -213,22 +213,11 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games::Action::ViewGame(id) => {
-                    let game = db.read().unwrap().get_game(id);
-                    let releases = db.read().unwrap().get_releases_with_game(id);
-                    if let Some(game) = game {
-                        let view_game = view_game::ViewGame::new(
-                            game,
-                            db.read().unwrap().get_emulators(),
-                            releases,
-                            db.read().unwrap().get_systems(),
-                        );
-                        self.screen = Screen::ViewGame(view_game);
-                    }
+                    let view_game = view_game::ViewGame::new(id);
+                    self.screen = Screen::ViewGame(view_game);
                     Task::none()
                 }
-                games::Action::EditGame(id) => {
-                    let edit_game = db.read().unwrap().get_game(id);
-
+                games::Action::EditGame(_id) => {
                     // TODO
                     Task::none()
                 }
@@ -236,8 +225,7 @@ impl IcedGameCollection {
                     // TODO: before game can be deleted, files related to releases must be deleted first
                     //  - only in case relase has only this game
                     db.write().unwrap().delete_game(id);
-                    self.screen =
-                        Screen::Games(screen::Games::new(db.read().unwrap().to_game_list_model()));
+                    self.screen = Screen::Games(screen::Games::new());
                     Task::none()
                 }
             }
@@ -305,9 +293,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 manage_emulators::Action::EditEmulator(id) => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(
-                        db.read().unwrap().get_emulator(id),
-                    ));
+                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(Some(id)));
                     Task::none()
                 }
             }
@@ -319,11 +305,9 @@ impl IcedGameCollection {
     fn update_view_game(&mut self, message: view_game::Message) -> Task<Message> {
         if let Screen::ViewGame(view_game) = &mut self.screen {
             let action = view_game.update(message);
-            let db = Database::get_instance();
             match action {
                 view_game::Action::GoToGames => {
-                    self.screen =
-                        Screen::Games(screen::Games::new(db.read().unwrap().to_game_list_model()));
+                    self.screen = Screen::Games(screen::Games::new());
                     Task::none()
                 }
                 view_game::Action::RunWithEmulator(emulator, file, path) => Task::perform(

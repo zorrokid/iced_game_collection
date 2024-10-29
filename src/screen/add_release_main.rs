@@ -152,9 +152,8 @@ impl AddReleaseMain {
                         }
                         manage_systems::Action::DeleteSystem(id) => Action::DeleteSystem(id),
                         manage_systems::Action::EditSystem(id) => {
-                            let edit_system = self.systems.iter().find(|s| s.id == id).cloned();
                             self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(edit_system),
+                                manage_systems::ManageSystems::new(Some(id)),
                             );
                             Action::None
                         }

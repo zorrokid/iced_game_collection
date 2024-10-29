@@ -21,7 +21,9 @@ pub enum Action {
 }
 
 impl Games {
-    pub fn new(games: Vec<GameListModel>) -> Self {
+    pub fn new() -> Self {
+        let db = crate::database::Database::get_instance();
+        let games = db.read().unwrap().to_game_list_model();
         Self { games }
     }
 

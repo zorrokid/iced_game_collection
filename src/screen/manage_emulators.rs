@@ -30,10 +30,11 @@ pub enum Action {
 }
 
 impl ManageEmulators {
-    pub fn new(edit_emulator: Option<Emulator>) -> Self {
+    pub fn new(edit_emulator_id: Option<i32>) -> Self {
         let db = crate::database::Database::get_instance();
         let emulators = db.read().unwrap().get_emulators();
         let systems = db.read().unwrap().get_systems();
+        let edit_emulator = edit_emulator_id.and_then(|id| db.read().unwrap().get_emulator(id));
         Self {
             emulator: match edit_emulator {
                 Some(emulator) => emulator,
