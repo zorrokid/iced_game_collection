@@ -21,10 +21,10 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub enum Action {
     Back,
-    SubmitGame(Game),
-    DeleteGame(i32),
-    EditGame(i32),
     None,
+    GameSubmitted,
+    GameDeleted,
+    GameEdited,
 }
 
 impl ManageGames {
@@ -50,9 +50,22 @@ impl ManageGames {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Back => Action::Back,
-            Message::SubmitGame => Action::SubmitGame(self.game.clone()),
-            Message::DeleteGame(id) => Action::DeleteGame(id),
-            Message::EditGame(id) => Action::EditGame(id),
+            Message::SubmitGame => {
+                let db = crate::database::Database::get_instance();
+                db.write()
+                    .unwrap()
+                    .add_or_update_game_new(self.game.clone());
+                Action::GameSubmitted
+            }
+            Message::DeleteGame(id) => {
+                let db = crate::database::Database::get_instance();
+                db.write().unwrap().delete_game(id);
+                Action::GameDeleted
+            }
+            Message::EditGame(i_d) => {
+                // TODO
+                Action::GameEdited
+            }
             Message::NameChanged(name) => {
                 self.game.name = name;
                 Action::None

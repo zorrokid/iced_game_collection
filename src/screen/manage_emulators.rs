@@ -22,11 +22,11 @@ pub enum Message {
 }
 
 pub enum Action {
-    SubmitEmulator(Emulator),
     GoHome,
     None,
     EditEmulator(i32),
-    DeleteEmulator(i32),
+    EmulatorSubmitted,
+    EmulatorDeleted,
 }
 
 impl ManageEmulators {
@@ -73,7 +73,11 @@ impl ManageEmulators {
                 if self.emulator.name.is_empty() || self.emulator.executable.is_empty() {
                     return Action::None;
                 }
-                Action::SubmitEmulator(self.emulator.clone())
+                let db = crate::database::Database::get_instance();
+                db.write()
+                    .unwrap()
+                    .add_or_update_emulator(self.emulator.clone());
+                Action::EmulatorSubmitted
             }
             Message::SystemSelected(system) => {
                 self.emulator.system_id = system.id;
@@ -81,7 +85,11 @@ impl ManageEmulators {
             }
             Message::GoHome => Action::GoHome,
             Message::EditEmulator(id) => Action::EditEmulator(id),
-            Message::DeleteEmulator(id) => Action::DeleteEmulator(id),
+            Message::DeleteEmulator(id) => {
+                let db = crate::database::Database::get_instance();
+                db.write().unwrap().delete_emulator(id);
+                Action::EmulatorDeleted
+            }
         }
     }
 

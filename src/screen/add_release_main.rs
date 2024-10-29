@@ -109,19 +109,11 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageGamesScreen(sub_screen) = &mut self.screen {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
-                        manage_games::Action::Back => {
+                        // TODO?
+                        _ => {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }
-                        manage_games::Action::SubmitGame(game) => {
-                            let db = crate::database::Database::get_instance();
-                            db.write().unwrap().add_or_update_game_new(game);
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
-                        }
-                        manage_games::Action::DeleteGame(id) => Action::None,
-                        manage_games::Action::EditGame(id) => Action::None,
-                        manage_games::Action::None => Action::None,
                     }
                 } else {
                     Action::None

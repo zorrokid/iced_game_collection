@@ -144,20 +144,15 @@ impl IcedGameCollection {
     fn update_manage_games(&mut self, message: manage_games::Message) -> Task<Message> {
         if let Screen::ManageGames(manage_games) = &mut self.screen {
             let action = manage_games.update(message);
-            let db = Database::get_instance();
             match action {
                 manage_games::Action::Back => {
                     self.screen = Screen::Home(home::Home::new());
                     Task::none()
                 }
-                manage_games::Action::SubmitGame(game) => {
-                    db.write().unwrap().add_or_update_game_new(game);
+                _ => {
                     self.screen = Screen::ManageGames(screen::ManageGames::new(None));
                     Task::none()
                 }
-                manage_games::Action::DeleteGame(_id) => Task::none(),
-                manage_games::Action::EditGame(_id) => Task::none(),
-                manage_games::Action::None => Task::none(),
             }
         } else {
             Task::none()
@@ -261,10 +256,8 @@ impl IcedGameCollection {
     fn update_manage_emulators(&mut self, message: manage_emulators::Message) -> Task<Message> {
         if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
             let action = add_emulator.update(message);
-            let db = Database::get_instance();
             match action {
-                manage_emulators::Action::SubmitEmulator(emulator) => {
-                    db.write().unwrap().add_or_update_emulator(emulator);
+                manage_emulators::Action::EmulatorSubmitted => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
@@ -273,8 +266,7 @@ impl IcedGameCollection {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
-                manage_emulators::Action::DeleteEmulator(id) => {
-                    db.write().unwrap().delete_emulator(id);
+                manage_emulators::Action::EmulatorDeleted => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
