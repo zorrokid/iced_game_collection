@@ -48,13 +48,61 @@ impl Database {
         INSTANCE.clone()
     }
 
-    pub fn add_or_update_system(&mut self, system: System) {
-        add_or_update(&mut self.collection.systems, system);
+    // get the whole database content
+    pub fn get_collection(&self) -> Collection {
+        self.collection.clone()
     }
+
+    // get all items
+    pub fn get_systems(&self) -> Vec<System> {
+        self.collection.systems.clone()
+    }
+
+    pub fn get_games(&self) -> Vec<Game> {
+        self.collection.games.clone()
+    }
+
+    pub fn get_emulators(&self) -> Vec<Emulator> {
+        self.collection.emulators.clone()
+    }
+
+    pub fn get_releases(&self) -> Vec<Release> {
+        self.collection.releases.clone()
+    }
+
+    // get single item
 
     pub fn get_system(&self, id: i32) -> Option<System> {
         get_cloned(&self.collection.systems, id)
     }
+
+    pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
+        get_cloned(&self.collection.emulators, id)
+    }
+
+    pub fn get_game(&self, id: i32) -> Option<Game> {
+        get_cloned(&self.collection.games, id)
+    }
+
+    // add_or_update
+
+    pub fn add_or_update_system(&mut self, system: System) {
+        add_or_update(&mut self.collection.systems, system);
+    }
+
+    pub fn add_or_update_release(&mut self, release: Release) {
+        add_or_update(&mut self.collection.releases, release);
+    }
+
+    pub fn add_or_update_game_new(&mut self, game: Game) {
+        add_or_update(&mut self.collection.games, game);
+    }
+
+    pub fn add_or_update_emulator(&mut self, emulator: Emulator) {
+        add_or_update(&mut self.collection.emulators, emulator);
+    }
+
+    // delete
 
     pub fn delete_system(&mut self, id: i32) {
         self.collection.systems.retain(|s| s.id != id);
@@ -69,17 +117,7 @@ impl Database {
             .retain(|emulator| emulator.id != emulator_id);
     }
 
-    pub fn add_or_update_release(&mut self, release: Release) {
-        add_or_update(&mut self.collection.releases, release);
-    }
-
-    pub fn add_or_update_game_new(&mut self, game: Game) {
-        add_or_update(&mut self.collection.games, game);
-    }
-
-    pub fn add_or_update_emulator(&mut self, emulator: Emulator) {
-        add_or_update(&mut self.collection.emulators, emulator);
-    }
+    // to list model
 
     pub fn to_game_list_model(&self) -> Vec<GameListModel> {
         let mut list_models: Vec<GameListModel> = self
@@ -127,12 +165,8 @@ impl Database {
         list_models
     }
 
-    pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
-        get_cloned(&self.collection.emulators, id)
-    }
-    pub fn get_game(&self, id: i32) -> Option<Game> {
-        get_cloned(&self.collection.games, id)
-    }
+    // special
+
     pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {
         let releases_with_game = self
             .collection
@@ -142,26 +176,6 @@ impl Database {
             .cloned()
             .collect();
         releases_with_game
-    }
-
-    pub fn get_systems(&self) -> Vec<System> {
-        self.collection.systems.clone()
-    }
-
-    pub fn get_games(&self) -> Vec<Game> {
-        self.collection.games.clone()
-    }
-
-    pub fn get_emulators(&self) -> Vec<Emulator> {
-        self.collection.emulators.clone()
-    }
-
-    pub fn get_releases(&self) -> Vec<Release> {
-        self.collection.releases.clone()
-    }
-
-    pub fn get_collection(&self) -> Collection {
-        self.collection.clone()
     }
 }
 
