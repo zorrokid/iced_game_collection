@@ -40,7 +40,11 @@ pub enum Action {
 }
 
 impl AddReleaseMainScreen {
-    pub fn new(games: Vec<Game>, release: Release, systems: Vec<System>) -> Self {
+    pub fn new(release: Release) -> Self {
+        let db = crate::database::Database::get_instance();
+        let games = db.read().unwrap().get_games();
+        let systems = db.read().unwrap().get_systems();
+
         Self {
             games,
             selected_game: None,
