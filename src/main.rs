@@ -6,7 +6,6 @@ mod screen;
 
 use async_process::Command;
 use async_std::fs::File as AsyncFile;
-use async_std::io::ReadExt;
 use async_std::io::WriteExt;
 use async_std::path::Path;
 use database::Database;
@@ -48,7 +47,6 @@ enum Message {
     ManageGames(manage_games::Message),
     ManageEmulators(manage_emulators::Message),
     AddReleaseMain(add_release_main::Message),
-    // Loaded(Result<Collection, Error>),
     CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
     FinishedRunningWithEmulator(Result<(), Error>),
@@ -62,7 +60,6 @@ impl IcedGameCollection {
                 screen: Screen::Home(home::Home::new()),
             },
             Task::none(),
-            //Task::perform(load_collection_async(), Message::Loaded),
         )
     }
 
@@ -86,7 +83,6 @@ impl IcedGameCollection {
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
             Message::AddReleaseMain(message) => self.update_add_release(message),
-            // Message::Loaded(result) => self.update_loaded(result),
             Message::CollectionSavedOnExit(result) => self.update_collection_saved_on_exit(result),
             Message::ManageEmulators(message) => self.update_manage_emulators(message),
             Message::ViewGame(message) => self.update_view_game(message),
@@ -235,7 +231,7 @@ impl IcedGameCollection {
     fn update_games(&mut self, message: games::Message) -> Task<Message> {
         if let Screen::Games(games) = &mut self.screen {
             let action = games.update(message);
-            let mut db = Database::get_instance();
+            let db = Database::get_instance();
             match action {
                 games::Action::GoHome => {
                     self.screen = Screen::Home(home::Home::new());
@@ -316,7 +312,7 @@ impl IcedGameCollection {
     fn update_manage_emulators(&mut self, message: manage_emulators::Message) -> Task<Message> {
         if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
             let action = add_emulator.update(message);
-            let mut db = Database::get_instance();
+            let db = Database::get_instance();
             match action {
                 manage_emulators::Action::SubmitEmulator(emulator) => {
                     db.write().unwrap().add_or_update_emulator(emulator);
@@ -374,19 +370,6 @@ impl IcedGameCollection {
             Task::none()
         }
     }
-
-    /*fn update_loaded(&mut self, result: Result<Collection, Error>) -> Task<Message> {
-        match result {
-            Ok(games) => {
-                self.collection = games;
-                Task::none()
-            }
-            Err(err) => {
-                eprintln!("Failed to load collection: {}", err);
-                Task::none()
-            }
-        }
-    }*/
 
     fn update_collection_saved_on_exit(&mut self, result: Result<(), Error>) -> Task<Message> {
         if let Err(e) = result {
@@ -446,23 +429,6 @@ impl IcedGameCollection {
 
         Ok(())
     }
-}
-
-async fn load_collection_async() -> Result<Collection, Error> {
-    let mut file = AsyncFile::open(COLLECTION_FILE_NAME)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to open {}: {}", COLLECTION_FILE_NAME, e)))?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to read {}: {}", COLLECTION_FILE_NAME, e)))?;
-    let games = serde_json::from_str(&contents).map_err(|e| {
-        Error::IoError(format!(
-            "Failed to deserialize {}: {}",
-            COLLECTION_FILE_NAME, e
-        ))
-    })?;
-    Ok(games)
 }
 
 async fn save_collection_async(collection: Collection) -> Result<(), Error> {
