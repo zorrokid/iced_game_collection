@@ -2,6 +2,7 @@ use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone)]
 pub struct GameListModel {
     pub id: i32,
     pub name: String,
@@ -34,6 +35,12 @@ impl From<&Release> for ReleaseListModel {
 }
 
 impl HasId for ReleaseListModel {
+    fn id(&self) -> i32 {
+        self.id
+    }
+}
+
+impl HasId for GameListModel {
     fn id(&self) -> i32 {
         self.id
     }

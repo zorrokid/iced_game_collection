@@ -8,16 +8,12 @@ pub struct Games {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewGame(i32),
-    EditGame(i32),
-    DeleteGame(i32),
     GoHome,
 }
 
 pub enum Action {
     GoHome,
     ViewGame(i32),
-    EditGame(i32),
-    GameDeleted,
     None,
 }
 
@@ -35,13 +31,6 @@ impl Games {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
-            Message::EditGame(id) => Action::EditGame(id),
-            Message::DeleteGame(id) => {
-                let db = crate::database::Database::get_instance();
-                db.write().unwrap().delete_game(id);
-                self.games = db.read().unwrap().to_game_list_model();
-                Action::None
-            }
             Message::GoHome => Action::GoHome,
         }
     }
@@ -51,12 +40,6 @@ impl Games {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),
-                button("Edit").on_press(Message::EditGame(game.id)),
-                button("Delete").on_press_maybe(if game.can_delete {
-                    Some(Message::DeleteGame(game.id))
-                } else {
-                    None
-                }),
             ]
             .into()
         });

@@ -1,11 +1,11 @@
 use crate::database::get_new_id;
-use crate::model::Game;
+use crate::model::{Game, GameListModel};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
 pub struct ManageGames {
-    games: Vec<Game>,
+    games: Vec<GameListModel>,
     game: Game,
 }
 
@@ -30,7 +30,7 @@ pub enum Action {
 impl ManageGames {
     pub fn new(edit_game: Option<Game>) -> Self {
         let db = crate::database::Database::get_instance();
-        let games = db.read().unwrap().get_games();
+        let games = db.read().unwrap().to_game_list_model();
         Self {
             game: match edit_game {
                 Some(game) => game,
@@ -49,7 +49,7 @@ impl ManageGames {
 
     fn update_games(&mut self) {
         let db = crate::database::Database::get_instance();
-        self.games = db.read().unwrap().get_games();
+        self.games = db.read().unwrap().to_game_list_model();
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -96,7 +96,11 @@ impl ManageGames {
                         .on_press(Message::EditGame(game.id))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
-                        .on_press(Message::DeleteGame(game.id))
+                        .on_press_maybe(if game.can_delete {
+                            Some(Message::DeleteGame(game.id))
+                        } else {
+                            None
+                        })
                         .width(iced::Length::Fixed(200.0))
                 ]
                 .into()
