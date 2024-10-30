@@ -5,13 +5,10 @@ mod model;
 mod screen;
 
 use async_process::Command;
-use async_std::fs::File as AsyncFile;
-use async_std::io::WriteExt;
 use async_std::path::Path;
 use database::Database;
 use error::Error;
 use iced::{exit, Task};
-use model::Collection;
 use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games;
@@ -20,11 +17,8 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::view_game;
-use serde_json::to_string_pretty;
 
 use crate::screen::Screen;
-
-const COLLECTION_FILE_NAME: &str = "games.json";
 
 fn main() -> iced::Result {
     iced::application(
@@ -47,7 +41,6 @@ enum Message {
     ManageGames(manage_games::Message),
     ManageEmulators(manage_emulators::Message),
     AddReleaseMain(add_release_main::Message),
-    CollectionSavedOnExit(Result<(), Error>),
     ViewGame(screen::view_game::Message),
     FinishedRunningWithEmulator(Result<(), Error>),
     Error(error_screen::Message),
@@ -83,7 +76,6 @@ impl IcedGameCollection {
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
             Message::AddReleaseMain(message) => self.update_add_release(message),
-            Message::CollectionSavedOnExit(result) => self.update_collection_saved_on_exit(result),
             Message::ManageEmulators(message) => self.update_manage_emulators(message),
             Message::ViewGame(message) => self.update_view_game(message),
             Message::FinishedRunningWithEmulator(result) => {
@@ -176,15 +168,13 @@ impl IcedGameCollection {
                     self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(None));
                     Task::none()
                 }
-                home::Action::Exit => {
-                    // TODO: use save in db instead
-                    let db = Database::get_instance();
-                    let collection = db.read().unwrap().get_collection();
-                    Task::perform(
-                        save_collection_async(collection),
-                        Message::CollectionSavedOnExit,
-                    )
-                }
+                home::Action::Exit => match Database::get_instance().read().unwrap().save() {
+                    Ok(_) => exit(),
+                    Err(e) => {
+                        eprintln!("Failed to save collection: {}", e);
+                        Task::none()
+                    }
+                },
                 home::Action::ManageEmulators => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
@@ -290,16 +280,6 @@ impl IcedGameCollection {
         }
     }
 
-    fn update_collection_saved_on_exit(&mut self, result: Result<(), Error>) -> Task<Message> {
-        if let Err(e) = result {
-            match e {
-                Error::IoError(e) => eprintln!("Failed to save collection: {}", e),
-                _ => eprintln!("Failed to save collection"),
-            }
-        }
-        exit()
-    }
-
     fn update_error(&mut self, message: error_screen::Message) -> Task<Message> {
         if let Screen::Error(error) = &mut self.screen {
             let action = error.update(message);
@@ -319,7 +299,6 @@ impl IcedGameCollection {
             }
             Err(_) => println!("Failed to run with emulator"),
         }
-
         Task::none()
     }
 
@@ -348,16 +327,4 @@ impl IcedGameCollection {
 
         Ok(())
     }
-}
-
-async fn save_collection_async(collection: Collection) -> Result<(), Error> {
-    let json = to_string_pretty(&collection)
-        .map_err(|e| Error::IoError(format!("Failed to serialize games: {}", e)))?;
-    let mut file = AsyncFile::create(COLLECTION_FILE_NAME)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to create {}: {}", COLLECTION_FILE_NAME, e)))?;
-    file.write(json.as_bytes())
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to write {}: {}", COLLECTION_FILE_NAME, e)))?;
-    Ok(())
 }

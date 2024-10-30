@@ -5,8 +5,9 @@ use crate::{
         SystemListModel,
     },
 };
-use async_std::{fs, task};
+use async_std::{fs as fs_async, task};
 use lazy_static::lazy_static;
+use std::fs;
 use std::sync::{Arc, RwLock};
 
 const COLLECTION_FILE_NAME: &str = "games.json";
@@ -17,7 +18,7 @@ pub struct Database {
 
 impl Database {
     pub async fn load() -> Result<Collection, Error> {
-        let data = fs::read_to_string(COLLECTION_FILE_NAME)
+        let data = fs_async::read_to_string(COLLECTION_FILE_NAME)
             .await
             .map_err(|e| Error::IoError(format!("Error reading collection {}", e)))?;
         let collection: Collection = serde_json::from_str(&data)
@@ -25,11 +26,10 @@ impl Database {
         Ok(collection)
     }
 
-    pub async fn save(&self) -> Result<(), Error> {
+    pub fn save(&self) -> Result<(), Error> {
         let data = serde_json::to_string(&self.collection)
             .map_err(|e| Error::IoError(format!("Error serializing collection {}", e)))?;
         fs::write(COLLECTION_FILE_NAME, data)
-            .await
             .map_err(|e| Error::IoError(format!("Error writing collection {}", e)))?;
         Ok(())
     }
