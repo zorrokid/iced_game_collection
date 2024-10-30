@@ -24,7 +24,6 @@ pub enum Action {
     None,
     GameSubmitted,
     GameDeleted,
-    GameEdited,
 }
 
 impl ManageGames {
@@ -69,9 +68,10 @@ impl ManageGames {
                 self.update_games();
                 Action::GameDeleted
             }
-            Message::EditGame(_id) => {
-                // TODO
-                Action::GameEdited
+            Message::EditGame(id) => {
+                let db = crate::database::Database::get_instance();
+                self.game = db.read().unwrap().get_game(id).unwrap();
+                Action::None
             }
             Message::NameChanged(name) => {
                 self.game.name = name;
