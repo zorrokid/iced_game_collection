@@ -75,7 +75,6 @@ impl ManageGames {
 
     pub fn view(&self) -> iced::Element<Message> {
         let back_button = button("Back").on_press(Message::Back);
-        let title = text("Manage Games");
         let name_input_field =
             text_input("Enter name", &self.game.name).on_input(Message::NameChanged);
         let submit_button = button("Submit").on_press(Message::SubmitGame);
@@ -97,7 +96,6 @@ impl ManageGames {
             })
             .collect::<Vec<Element<Message>>>();
         column![
-            title,
             back_button,
             name_input_field,
             submit_button,
