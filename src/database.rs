@@ -105,12 +105,15 @@ impl Database {
     // delete
 
     pub fn delete_system(&mut self, id: i32) {
+        // TODO: check if system is used in a release (delete is disabled in UI in this case but should be checked anyway)
         self.collection.systems.retain(|s| s.id != id);
     }
 
     pub fn delete_game(&mut self, game_id: i32) {
+        // TODO: check if game is used in a release (delete is disabled in UI in this case but should be checked anyway)
         self.collection.games.retain(|game| game.id != game_id);
     }
+
     pub fn delete_emulator(&mut self, emulator_id: i32) {
         self.collection
             .emulators

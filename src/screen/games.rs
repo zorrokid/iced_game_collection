@@ -18,6 +18,7 @@ pub enum Action {
     ViewGame(i32),
     EditGame(i32),
     GameDeleted,
+    None,
 }
 
 impl Games {
@@ -35,7 +36,12 @@ impl Games {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
             Message::EditGame(id) => Action::EditGame(id),
-            Message::DeleteGame(_id) => Action::GameDeleted,
+            Message::DeleteGame(id) => {
+                let db = crate::database::Database::get_instance();
+                db.write().unwrap().delete_game(id);
+                self.games = db.read().unwrap().to_game_list_model();
+                Action::None
+            }
             Message::GoHome => Action::GoHome,
         }
     }

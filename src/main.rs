@@ -197,14 +197,7 @@ impl IcedGameCollection {
                     self.screen = Screen::ViewGame(view_game::ViewGame::new(id));
                     Task::none()
                 }
-                games::Action::EditGame(_id) => {
-                    // TODO
-                    Task::none()
-                }
-                games::Action::GameDeleted => {
-                    self.screen = Screen::Games(screen::Games::new());
-                    Task::none()
-                }
+                _ => Task::none(),
             }
         } else {
             Task::none()
