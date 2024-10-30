@@ -56,8 +56,7 @@ impl AddReleaseMain {
         match message {
             Message::AddReleaseMainScreen(sub_screen_message) => {
                 if let AddReleaseScreen::AddReleaseMainScreen(sub_screen) = &mut self.screen {
-                    let action = sub_screen.update(sub_screen_message);
-                    match action {
+                    match sub_screen.update(sub_screen_message) {
                         add_release_main_screen::Action::ManageGames => {
                             self.screen = AddReleaseScreen::ManageGamesScreen(
                                 manage_games::ManageGames::new(None),
@@ -107,8 +106,7 @@ impl AddReleaseMain {
             }
             Message::ManageGamesScreen(sub_screen_message) => {
                 if let AddReleaseScreen::ManageGamesScreen(sub_screen) = &mut self.screen {
-                    let action = sub_screen.update(sub_screen_message);
-                    match action {
+                    match sub_screen.update(sub_screen_message) {
                         manage_games::Action::GameSubmitted | manage_games::Action::Back => {
                             self.screen = create_main_screen(&self.release);
                             Action::None
@@ -121,8 +119,7 @@ impl AddReleaseMain {
             }
             Message::ManageSystemsScreen(sub_screen_message) => {
                 if let AddReleaseScreen::ManageSystemsScreen(sub_screen) = &mut self.screen {
-                    let action = sub_screen.update(sub_screen_message);
-                    match action {
+                    match sub_screen.update(sub_screen_message) {
                         manage_systems::Action::GoHome => {
                             self.screen = create_main_screen(&self.release);
                             Action::None

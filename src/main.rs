@@ -104,8 +104,7 @@ impl IcedGameCollection {
 
     fn update_manage_systems(&mut self, message: manage_systems::Message) -> Task<Message> {
         if let Screen::ManageSystems(add_system) = &mut self.screen {
-            let action = add_system.update(message);
-            match action {
+            match add_system.update(message) {
                 manage_systems::Action::SystemSubmitted | manage_systems::Action::SystemDeleted => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
@@ -128,8 +127,7 @@ impl IcedGameCollection {
 
     fn update_manage_games(&mut self, message: manage_games::Message) -> Task<Message> {
         if let Screen::ManageGames(manage_games) = &mut self.screen {
-            let action = manage_games.update(message);
-            match action {
+            match manage_games.update(message) {
                 manage_games::Action::Back => {
                     self.screen = Screen::Home(home::Home::new());
                     Task::none()
@@ -143,8 +141,7 @@ impl IcedGameCollection {
 
     fn update_home(&mut self, message: home::Message) -> Task<Message> {
         if let Screen::Home(home) = &mut self.screen {
-            let action = home.update(message);
-            match action {
+            match home.update(message) {
                 home::Action::ViewGames => {
                     self.screen = Screen::Games(screen::Games::new());
                     Task::none()
@@ -180,8 +177,7 @@ impl IcedGameCollection {
 
     fn update_games(&mut self, message: games::Message) -> Task<Message> {
         if let Screen::Games(games) = &mut self.screen {
-            let action = games.update(message);
-            match action {
+            match games.update(message) {
                 games::Action::GoHome => {
                     self.screen = Screen::Home(home::Home::new());
                     Task::none()
@@ -199,8 +195,7 @@ impl IcedGameCollection {
 
     fn update_add_release(&mut self, message: add_release_main::Message) -> Task<Message> {
         if let Screen::AddReleaseMain(add_release_main) = &mut self.screen {
-            let action = add_release_main.update(message);
-            match action {
+            match add_release_main.update(message) {
                 add_release_main::Action::Back | add_release_main::Action::ReleaseSubmitted => {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
@@ -219,8 +214,7 @@ impl IcedGameCollection {
 
     fn update_manage_emulators(&mut self, message: manage_emulators::Message) -> Task<Message> {
         if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
-            let action = add_emulator.update(message);
-            match action {
+            match add_emulator.update(message) {
                 manage_emulators::Action::EmulatorSubmitted
                 | manage_emulators::Action::EmulatorDeleted => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
@@ -243,8 +237,7 @@ impl IcedGameCollection {
 
     fn update_view_game(&mut self, message: view_game::Message) -> Task<Message> {
         if let Screen::ViewGame(view_game) = &mut self.screen {
-            let action = view_game.update(message);
-            match action {
+            match view_game.update(message) {
                 view_game::Action::GoToGames => {
                     self.screen = Screen::Games(screen::Games::new());
                     Task::none()
@@ -261,8 +254,7 @@ impl IcedGameCollection {
 
     fn update_error(&mut self, message: error_screen::Message) -> Task<Message> {
         if let Screen::Error(error) = &mut self.screen {
-            let action = error.update(message);
-            match action {
+            match error.update(message) {
                 error_screen::Action::GoHome => {
                     self.screen = Screen::Home(screen::Home::new());
                 }
