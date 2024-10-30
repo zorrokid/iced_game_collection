@@ -109,11 +109,11 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageGamesScreen(sub_screen) = &mut self.screen {
                     let action = sub_screen.update(sub_screen_message);
                     match action {
-                        // TODO?
-                        _ => {
+                        manage_games::Action::GameSubmitted | manage_games::Action::Back => {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }
+                        _ => Action::None,
                     }
                 } else {
                     Action::None

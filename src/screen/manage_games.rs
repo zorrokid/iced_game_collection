@@ -47,6 +47,11 @@ impl ManageGames {
         "Manage Games".to_string()
     }
 
+    fn update_games(&mut self) {
+        let db = crate::database::Database::get_instance();
+        self.games = db.read().unwrap().get_games();
+    }
+
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Back => Action::Back,
@@ -55,14 +60,16 @@ impl ManageGames {
                 db.write()
                     .unwrap()
                     .add_or_update_game_new(self.game.clone());
+                self.update_games();
                 Action::GameSubmitted
             }
             Message::DeleteGame(id) => {
                 let db = crate::database::Database::get_instance();
                 db.write().unwrap().delete_game(id);
+                self.update_games();
                 Action::GameDeleted
             }
-            Message::EditGame(i_d) => {
+            Message::EditGame(_id) => {
                 // TODO
                 Action::GameEdited
             }

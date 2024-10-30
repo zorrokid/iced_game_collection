@@ -138,10 +138,7 @@ impl IcedGameCollection {
                     self.screen = Screen::Home(home::Home::new());
                     Task::none()
                 }
-                _ => {
-                    self.screen = Screen::ManageGames(screen::ManageGames::new(None));
-                    Task::none()
-                }
+                _ => Task::none(),
             }
         } else {
             Task::none()
