@@ -106,7 +106,7 @@ impl IcedGameCollection {
         if let Screen::ManageSystems(add_system) = &mut self.screen {
             let action = add_system.update(message);
             match action {
-                manage_systems::Action::SystemSubmitted => {
+                manage_systems::Action::SystemSubmitted | manage_systems::Action::SystemDeleted => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
@@ -117,10 +117,6 @@ impl IcedGameCollection {
                 }
                 manage_systems::Action::EditSystem(id) => {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(Some(id)));
-                    Task::none()
-                }
-                manage_systems::Action::SystemDeleted => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
                     Task::none()
                 }
                 manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
@@ -205,11 +201,7 @@ impl IcedGameCollection {
         if let Screen::AddReleaseMain(add_release_main) = &mut self.screen {
             let action = add_release_main.update(message);
             match action {
-                add_release_main::Action::Back => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
-                add_release_main::Action::ReleaseSubmitted => {
+                add_release_main::Action::Back | add_release_main::Action::ReleaseSubmitted => {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
@@ -229,17 +221,14 @@ impl IcedGameCollection {
         if let Screen::ManageEmulators(add_emulator) = &mut self.screen {
             let action = add_emulator.update(message);
             match action {
-                manage_emulators::Action::EmulatorSubmitted => {
+                manage_emulators::Action::EmulatorSubmitted
+                | manage_emulators::Action::EmulatorDeleted => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
                 manage_emulators::Action::None => Task::none(),
                 manage_emulators::Action::GoHome => {
                     self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
-                manage_emulators::Action::EmulatorDeleted => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
                     Task::none()
                 }
                 manage_emulators::Action::EditEmulator(id) => {
