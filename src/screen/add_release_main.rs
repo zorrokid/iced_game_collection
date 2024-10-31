@@ -1,6 +1,7 @@
-use crate::database::get_new_id;
+use crate::database::Database;
 use crate::manage_games;
 use crate::manage_systems;
+use crate::model::init_new_release;
 use crate::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
@@ -30,17 +31,11 @@ pub enum Action {
 
 impl AddReleaseMain {
     pub fn new(edit_release: Option<Release>) -> Self {
-        let db = crate::database::Database::get_instance();
+        let db = Database::get_instance();
         let releases = db.read().unwrap().to_release_list_model();
         let release = match edit_release {
             Some(release) => release,
-            None => Release {
-                id: get_new_id(&releases),
-                files: vec![],
-                games: vec![],
-                system_id: 0,
-                name: "".to_string(),
-            },
+            None => init_new_release(&releases),
         };
         Self {
             screen: create_main_screen(&release),
@@ -95,9 +90,16 @@ impl AddReleaseMain {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
                         }
                         add_release_main_screen::Action::Submit(release) => {
-                            let db = crate::database::Database::get_instance();
+                            let db = Database::get_instance();
                             db.write().unwrap().add_or_update_release(release);
                             Action::ReleaseSubmitted
+                        }
+                        add_release_main_screen::Action::Clear => {
+                            let db = Database::get_instance();
+                            let releases = db.read().unwrap().to_release_list_model();
+                            self.release = init_new_release(&releases);
+                            self.screen = create_main_screen(&self.release);
+                            Action::None
                         }
                     }
                 } else {

@@ -1,5 +1,5 @@
-use crate::database::get_new_id;
-use crate::model::{Emulator, System};
+use crate::database::Database;
+use crate::model::{init_new_emulator, Emulator, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 
@@ -19,6 +19,7 @@ pub enum Message {
     GoHome,
     EditEmulator(i32),
     DeleteEmulator(i32),
+    Clear,
 }
 
 pub enum Action {
@@ -31,20 +32,14 @@ pub enum Action {
 
 impl ManageEmulators {
     pub fn new(edit_emulator_id: Option<i32>) -> Self {
-        let db = crate::database::Database::get_instance();
+        let db = Database::get_instance();
         let emulators = db.read().unwrap().get_emulators();
         let systems = db.read().unwrap().get_systems();
         let edit_emulator = edit_emulator_id.and_then(|id| db.read().unwrap().get_emulator(id));
         Self {
             emulator: match edit_emulator {
                 Some(emulator) => emulator,
-                None => Emulator {
-                    id: get_new_id(&emulators),
-                    name: "".to_string(),
-                    executable: "".to_string(),
-                    arguments: "".to_string(),
-                    system_id: 0,
-                },
+                None => init_new_emulator(&emulators),
             },
             emulators,
             systems,
@@ -73,7 +68,7 @@ impl ManageEmulators {
                 if self.emulator.name.is_empty() || self.emulator.executable.is_empty() {
                     return Action::None;
                 }
-                let db = crate::database::Database::get_instance();
+                let db = Database::get_instance();
                 db.write()
                     .unwrap()
                     .add_or_update_emulator(self.emulator.clone());
@@ -86,9 +81,13 @@ impl ManageEmulators {
             Message::GoHome => Action::GoHome,
             Message::EditEmulator(id) => Action::EditEmulator(id),
             Message::DeleteEmulator(id) => {
-                let db = crate::database::Database::get_instance();
+                let db = Database::get_instance();
                 db.write().unwrap().delete_emulator(id);
                 Action::EmulatorDeleted
+            }
+            Message::Clear => {
+                self.emulator = init_new_emulator(&self.emulators);
+                Action::None
             }
         }
     }
@@ -107,7 +106,11 @@ impl ManageEmulators {
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)
             .on_input(Message::ArgumentsChanged);
-        let add_button = button("Submit").on_press(Message::Submit);
+        let main_buttons = row![
+            button("Submit").on_press(Message::Submit),
+            button("Clear").on_press(Message::Clear)
+        ];
+
         let emulators_list = self
             .emulators
             .iter()
@@ -127,7 +130,7 @@ impl ManageEmulators {
             executable_input_field,
             arguments_input_field,
             systems_select,
-            add_button,
+            main_buttons,
             Column::with_children(emulators_list)
         ]
         .into()

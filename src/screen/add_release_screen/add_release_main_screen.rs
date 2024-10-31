@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::files::pick_file;
 use crate::model::{Game, Release, System};
 use async_std::path::PathBuf;
-use iced::widget::{button, column, pick_list, text, text_input, Column};
+use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
@@ -24,6 +24,7 @@ pub enum Message {
     SelectFile,
     FileAdded(Result<PathBuf, Error>),
     Submit,
+    Clear,
 }
 
 pub enum Action {
@@ -37,6 +38,7 @@ pub enum Action {
     Run(Task<Message>),
     AddFile(String),
     Submit(Release),
+    Clear,
 }
 
 impl AddReleaseMainScreen {
@@ -92,6 +94,7 @@ impl AddReleaseMainScreen {
                 Action::None
             }
             Message::Submit => Action::Submit(self.release.clone()),
+            Message::Clear => Action::Clear,
         }
     }
 
@@ -147,7 +150,11 @@ impl AddReleaseMainScreen {
             self.selected_game.clone(),
             Message::GameSelected,
         );
-        let submit_button = button("Submit").on_press(Message::Submit);
+        let main_buttons = row![
+            button("Submit").on_press(Message::Submit),
+            button("Clear").on_press(Message::Clear)
+        ];
+
         column![
             back_button,
             release_name_input_field,
@@ -159,7 +166,7 @@ impl AddReleaseMainScreen {
             manage_systems_button,
             add_file_button,
             Column::with_children(files_list),
-            submit_button
+            main_buttons
         ]
         .into()
     }

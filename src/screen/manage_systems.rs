@@ -1,7 +1,7 @@
-use crate::database::get_new_id;
+use crate::database::Database;
 use crate::error::Error;
 use crate::files::pick_folder;
-use crate::model::{FolderType, System};
+use crate::model::{init_new_system, FolderType, System};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Task;
 use std::path::PathBuf;
@@ -21,6 +21,7 @@ pub enum Message {
     DeleteSystem(i32),
     SelectFolder(FolderType),
     FolderAdded(Result<(PathBuf, FolderType), Error>),
+    Clear,
 }
 
 pub enum Action {
@@ -34,18 +35,13 @@ pub enum Action {
 
 impl ManageSystems {
     pub fn new(edit_system_id: Option<i32>) -> Self {
-        let db = crate::database::Database::get_instance();
+        let db = Database::get_instance();
         let systems = db.read().unwrap().get_systems();
         let edit_system = edit_system_id.and_then(|id| db.read().unwrap().get_system(id));
         Self {
             system: match edit_system {
                 Some(system) => system,
-                None => System {
-                    id: get_new_id(&systems),
-                    name: "".to_string(),
-                    roms_source_path: "".to_string(),
-                    roms_destination_path: "".to_string(),
-                },
+                None => init_new_system(&systems),
             },
             systems,
         }
@@ -64,7 +60,7 @@ impl ManageSystems {
             Message::Submit => match &mut self.system.name {
                 name if name.is_empty() => Action::None,
                 _ => {
-                    let db = crate::database::Database::get_instance();
+                    let db = Database::get_instance();
                     db.write()
                         .unwrap()
                         .add_or_update_system(self.system.clone());
@@ -74,7 +70,7 @@ impl ManageSystems {
             Message::GoHome => Action::GoHome,
             Message::EditSystem(id) => Action::EditSystem(id),
             Message::DeleteSystem(id) => {
-                let db = crate::database::Database::get_instance();
+                let db = Database::get_instance();
                 db.write().unwrap().delete_system(id);
                 Action::SystemDeleted
             }
@@ -97,13 +93,20 @@ impl ManageSystems {
                 print!("Error adding folder: {:?}", err);
                 Action::None
             }
+            Message::Clear => {
+                self.system = init_new_system(&self.systems);
+                Action::None
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let name_input_field =
             text_input("Enter name", &self.system.name).on_input(Message::NameChanged);
-        let add_button = button("Submit").on_press(Message::Submit);
+        let main_buttons = row![
+            button("Submit").on_press(Message::Submit),
+            button("Clear").on_press(Message::Clear)
+        ];
         let systems_list = self
             .systems
             .iter()
@@ -140,7 +143,7 @@ impl ManageSystems {
             source_folder_text,
             add_destination_folder_button,
             destination_folder_text,
-            add_button,
+            main_buttons,
             Column::with_children(systems_list)
         ]
         .into()

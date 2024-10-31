@@ -167,3 +167,47 @@ pub enum FolderType {
     Source,
     Destination,
 }
+
+pub fn init_new_emulator(emulators: &Vec<Emulator>) -> Emulator {
+    Emulator {
+        id: get_new_id(&emulators),
+        name: "".to_string(),
+        executable: "".to_string(),
+        arguments: "".to_string(),
+        system_id: 0,
+    }
+}
+
+pub fn init_new_system(systems: &Vec<System>) -> System {
+    System {
+        id: get_new_id(&systems),
+        name: "".to_string(),
+        roms_source_path: "".to_string(),
+        roms_destination_path: "".to_string(),
+    }
+}
+
+pub fn init_new_game(games: &Vec<GameListModel>) -> Game {
+    Game {
+        id: get_new_id(&games),
+        name: "".to_string(),
+    }
+}
+
+pub fn init_new_release(releases: &Vec<ReleaseListModel>) -> Release {
+    Release {
+        id: get_new_id(&releases),
+        name: "".to_string(),
+        system_id: 0,
+        files: vec![],
+        games: vec![],
+    }
+}
+
+fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
+    items
+        .iter()
+        .max_by_key(|item| item.id())
+        .map(|item| item.id() + 1)
+        .unwrap_or(1)
+}
