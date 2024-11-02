@@ -84,6 +84,10 @@ impl Database {
         get_cloned(&self.collection.games, id)
     }
 
+    pub fn get_release(&self, id: i32) -> Option<Release> {
+        get_cloned(&self.collection.releases, id)
+    }
+
     // add_or_update
 
     pub fn add_or_update_system(&mut self, system: System) {

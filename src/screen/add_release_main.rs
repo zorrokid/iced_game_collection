@@ -30,9 +30,10 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(edit_release: Option<Release>) -> Self {
+    pub fn new(edit_release_id: Option<i32>) -> Self {
         let db = Database::get_instance();
         let releases = db.read().unwrap().to_release_list_model();
+        let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(id));
         let release = match edit_release {
             Some(release) => release,
             None => init_new_release(&releases),

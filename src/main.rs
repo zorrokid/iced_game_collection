@@ -242,10 +242,17 @@ impl IcedGameCollection {
                     self.screen = Screen::Games(screen::Games::new());
                     Task::none()
                 }
-                view_game::Action::RunWithEmulator(emulator, file, path) => Task::perform(
-                    Self::run_with_emulator_async(file, emulator.clone(), path),
-                    Message::FinishedRunningWithEmulator,
-                ),
+                view_game::Action::RunWithEmulator(emulator, files, selected_file, path) => {
+                    Task::perform(
+                        Self::run_with_emulator_async(files, selected_file, emulator.clone(), path),
+                        Message::FinishedRunningWithEmulator,
+                    )
+                }
+                view_game::Action::EditRelease(id) => {
+                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(Some(id)));
+                    Task::none()
+                }
+                _ => Task::none(),
             }
         } else {
             Task::none()
@@ -274,12 +281,17 @@ impl IcedGameCollection {
     }
 
     async fn run_with_emulator_async(
-        file: String,
+        files: Vec<String>,
+        selected_file: String,
         emulator: model::Emulator,
         path: String,
     ) -> Result<(), Error> {
-        let file_path = Path::new(&path).join(&file);
-        println!("Running {} with emulator {}", file, emulator.name);
+        if files.is_empty() {
+            // TODO use other than IoError
+            return Err(Error::IoError("No file selected".to_string()));
+        }
+        let file_path = Path::new(&path).join(&selected_file);
+        println!("Running {} with emulator {}", selected_file, emulator.name);
         let mut child = Command::new(&emulator.executable)
             .arg(&file_path)
             .arg(&emulator.arguments)
