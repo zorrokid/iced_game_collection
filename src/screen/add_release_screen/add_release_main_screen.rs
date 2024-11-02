@@ -135,7 +135,11 @@ impl AddReleaseMainScreen {
             .iter()
             .map(|file| text(file).into())
             .collect::<Vec<iced::Element<Message>>>();
-        let add_file_button = button("Add File").on_press(Message::SelectFile);
+        let add_file_button = button("Add File").on_press_maybe(if self.release.system_id > 0 {
+            Some(Message::SelectFile)
+        } else {
+            None
+        });
         let manage_systems_button = button("Manage Systems")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageSystems);
