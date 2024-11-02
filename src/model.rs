@@ -100,6 +100,7 @@ pub struct Emulator {
     pub executable: String,
     pub arguments: String,
     pub system_id: i32,
+    pub extract_files: bool,
 }
 
 pub trait HasId {
@@ -175,6 +176,7 @@ pub fn init_new_emulator(emulators: &Vec<Emulator>) -> Emulator {
         executable: "".to_string(),
         arguments: "".to_string(),
         system_id: 0,
+        extract_files: false,
     }
 }
 

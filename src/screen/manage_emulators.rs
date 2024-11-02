@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::model::{init_new_emulator, Emulator, System};
-use iced::widget::{button, column, pick_list, row, text, text_input, Column};
+use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 
 pub struct ManageEmulators {
@@ -20,6 +20,7 @@ pub enum Message {
     EditEmulator(i32),
     DeleteEmulator(i32),
     Clear,
+    ExtractFilesChanged(bool),
 }
 
 pub enum Action {
@@ -89,6 +90,10 @@ impl ManageEmulators {
                 self.emulator = init_new_emulator(&self.emulators);
                 Action::None
             }
+            Message::ExtractFilesChanged(is_checked) => {
+                self.emulator.extract_files = is_checked;
+                Action::None
+            }
         }
     }
 
@@ -106,6 +111,8 @@ impl ManageEmulators {
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)
             .on_input(Message::ArgumentsChanged);
+        let extract_files_checkbox = checkbox("Extract files", self.emulator.extract_files)
+            .on_toggle(Message::ExtractFilesChanged);
         let main_buttons = row![
             button("Submit").on_press(Message::Submit),
             button("Clear").on_press(Message::Clear)
@@ -130,6 +137,7 @@ impl ManageEmulators {
             executable_input_field,
             arguments_input_field,
             systems_select,
+            extract_files_checkbox,
             main_buttons,
             Column::with_children(emulators_list)
         ]
