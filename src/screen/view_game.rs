@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::model::{Emulator, Game, Release, System};
+use crate::model::{Emulator, Game, PickedFile, Release, System};
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
 pub struct ViewGame {
@@ -8,21 +8,21 @@ pub struct ViewGame {
     emulators: Vec<Emulator>,
     releases: Vec<Release>,
     systems: Vec<System>,
-    selected_files: HashMap<i32, String>,
+    selected_files: HashMap<i32, PickedFile>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(Emulator, Vec<String>, String, String),
+    RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
     EditRelease(i32),
-    FileSelected(i32, String),
+    FileSelected(i32, PickedFile),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(Emulator, Vec<String>, String, String),
+    RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
     EditRelease(i32),
     None,
 }

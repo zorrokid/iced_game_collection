@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{Game, Release, System};
-use async_std::path::PathBuf;
+use crate::model::{Game, PickedFile, Release, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -22,7 +21,7 @@ pub enum Message {
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
-    FileAdded(Result<PathBuf, Error>),
+    FileAdded(Result<PickedFile, Error>),
     Submit,
     Clear,
 }
@@ -36,7 +35,7 @@ pub enum Action {
     None,
     SystemSelected(System),
     Run(Task<Message>),
-    AddFile(String),
+    AddFile(PickedFile),
     Submit(Release),
     Clear,
 }
@@ -82,17 +81,10 @@ impl AddReleaseMainScreen {
                     Action::None
                 }
             }
-            Message::FileAdded(result) => {
-                if let Ok(path) = result {
-                    if let Some(file_name) = path
-                        .file_name()
-                        .and_then(|os_str| os_str.to_str().map(|s| s.to_string()))
-                    {
-                        return Action::AddFile(file_name);
-                    }
-                }
-                Action::None
-            }
+            Message::FileAdded(result) => match result {
+                Ok(picked_file) => Action::AddFile(picked_file),
+                Err(e) => Action::None,
+            },
             Message::Submit => Action::Submit(self.release.clone()),
             Message::Clear => Action::Clear,
         }
@@ -133,7 +125,7 @@ impl AddReleaseMainScreen {
             .release
             .files
             .iter()
-            .map(|file| text(file).into())
+            .map(|file| text(file.to_string()).into())
             .collect::<Vec<iced::Element<Message>>>();
         let add_file_button = button("Add File").on_press_maybe(if self.release.system_id > 0 {
             Some(Message::SelectFile)

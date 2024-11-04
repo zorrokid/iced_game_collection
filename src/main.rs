@@ -9,6 +9,7 @@ use async_std::path::Path;
 use database::Database;
 use error::Error;
 use iced::{exit, Task};
+use model::PickedFile;
 use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games;
@@ -281,8 +282,8 @@ impl IcedGameCollection {
     }
 
     async fn run_with_emulator_async(
-        files: Vec<String>,
-        selected_file: String,
+        files: Vec<PickedFile>,
+        selected_file: PickedFile,
         emulator: model::Emulator,
         path: String,
     ) -> Result<(), Error> {
@@ -290,7 +291,7 @@ impl IcedGameCollection {
             // TODO use other than IoError
             return Err(Error::IoError("No file selected".to_string()));
         }
-        let file_path = Path::new(&path).join(&selected_file);
+        let file_path = Path::new(&path).join(&selected_file.file_name);
         println!("Running {} with emulator {}", selected_file, emulator.name);
         let mut child = Command::new(&emulator.executable)
             .arg(&file_path)
