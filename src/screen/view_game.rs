@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::model::{Emulator, Game, PickedFile, Release, System};
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
+#[derive(Debug, Clone)]
 pub struct ViewGame {
     game: Game,
     emulators: Vec<Emulator>,

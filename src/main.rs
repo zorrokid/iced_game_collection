@@ -13,6 +13,7 @@ use model::PickedFile;
 use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games;
+use screen::games_main;
 use screen::home;
 use screen::manage_emulators;
 use screen::manage_games;
@@ -42,6 +43,7 @@ enum Message {
     ManageGames(manage_games::Message),
     ManageEmulators(manage_emulators::Message),
     AddReleaseMain(add_release_main::Message),
+    GamesMain(games_main::Message),
     ViewGame(screen::view_game::Message),
     FinishedRunningWithEmulator(Result<(), Error>),
     Error(error_screen::Message),
@@ -64,6 +66,7 @@ impl IcedGameCollection {
             Screen::ManageSystems(add_system) => add_system.title(),
             Screen::ManageGames(manage_games) => manage_games.title(),
             Screen::AddReleaseMain(add_release_main) => add_release_main.title(),
+            Screen::GamesMain(games_main) => games_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::ViewGame(view_game) => view_game.title(),
             Screen::Error(error) => error.title(),
@@ -77,6 +80,7 @@ impl IcedGameCollection {
             Message::Home(message) => self.update_home(message),
             Message::Games(message) => self.update_games(message),
             Message::AddReleaseMain(message) => self.update_add_release(message),
+            Message::GamesMain(message) => self.update_games_main(message),
             Message::ManageEmulators(message) => self.update_manage_emulators(message),
             Message::ViewGame(message) => self.update_view_game(message),
             Message::FinishedRunningWithEmulator(result) => {
@@ -95,6 +99,7 @@ impl IcedGameCollection {
             Screen::AddReleaseMain(add_release_main) => {
                 add_release_main.view().map(Message::AddReleaseMain)
             }
+            Screen::GamesMain(games_main) => games_main.view().map(Message::GamesMain),
             Screen::ManageEmulators(add_emulator) => {
                 add_emulator.view().map(Message::ManageEmulators)
             }
@@ -145,6 +150,10 @@ impl IcedGameCollection {
             match home.update(message) {
                 home::Action::ViewGames => {
                     self.screen = Screen::Games(screen::Games::new());
+                    Task::none()
+                }
+                home::Action::ViewGamesNew => {
+                    self.screen = Screen::GamesMain(screen::GamesMain::new());
                     Task::none()
                 }
                 home::Action::ManageSystems => {
@@ -207,6 +216,20 @@ impl IcedGameCollection {
                     self.screen = Screen::Error(screen::Error::new(e));
                     Task::none()
                 }
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_games_main(&mut self, message: games_main::Message) -> Task<Message> {
+        if let Screen::GamesMain(games_main) = &mut self.screen {
+            match games_main.update(message) {
+                games_main::Action::Back => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                _ => Task::none(),
             }
         } else {
             Task::none()

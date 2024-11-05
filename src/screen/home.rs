@@ -5,6 +5,7 @@ pub struct Home {}
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewGames,
+    ViewGamesNew,
     AddRelease,
     ManageSystems,
     ManageGames,
@@ -14,6 +15,7 @@ pub enum Message {
 
 pub enum Action {
     ViewGames,
+    ViewGamesNew,
     AddRelease,
     ManageSystems,
     ManageGames,
@@ -33,6 +35,7 @@ impl Home {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGames => Action::ViewGames,
+            Message::ViewGamesNew => Action::ViewGamesNew,
             Message::ManageSystems => Action::ManageSystems,
             Message::ManageGames => Action::ManageGames,
             Message::AddRelease => Action::AddRelease,
@@ -45,6 +48,9 @@ impl Home {
         let view_games_button = button("View Games")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ViewGames);
+        let view_games_new_button = button("View Games (new)")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ViewGamesNew);
         let add_release_button = button("Add release")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::AddRelease);
@@ -63,6 +69,7 @@ impl Home {
 
         column![
             view_games_button,
+            view_games_new_button,
             add_release_button,
             manage_systems_button,
             manage_games_button,
