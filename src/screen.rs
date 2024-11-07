@@ -11,22 +11,18 @@ pub mod manage_systems;
 pub mod view_game;
 pub use add_release_main::AddReleaseMain;
 pub use error::Error;
-pub use games::Games;
 pub use games_main::GamesMain;
 pub use home::Home;
 pub use manage_emulators::ManageEmulators;
 pub use manage_games::ManageGames;
 pub use manage_systems::ManageSystems;
-pub use view_game::ViewGame;
 
 pub enum Screen {
     Home(Home),
-    Games(Games),
     AddReleaseMain(AddReleaseMain),
     ManageSystems(ManageSystems),
     ManageGames(ManageGames),
     ManageEmulators(ManageEmulators),
-    ViewGame(ViewGame),
     Error(Error),
     GamesMain(GamesMain),
 }
