@@ -83,7 +83,7 @@ impl AddReleaseMainScreen {
             }
             Message::FileAdded(result) => match result {
                 Ok(picked_file) => Action::AddFile(picked_file),
-                Err(e) => Action::None,
+                Err(_) => Action::None,
             },
             Message::Submit => Action::Submit(self.release.clone()),
             Message::Clear => Action::Clear,

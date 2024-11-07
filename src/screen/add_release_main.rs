@@ -152,7 +152,6 @@ impl AddReleaseMain {
                     Action::None
                 }
             }
-            _ => Action::None,
         }
     }
 

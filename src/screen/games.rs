@@ -14,7 +14,6 @@ pub enum Message {
 pub enum Action {
     GoHome,
     ViewGame(i32),
-    None,
 }
 
 impl Games {

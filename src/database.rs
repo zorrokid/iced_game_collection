@@ -48,11 +48,6 @@ impl Database {
         INSTANCE.clone()
     }
 
-    // get the whole database content
-    pub fn get_collection(&self) -> Collection {
-        self.collection.clone()
-    }
-
     // get all items
     pub fn get_systems(&self) -> Vec<System> {
         self.collection.systems.clone()
@@ -64,10 +59,6 @@ impl Database {
 
     pub fn get_emulators(&self) -> Vec<Emulator> {
         self.collection.emulators.clone()
-    }
-
-    pub fn get_releases(&self) -> Vec<Release> {
-        self.collection.releases.clone()
     }
 
     // get single item
@@ -153,7 +144,7 @@ impl Database {
             .collect()
     }
 
-    pub fn to_system_list_model(&self) -> Vec<SystemListModel> {
+    /*pub fn to_system_list_model(&self) -> Vec<SystemListModel> {
         let mut list_models: Vec<SystemListModel> = self
             .collection
             .systems
@@ -170,7 +161,7 @@ impl Database {
             system.can_delete = !has_release;
         }
         list_models
-    }
+    }*/
 
     // special
 

@@ -53,7 +53,7 @@ pub async fn pick_file(source_path: String, destination_path: String) -> Result<
     })
 }
 
-pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Result<i32, Error> {
+/*pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Result<i32, Error> {
     for file_name in file_names {
         let file_path = Path::new(&path).join(file_name);
         remove_file(file_path)
@@ -61,30 +61,30 @@ pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Res
             .map_err(|e| Error::IoError(format!("Failed to delete file: {}", e)))?;
     }
     Ok(id)
-}
+}*/
 
 pub async fn read_zip_file(file_path: &str) -> Result<Vec<FileInfo>, Error> {
     let file = File::open(file_path)
         .await
-        .map_err(|e| Error::IoError("Failed opening file.".to_string()))?;
+        .map_err(|_| Error::IoError("Failed opening file.".to_string()))?;
     let mut buffer = Vec::new();
     file.take(10 * 1024 * 1024) // Read up to 10 MB
         .read_to_end(&mut buffer)
         .await
-        .map_err(|e| Error::IoError("Failed reaind contents of file.".to_string()))?;
+        .map_err(|_| Error::IoError("Failed reaind contents of file.".to_string()))?;
 
     let reader = Cursor::new(buffer);
-    let mut zip = ZipArchive::new(reader).map_err(|e| {
+    let mut zip = ZipArchive::new(reader).map_err(|_| {
         Error::IoError("Failed creating a Zip archive from the buffer.".to_string())
     })?;
 
     let mut file_infos = Vec::new();
     for i in 0..zip.len() {
-        let mut file = zip.by_index(i).map_err(|e| {
+        let mut file = zip.by_index(i).map_err(|_| {
             Error::IoError(format!("Failed reading file in index {} in zip file.", i))
         })?;
         let mut contents = Vec::new();
-        file.read_to_end(&mut contents).map_err(|e| {
+        file.read_to_end(&mut contents).map_err(|_| {
             Error::IoError(format!(
                 "Failed reading file {} from Zip archive.",
                 file.name()
