@@ -44,10 +44,6 @@ impl ViewGame {
         }
     }
 
-    pub fn title(&self) -> String {
-        self.game.name.clone()
-    }
-
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
