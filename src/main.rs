@@ -229,7 +229,14 @@ impl IcedGameCollection {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
-                _ => Task::none(),
+                games_main::Action::RunWithEmulator(emulator, files, selected_file, path) => {
+                    Task::perform(
+                        Self::run_with_emulator_async(files, selected_file, emulator.clone(), path),
+                        Message::FinishedRunningWithEmulator,
+                    )
+                }
+                games_main::Action::Run(task) => task.map(Message::GamesMain),
+                games_main::Action::None => Task::none(),
             }
         } else {
             Task::none()

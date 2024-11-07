@@ -1,7 +1,7 @@
 use crate::model::{Emulator, PickedFile};
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
 use crate::screen::games_screen::GamesScreen;
-use iced::Element;
+use iced::{Element, Task};
 
 use super::add_release_main;
 use super::games_screen::games_main_screen;
@@ -9,24 +9,28 @@ use super::view_game;
 
 pub struct GamesMain {
     screen: GamesScreen,
+    selected_game_id: Option<i32>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GamesMainScreen(games_main_screen::Message),
     ViewGameScreen(view_game::Message),
+    EditReleaseScreen(add_release_main::Message),
 }
 
 pub enum Action {
     Back,
     RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
     None,
+    Run(Task<Message>),
 }
 
 impl GamesMain {
     pub fn new() -> Self {
         Self {
             screen: GamesScreen::GamesMainScreen(GamesMainScreen::new()),
+            selected_game_id: None,
         }
     }
 
@@ -62,8 +66,45 @@ impl GamesMain {
                             selected_file,
                             path,
                         ) => Action::RunWithEmulator(emulator, files, selected_file, path),
-                        view_game::Action::EditRelease(id) => Action::None,
+                        view_game::Action::EditRelease(id) => {
+                            self.screen = GamesScreen::EditReleaseScreen(
+                                add_release_main::AddReleaseMain::new(Some(id)),
+                            );
+                            Action::None
+                        }
                         view_game::Action::None => Action::None,
+                    }
+                } else {
+                    Action::None
+                }
+            }
+            Message::EditReleaseScreen(message) => {
+                if let GamesScreen::EditReleaseScreen(screen) = &mut self.screen {
+                    match screen.update(message) {
+                        add_release_main::Action::Back => {
+                            if let Some(id) = self.selected_game_id {
+                                self.screen =
+                                    GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
+                            } else {
+                                self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
+                            }
+                            Action::None
+                        }
+                        add_release_main::Action::ReleaseSubmitted => {
+                            if let Some(id) = self.selected_game_id {
+                                self.screen =
+                                    GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
+                            } else {
+                                self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
+                            }
+                            Action::None
+                        }
+                        add_release_main::Action::Run(task) => {
+                            Action::Run(task.map(Message::EditReleaseScreen))
+                        }
+
+                        add_release_main::Action::None => Action::None,
+                        add_release_main::Action::Error(_) => Action::None,
                     }
                 } else {
                     Action::None
@@ -76,6 +117,7 @@ impl GamesMain {
         match &self.screen {
             GamesScreen::GamesMainScreen(screen) => screen.view().map(Message::GamesMainScreen),
             GamesScreen::ViewGameScreen(screen) => screen.view().map(Message::ViewGameScreen),
+            GamesScreen::EditReleaseScreen(screen) => screen.view().map(Message::EditReleaseScreen),
         }
     }
 }
