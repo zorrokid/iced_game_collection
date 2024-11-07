@@ -1,7 +1,6 @@
 pub mod add_release_main;
 pub mod add_release_screen;
 pub mod error;
-pub mod games;
 pub mod games_main;
 pub mod games_screen;
 pub mod home;
