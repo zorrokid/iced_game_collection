@@ -1,7 +1,9 @@
+use std::vec;
+
 use crate::error::Error;
 use crate::files::pick_file;
 use crate::model::{Game, PickedFile, Release, System};
-use iced::widget::{button, column, pick_list, row, text, text_input, Column};
+use iced::widget::{button, column, pick_list, row, text, text_input, Column, PickList};
 use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
@@ -10,6 +12,7 @@ pub struct AddReleaseMainScreen {
     selected_game: Option<Game>,
     release: Release,
     systems: Vec<System>,
+    selected_file: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -24,6 +27,7 @@ pub enum Message {
     FileAdded(Result<PickedFile, Error>),
     Submit,
     Clear,
+    FileSelected(String),
 }
 
 pub enum Action {
@@ -51,6 +55,7 @@ impl AddReleaseMainScreen {
             selected_game: None,
             release,
             systems,
+            selected_file: None,
         }
     }
 
@@ -87,6 +92,10 @@ impl AddReleaseMainScreen {
             },
             Message::Submit => Action::Submit(self.release.clone()),
             Message::Clear => Action::Clear,
+            Message::FileSelected(file) => {
+                self.selected_file = Some(file);
+                Action::None
+            }
         }
     }
 
@@ -125,8 +134,22 @@ impl AddReleaseMainScreen {
             .release
             .files
             .iter()
-            .map(|file| text(file.to_string()).into())
+            .map(|file| {
+                let container_filename = text(file.to_string());
+                let content_files: Vec<String> = if let Some(files) = &file.files {
+                    files.iter().map(|file| file.name.clone()).collect()
+                } else {
+                    vec![]
+                };
+                let file_picker = pick_list(
+                    content_files,
+                    self.selected_file.clone(),
+                    Message::FileSelected,
+                );
+                row![container_filename, file_picker].into()
+            })
             .collect::<Vec<iced::Element<Message>>>();
+
         let add_file_button = button("Add File").on_press_maybe(if self.release.system_id > 0 {
             Some(Message::SelectFile)
         } else {
