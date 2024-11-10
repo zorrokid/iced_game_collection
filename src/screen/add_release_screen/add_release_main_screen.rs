@@ -81,9 +81,6 @@ impl AddReleaseMainScreen {
                 if let Some(system) = selected_system {
                     let source_path = system.roms_source_path.clone();
                     let destination_path = system.roms_destination_path.clone();
-                    // We need to wrap the Task in an Action, because with Action we can pass the Task back to the main update-function which
-                    // returns a Task<Message> which is then passed back to the iced runtime. Iced runtime passes the Message with the result from the
-                    // Task back to the update function.
                     Action::Run(Task::perform(
                         pick_file(source_path, destination_path),
                         Message::FileAdded,
