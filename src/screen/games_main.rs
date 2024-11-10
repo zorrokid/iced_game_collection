@@ -21,7 +21,13 @@ pub enum Message {
 
 pub enum Action {
     Back,
-    RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
+    RunWithEmulator(
+        Emulator,
+        Vec<PickedFile>,
+        PickedFile,
+        Option<String>,
+        String,
+    ),
     None,
     Run(Task<Message>),
 }
@@ -65,8 +71,11 @@ impl GamesMain {
                             emulator,
                             files,
                             selected_file,
+                            file_name,
                             path,
-                        ) => Action::RunWithEmulator(emulator, files, selected_file, path),
+                        ) => {
+                            Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
+                        }
                         view_game::Action::EditRelease(id) => {
                             self.screen = GamesScreen::EditReleaseScreen(
                                 add_release_main::AddReleaseMain::new(Some(id)),
@@ -102,6 +111,15 @@ impl GamesMain {
                         }
                         add_release_main::Action::Run(task) => {
                             Action::Run(task.map(Message::EditReleaseScreen))
+                        }
+                        add_release_main::Action::RunWithEmulator(
+                            emulator,
+                            files,
+                            selected_file,
+                            file_name,
+                            path,
+                        ) => {
+                            Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
                         }
 
                         add_release_main::Action::None => Action::None,

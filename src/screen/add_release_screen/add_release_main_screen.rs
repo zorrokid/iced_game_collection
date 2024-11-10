@@ -2,8 +2,8 @@ use std::vec;
 
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{Game, PickedFile, Release, System};
-use iced::widget::{button, column, pick_list, row, text, text_input, Column, PickList};
+use crate::model::{Emulator, Game, PickedFile, Release, System};
+use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
@@ -13,6 +13,7 @@ pub struct AddReleaseMainScreen {
     release: Release,
     systems: Vec<System>,
     selected_file: Option<String>,
+    emulators: Vec<Emulator>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +29,13 @@ pub enum Message {
     Submit,
     Clear,
     FileSelected(String),
+    RunWithEmulator(
+        Emulator,
+        Vec<PickedFile>,
+        PickedFile,
+        Option<String>,
+        String,
+    ),
 }
 
 pub enum Action {
@@ -41,6 +49,13 @@ pub enum Action {
     Run(Task<Message>),
     AddFile(PickedFile),
     Submit(Release),
+    RunWithEmulator(
+        Emulator,
+        Vec<PickedFile>,
+        PickedFile,
+        Option<String>,
+        String,
+    ),
     Clear,
 }
 
@@ -49,6 +64,7 @@ impl AddReleaseMainScreen {
         let db = crate::database::Database::get_instance();
         let games = db.read().unwrap().get_games();
         let systems = db.read().unwrap().get_systems();
+        let emulators = db.read().unwrap().get_emulators();
 
         Self {
             games,
@@ -56,6 +72,7 @@ impl AddReleaseMainScreen {
             release,
             systems,
             selected_file: None,
+            emulators,
         }
     }
 
@@ -96,6 +113,9 @@ impl AddReleaseMainScreen {
                 self.selected_file = Some(file);
                 Action::None
             }
+            Message::RunWithEmulator(emulator, files, selected_file, file_name, path) => {
+                Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
+            }
         }
     }
 
@@ -130,6 +150,15 @@ impl AddReleaseMainScreen {
             selected_system,
             Message::SystemSelected,
         );
+        let emulators_for_system = if let Some(selected_system) = selected_system {
+            self.emulators
+                .iter()
+                .filter(|emulator| emulator.system_id == selected_system.id)
+                .collect::<Vec<&Emulator>>()
+        } else {
+            vec![]
+        };
+
         let files_list = self
             .release
             .files
@@ -146,7 +175,33 @@ impl AddReleaseMainScreen {
                     self.selected_file.clone(),
                     Message::FileSelected,
                 );
-                row![container_filename, file_picker].into()
+                let emulator_button = emulators_for_system
+                    .iter()
+                    .map(|emulator| {
+                        button(emulator.name.as_str())
+                            .on_press_maybe({
+                                match (self.selected_file.clone(), selected_system) {
+                                    (Some(file_name), Some(system)) => {
+                                        Some(Message::RunWithEmulator(
+                                            (*emulator).clone(),
+                                            self.release.files.clone(),
+                                            file.clone(),
+                                            Some(file_name.clone()),
+                                            system.roms_destination_path.clone(),
+                                        ))
+                                    }
+                                    (_, _) => None,
+                                }
+                            })
+                            .into()
+                    })
+                    .collect::<Vec<iced::Element<Message>>>();
+                row![
+                    container_filename,
+                    file_picker,
+                    Column::with_children(emulator_button)
+                ]
+                .into()
             })
             .collect::<Vec<iced::Element<Message>>>();
 

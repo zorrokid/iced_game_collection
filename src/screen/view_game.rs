@@ -15,7 +15,13 @@ pub struct ViewGame {
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
+    RunWithEmulator(
+        Emulator,
+        Vec<PickedFile>,
+        PickedFile,
+        Option<String>,
+        String,
+    ),
     EditRelease(i32),
     FileSelected(i32, PickedFile),
 }
@@ -23,7 +29,13 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(Emulator, Vec<PickedFile>, PickedFile, String),
+    RunWithEmulator(
+        Emulator,
+        Vec<PickedFile>,
+        PickedFile,
+        Option<String>,
+        String,
+    ),
     EditRelease(i32),
     None,
 }
@@ -47,8 +59,8 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(emulator, files, selected_file, path) => {
-                Action::RunWithEmulator(emulator, files, selected_file, path)
+            Message::RunWithEmulator(emulator, files, selected_file, file_name, path) => {
+                Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
             }
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::FileSelected(id, file_name) => {
@@ -90,6 +102,7 @@ impl ViewGame {
                                             (*emulator).clone(),
                                             release.files.clone(),
                                             file.clone(),
+                                            None,
                                             system.roms_destination_path.clone(),
                                         ))
                                     }
