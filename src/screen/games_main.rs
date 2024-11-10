@@ -1,4 +1,4 @@
-use crate::model::{Emulator, PickedFile};
+use crate::emulator_runner::EmulatorRunOptions;
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
 use crate::screen::games_screen::GamesScreen;
 use iced::{Element, Task};
@@ -21,13 +21,7 @@ pub enum Message {
 
 pub enum Action {
     Back,
-    RunWithEmulator(
-        Emulator,
-        Vec<PickedFile>,
-        PickedFile,
-        Option<String>,
-        String,
-    ),
+    RunWithEmulator(EmulatorRunOptions),
     None,
     Run(Task<Message>),
 }
@@ -67,14 +61,8 @@ impl GamesMain {
                             self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
                             Action::None
                         }
-                        view_game::Action::RunWithEmulator(
-                            emulator,
-                            files,
-                            selected_file,
-                            file_name,
-                            path,
-                        ) => {
-                            Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
+                        view_game::Action::RunWithEmulator(options) => {
+                            Action::RunWithEmulator(options)
                         }
                         view_game::Action::EditRelease(id) => {
                             self.screen = GamesScreen::EditReleaseScreen(
@@ -112,14 +100,8 @@ impl GamesMain {
                         add_release_main::Action::Run(task) => {
                             Action::Run(task.map(Message::EditReleaseScreen))
                         }
-                        add_release_main::Action::RunWithEmulator(
-                            emulator,
-                            files,
-                            selected_file,
-                            file_name,
-                            path,
-                        ) => {
-                            Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
+                        add_release_main::Action::RunWithEmulator(options) => {
+                            Action::RunWithEmulator(options)
                         }
 
                         add_release_main::Action::None => Action::None,

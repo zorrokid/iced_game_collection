@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::model::{Emulator, Game, PickedFile, Release, System};
+use crate::{
+    emulator_runner::EmulatorRunOptions,
+    model::{Emulator, Game, PickedFile, Release, System},
+};
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
 #[derive(Debug, Clone)]
@@ -15,13 +18,7 @@ pub struct ViewGame {
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(
-        Emulator,
-        Vec<PickedFile>,
-        PickedFile,
-        Option<String>,
-        String,
-    ),
+    RunWithEmulator(EmulatorRunOptions),
     EditRelease(i32),
     FileSelected(i32, PickedFile),
 }
@@ -29,13 +26,7 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(
-        Emulator,
-        Vec<PickedFile>,
-        PickedFile,
-        Option<String>,
-        String,
-    ),
+    RunWithEmulator(EmulatorRunOptions),
     EditRelease(i32),
     None,
 }
@@ -59,9 +50,7 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(emulator, files, selected_file, file_name, path) => {
-                Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
-            }
+            Message::RunWithEmulator(options) => Action::RunWithEmulator(options),
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::FileSelected(id, file_name) => {
                 self.selected_files.insert(id, file_name);
@@ -98,13 +87,13 @@ impl ViewGame {
                                 match self.selected_files.get(&release.id) {
                                     Some(file) => {
                                         // TODO: check if file needs to be extracted
-                                        Some(Message::RunWithEmulator(
-                                            (*emulator).clone(),
-                                            release.files.clone(),
-                                            file.clone(),
-                                            None,
-                                            system.roms_destination_path.clone(),
-                                        ))
+                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
+                                            emulator: (*emulator).clone(),
+                                            files: release.files.clone(),
+                                            selected_file: file.clone(),
+                                            selected_file_name: None,
+                                            path: system.roms_destination_path.clone(),
+                                        }))
                                     }
                                     None => None,
                                 }

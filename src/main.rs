@@ -1,15 +1,14 @@
 mod database;
+mod emulator_runner;
 mod error;
 mod files;
 mod model;
 mod screen;
 
-use async_process::Command;
-use async_std::path::Path;
 use database::Database;
+use emulator_runner::run_with_emulator_async;
 use error::Error;
 use iced::{exit, Task};
-use model::PickedFile;
 use screen::add_release_main;
 use screen::error as error_screen;
 use screen::games_main;
@@ -185,20 +184,8 @@ impl IcedGameCollection {
                     self.screen = Screen::Error(screen::Error::new(e));
                     Task::none()
                 }
-                add_release_main::Action::RunWithEmulator(
-                    emulator,
-                    files,
-                    selected_file,
-                    file_name,
-                    path,
-                ) => Task::perform(
-                    Self::run_with_emulator_async(
-                        files,
-                        selected_file,
-                        file_name,
-                        emulator.clone(),
-                        path,
-                    ),
+                add_release_main::Action::RunWithEmulator(options) => Task::perform(
+                    run_with_emulator_async(options),
                     Message::FinishedRunningWithEmulator,
                 ),
             }
@@ -214,20 +201,8 @@ impl IcedGameCollection {
                     self.screen = Screen::Home(screen::Home::new());
                     Task::none()
                 }
-                games_main::Action::RunWithEmulator(
-                    emulator,
-                    files,
-                    selected_file,
-                    file_name,
-                    path,
-                ) => Task::perform(
-                    Self::run_with_emulator_async(
-                        files,
-                        selected_file,
-                        file_name,
-                        emulator.clone(),
-                        path,
-                    ),
+                games_main::Action::RunWithEmulator(options) => Task::perform(
+                    run_with_emulator_async(options),
                     Message::FinishedRunningWithEmulator,
                 ),
                 games_main::Action::Run(task) => task.map(Message::GamesMain),
@@ -280,37 +255,5 @@ impl IcedGameCollection {
             Err(_) => println!("Failed to run with emulator"),
         }
         Task::none()
-    }
-
-    async fn run_with_emulator_async(
-        files: Vec<PickedFile>,
-        selected_file: PickedFile,
-        selected_file_name: Option<String>,
-        emulator: model::Emulator,
-        path: String,
-    ) -> Result<(), Error> {
-        if files.is_empty() {
-            // TODO use other than IoError
-            return Err(Error::IoError("No file selected".to_string()));
-        }
-        let file_path = Path::new(&path).join(&selected_file.file_name);
-        println!("Running {} with emulator {}", selected_file, emulator.name);
-        let mut child = Command::new(&emulator.executable)
-            .arg(&file_path)
-            .arg(&emulator.arguments)
-            .spawn()
-            .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
-
-        let status = child
-            .status()
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to get status of emulator: {}", e)))?;
-        println!("Emulator exited with status: {}", status);
-        if !status.success() {
-            eprintln!("Emulator failed with status: {}", status);
-        }
-        println!("Finished running with emulator");
-
-        Ok(())
     }
 }

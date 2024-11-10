@@ -1,5 +1,6 @@
 use std::vec;
 
+use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::pick_file;
 use crate::model::{Emulator, Game, PickedFile, Release, System};
@@ -29,13 +30,7 @@ pub enum Message {
     Submit,
     Clear,
     FileSelected(String),
-    RunWithEmulator(
-        Emulator,
-        Vec<PickedFile>,
-        PickedFile,
-        Option<String>,
-        String,
-    ),
+    RunWithEmulator(EmulatorRunOptions),
 }
 
 pub enum Action {
@@ -49,13 +44,7 @@ pub enum Action {
     Run(Task<Message>),
     AddFile(PickedFile),
     Submit(Release),
-    RunWithEmulator(
-        Emulator,
-        Vec<PickedFile>,
-        PickedFile,
-        Option<String>,
-        String,
-    ),
+    RunWithEmulator(EmulatorRunOptions),
     Clear,
 }
 
@@ -113,9 +102,7 @@ impl AddReleaseMainScreen {
                 self.selected_file = Some(file);
                 Action::None
             }
-            Message::RunWithEmulator(emulator, files, selected_file, file_name, path) => {
-                Action::RunWithEmulator(emulator, files, selected_file, file_name, path)
-            }
+            Message::RunWithEmulator(options) => Action::RunWithEmulator(options),
         }
     }
 
@@ -182,13 +169,13 @@ impl AddReleaseMainScreen {
                             .on_press_maybe({
                                 match (self.selected_file.clone(), selected_system) {
                                     (Some(file_name), Some(system)) => {
-                                        Some(Message::RunWithEmulator(
-                                            (*emulator).clone(),
-                                            self.release.files.clone(),
-                                            file.clone(),
-                                            Some(file_name.clone()),
-                                            system.roms_destination_path.clone(),
-                                        ))
+                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
+                                            emulator: (*emulator).clone(),
+                                            files: self.release.files.clone(),
+                                            selected_file: file.clone(),
+                                            selected_file_name: Some(file_name.clone()),
+                                            path: system.roms_destination_path.clone(),
+                                        }))
                                     }
                                     (_, _) => None,
                                 }
