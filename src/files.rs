@@ -21,7 +21,7 @@ pub async fn pick_folder(folder_type: FolderType) -> Result<(StdPathBuf, FolderT
 pub async fn pick_file(source_path: String, destination_path: String) -> Result<PickedFile, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
-        .set_directory(source_path)
+        .set_directory(source_path.clone())
         .pick_file()
         .await
         .ok_or(Error::DialogClosed)?;
@@ -42,9 +42,11 @@ pub async fn pick_file(source_path: String, destination_path: String) -> Result<
 
     let path = AsyncPath::new(&destination_path).join(file_name.clone());
 
-    copy(file_handle.path(), &path)
-        .await
-        .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
+    if destination_path != source_path && !destination_path.is_empty() {
+        copy(file_handle.path(), &path)
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
+    }
 
     Ok(PickedFile {
         file_name,
