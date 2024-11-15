@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     emulator_runner::EmulatorRunOptions,
-    model::{Emulator, Game, PickedFile, Release, System},
+    model::{CollectionFile, Emulator, Game, Release, System},
 };
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
@@ -12,7 +12,7 @@ pub struct ViewGame {
     emulators: Vec<Emulator>,
     releases: Vec<Release>,
     systems: Vec<System>,
-    selected_files: HashMap<i32, PickedFile>,
+    selected_files: HashMap<i32, CollectionFile>,
 }
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub enum Message {
     GoToGames,
     RunWithEmulator(EmulatorRunOptions),
     EditRelease(i32),
-    FileSelected(i32, PickedFile),
+    FileSelected(i32, CollectionFile),
 }
 
 #[derive(Debug, Clone)]
@@ -86,13 +86,16 @@ impl ViewGame {
                             .on_press_maybe({
                                 match self.selected_files.get(&release.id) {
                                     Some(file) => {
-                                        // TODO: check if file needs to be extracted
                                         Some(Message::RunWithEmulator(EmulatorRunOptions {
                                             emulator: (*emulator).clone(),
                                             files: release.files.clone(),
-                                            selected_file: file.clone(),
-                                            selected_file_name: None,
+                                            selected_file: Some(file.clone()),
+                                            selected_file_name: file
+                                                .file_name
+                                                .to_string_lossy()
+                                                .to_string(),
                                             path: system.roms_destination_path.clone(),
+                                            extract_files: (*emulator).extract_files,
                                         }))
                                     }
                                     None => None,

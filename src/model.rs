@@ -84,7 +84,7 @@ pub struct Release {
     pub id: i32,
     pub name: String,
     pub system_id: i32,
-    pub files: Vec<PickedFile>,
+    pub files: Vec<CollectionFile>,
     // Release can be a single game or compilation of games
     pub games: Vec<i32>,
 }
@@ -172,13 +172,13 @@ pub enum FolderType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct PickedFile {
+pub struct CollectionFile {
     pub file_name: OsString,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
 }
 
-impl Display for PickedFile {
+impl Display for CollectionFile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.file_name.to_string_lossy())
     }

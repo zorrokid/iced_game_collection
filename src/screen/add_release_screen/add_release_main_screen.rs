@@ -3,7 +3,7 @@ use std::vec;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{Emulator, Game, PickedFile, Release, System};
+use crate::model::{CollectionFile, Emulator, Game, Release, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -26,7 +26,7 @@ pub enum Message {
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
-    FileAdded(Result<PickedFile, Error>),
+    FileAdded(Result<CollectionFile, Error>),
     Submit,
     Clear,
     FileSelected(String),
@@ -42,7 +42,7 @@ pub enum Action {
     None,
     SystemSelected(System),
     Run(Task<Message>),
-    AddFile(PickedFile),
+    AddFile(CollectionFile),
     Submit(Release),
     RunWithEmulator(EmulatorRunOptions),
     Clear,
@@ -164,17 +164,36 @@ impl AddReleaseMainScreen {
                     .map(|emulator| {
                         button(emulator.name.as_str())
                             .on_press_maybe({
-                                match (self.selected_file.clone(), selected_system) {
-                                    (Some(file_name), Some(system)) => {
+                                match (
+                                    self.selected_file.clone(),
+                                    selected_system,
+                                    emulator.extract_files,
+                                ) {
+                                    (Some(file_name), Some(system), true) => {
                                         Some(Message::RunWithEmulator(EmulatorRunOptions {
                                             emulator: (*emulator).clone(),
                                             files: self.release.files.clone(),
-                                            selected_file: file.clone(),
-                                            selected_file_name: Some(file_name.clone()),
+                                            selected_file: Some(file.clone()),
+                                            selected_file_name: file_name.clone(),
                                             path: system.roms_destination_path.clone(),
+                                            extract_files: (*emulator).extract_files,
                                         }))
                                     }
-                                    (_, _) => None,
+                                    (_, Some(system), false) => {
+                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
+                                            emulator: (*emulator).clone(),
+                                            files: self.release.files.clone(),
+                                            selected_file: Some(file.clone()),
+                                            selected_file_name: file
+                                                .clone()
+                                                .file_name
+                                                .into_string()
+                                                .unwrap(), // TODO: this is not realiable
+                                            path: system.roms_destination_path.clone(),
+                                            extract_files: (*emulator).extract_files,
+                                        }))
+                                    }
+                                    (_, _, _) => None,
                                 }
                             })
                             .into()
