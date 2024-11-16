@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::model::{CollectionFile, FileInfo, FolderType};
+use crate::model::{CollectionFile, CollectionFileType, FileInfo, FolderType};
 use async_std::fs::{copy as async_copy, remove_file, File as AsyncFile};
 use async_std::path::Path as AsyncPath;
 use async_std::prelude::*;
@@ -22,6 +22,7 @@ pub async fn pick_folder(folder_type: FolderType) -> Result<(SyncPathBuf, Folder
 pub async fn pick_file(
     source_path: String,
     destination_path: String,
+    collection_file_type: CollectionFileType,
 ) -> Result<CollectionFile, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
@@ -57,6 +58,7 @@ pub async fn pick_file(
         file_name,
         is_zip,
         files,
+        collection_file_type,
     })
 }
 

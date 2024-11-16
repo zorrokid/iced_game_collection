@@ -172,10 +172,34 @@ pub enum FolderType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum CollectionFileType {
+    Rom,
+    DiskImage,
+    TapeImage,
+    ScreenShot,
+    Manual,
+    BoxArt,
+}
+
+impl ToString for CollectionFileType {
+    fn to_string(&self) -> String {
+        match self {
+            CollectionFileType::Rom => "Rom".to_string(),
+            CollectionFileType::DiskImage => "Disk Image".to_string(),
+            CollectionFileType::TapeImage => "Tape Image".to_string(),
+            CollectionFileType::ScreenShot => "Screen Shot".to_string(),
+            CollectionFileType::Manual => "Manual".to_string(),
+            CollectionFileType::BoxArt => "Box Art".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
     pub file_name: OsString,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
+    pub collection_file_type: CollectionFileType,
 }
 
 impl Display for CollectionFile {

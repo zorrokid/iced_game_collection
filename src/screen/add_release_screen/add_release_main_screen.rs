@@ -3,7 +3,7 @@ use std::{env, vec};
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{CollectionFile, Emulator, Game, Release, System};
+use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, System};
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -15,6 +15,7 @@ pub struct AddReleaseMainScreen {
     systems: Vec<System>,
     selected_file: Option<String>,
     emulators: Vec<Emulator>,
+    selected_file_type: Option<CollectionFileType>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,7 @@ pub enum Message {
     Clear,
     FileSelected(String),
     RunWithEmulator(EmulatorRunOptions),
+    CollectionFileTypeSelected(CollectionFileType),
 }
 
 pub enum Action {
@@ -62,6 +64,7 @@ impl AddReleaseMainScreen {
             systems,
             selected_file: None,
             emulators,
+            selected_file_type: None,
         }
     }
 
@@ -78,11 +81,13 @@ impl AddReleaseMainScreen {
                     .systems
                     .iter()
                     .find(|system| system.id == self.release.system_id);
-                if let Some(system) = selected_system {
+                if let (Some(system), Some(selected_file)) =
+                    (selected_system, self.selected_file_type.clone())
+                {
                     let source_path = system.roms_source_path.clone();
                     let destination_path = system.roms_destination_path.clone();
                     Action::Run(Task::perform(
-                        pick_file(source_path, destination_path),
+                        pick_file(source_path, destination_path, selected_file),
                         Message::FileAdded,
                     ))
                 } else {
@@ -100,6 +105,10 @@ impl AddReleaseMainScreen {
                 Action::None
             }
             Message::RunWithEmulator(options) => Action::RunWithEmulator(options),
+            Message::CollectionFileTypeSelected(file_type) => {
+                self.selected_file_type = Some(file_type);
+                Action::None
+            }
         }
     }
 
@@ -208,11 +217,21 @@ impl AddReleaseMainScreen {
             })
             .collect::<Vec<iced::Element<Message>>>();
 
-        let add_file_button = button("Add File").on_press_maybe(if self.release.system_id > 0 {
-            Some(Message::SelectFile)
-        } else {
-            None
-        });
+        let collection_file_type_picker = pick_list(
+            vec![CollectionFileType::Rom, CollectionFileType::DiskImage],
+            self.selected_file_type.clone(),
+            Message::CollectionFileTypeSelected,
+        );
+        let add_file_button = button("Add File").on_press_maybe(
+            if self.release.system_id > 0 && self.selected_file_type.is_some() {
+                Some(Message::SelectFile)
+            } else {
+                None
+            },
+        );
+
+        let file_picker_row = row![collection_file_type_picker, add_file_button];
+
         let manage_systems_button = button("Manage Systems")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageSystems);
@@ -241,7 +260,7 @@ impl AddReleaseMainScreen {
             manage_games_button,
             systems_select,
             manage_systems_button,
-            add_file_button,
+            file_picker_row,
             Column::with_children(files_list),
             main_buttons
         ]
