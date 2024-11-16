@@ -1,4 +1,4 @@
-use std::vec;
+use std::{env, vec};
 
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
@@ -173,24 +173,24 @@ impl AddReleaseMainScreen {
                                         Some(Message::RunWithEmulator(EmulatorRunOptions {
                                             emulator: (*emulator).clone(),
                                             files: self.release.files.clone(),
-                                            selected_file: Some(file.clone()),
                                             selected_file_name: file_name.clone(),
-                                            path: system.roms_destination_path.clone(),
+                                            source_path: system.roms_destination_path.clone(),
                                             extract_files: (*emulator).extract_files,
+                                            target_path: env::temp_dir(),
                                         }))
                                     }
                                     (_, Some(system), false) => {
                                         Some(Message::RunWithEmulator(EmulatorRunOptions {
                                             emulator: (*emulator).clone(),
                                             files: self.release.files.clone(),
-                                            selected_file: Some(file.clone()),
                                             selected_file_name: file
                                                 .clone()
                                                 .file_name
                                                 .into_string()
                                                 .unwrap(), // TODO: this is not realiable
-                                            path: system.roms_destination_path.clone(),
+                                            source_path: system.roms_destination_path.clone(),
                                             extract_files: (*emulator).extract_files,
+                                            target_path: env::temp_dir(),
                                         }))
                                     }
                                     (_, _, _) => None,

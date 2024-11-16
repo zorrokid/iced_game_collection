@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, env};
 
 use crate::{
     emulator_runner::EmulatorRunOptions,
@@ -89,13 +89,13 @@ impl ViewGame {
                                         Some(Message::RunWithEmulator(EmulatorRunOptions {
                                             emulator: (*emulator).clone(),
                                             files: release.files.clone(),
-                                            selected_file: Some(file.clone()),
                                             selected_file_name: file
                                                 .file_name
                                                 .to_string_lossy()
                                                 .to_string(),
-                                            path: system.roms_destination_path.clone(),
+                                            source_path: system.roms_destination_path.clone(),
                                             extract_files: (*emulator).extract_files,
+                                            target_path: env::temp_dir(),
                                         }))
                                     }
                                     None => None,

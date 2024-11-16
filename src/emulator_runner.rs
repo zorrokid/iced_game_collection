@@ -1,19 +1,20 @@
 use crate::{
     error::Error,
+    files::{copy_files, extract_zip_files},
     model::{CollectionFile, Emulator},
 };
 use async_process::Command;
-use async_std::path::{Path as AsyncPath, PathBuf as AsyncPathBuf};
-use std::path::Path as SyncPath;
+use async_std::path::Path as AsyncPath;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct EmulatorRunOptions {
     pub emulator: Emulator,
     pub files: Vec<CollectionFile>, // all files for release?
-    pub selected_file: Option<CollectionFile>, // optional single file selected for running
     pub selected_file_name: String, // file name selected for running (either a single file or a file inside a zip archive)
-    pub path: String,               // where to find files
+    pub source_path: String,        // where to find files
     pub extract_files: bool,
+    pub target_path: PathBuf, // where to extract / copy files
 }
 
 pub async fn run_with_emulator_async(
@@ -22,26 +23,30 @@ pub async fn run_with_emulator_async(
     let EmulatorRunOptions {
         emulator,
         files,
-        selected_file,
         selected_file_name,
-        path,
+        source_path,
         extract_files,
+        target_path,
     } = emulator_run_options;
     if files.is_empty() {
         // TODO use other than IoError
         return Err(Error::IoError("No file selected".to_string()));
     }
-    let file_path = AsyncPath::new(&path).join(&selected_file_name);
+    let file_path = AsyncPath::new(&target_path).join(&selected_file_name);
     println!(
         "Running {} with emulator {}",
         file_path.to_string_lossy(),
-        emulator.name
+        emulator.executable
     );
-    let mut command = Command::new(&emulator.executable)
-        .arg(&file_path)
-        .arg(&emulator.arguments)
-        .spawn()
-        .map_err(|e| Error::IoError(format!("Failed to spawn emulator: {}", e)))?;
+
+    let mut command = Command::new(&emulator.executable);
+
+    command.arg(&file_path).current_dir(target_path);
+
+    if emulator.arguments.len() > 0 {
+        // TODO: should use command.args() instead and emulator arguments should be split into separate strings
+        command.arg(&emulator.arguments);
+    }
 
     let status = command
         .status()
@@ -54,4 +59,14 @@ pub async fn run_with_emulator_async(
     println!("Finished running with emulator");
 
     Ok(())
+}
+
+pub fn process_files_for_emulator(options: &EmulatorRunOptions) -> Result<(), Error> {
+    let source_path = PathBuf::from(&options.source_path); // .join(&options.selected_file.file_name);
+    if options.extract_files {
+        // TODO: extract all files or only selected_file?
+        extract_zip_files(&options.files, &source_path, &options.target_path)
+    } else {
+        copy_files(&options.files, &source_path, &options.target_path)
+    }
 }

@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::model::{CollectionFile, FileInfo, FolderType};
 use async_std::fs::{copy as async_copy, remove_file, File as AsyncFile};
-use async_std::path::{Path as AsyncPath, PathBuf as AsyncPathBuf};
+use async_std::path::Path as AsyncPath;
 use async_std::prelude::*;
 use sha1::{Digest, Sha1};
 use std::fs::{copy, File};

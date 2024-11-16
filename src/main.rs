@@ -5,13 +5,9 @@ mod files;
 mod model;
 mod screen;
 
-use std::env;
-use std::path::{Path, PathBuf};
-
 use database::Database;
-use emulator_runner::{run_with_emulator_async, EmulatorRunOptions};
+use emulator_runner::{process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions};
 use error::Error;
-use files::{copy_files, extract_zip_files};
 use iced::{exit, Task};
 use screen::add_release_main;
 use screen::error as error_screen;
@@ -198,18 +194,6 @@ impl IcedGameCollection {
         }
     }
 
-    fn process_files_for_emulator(&self, options: EmulatorRunOptions) {
-        let temp_dir = env::temp_dir();
-        let temp_dir = PathBuf::from(&temp_dir);
-        let source_path = PathBuf::from(&options.path); // .join(&options.selected_file.file_name);
-        if options.extract_files {
-            // TODO: extract all files or only selected_file?
-            extract_zip_files(&options.files, &source_path, &temp_dir);
-        } else {
-            copy_files(&options.files, &source_path, &temp_dir);
-        }
-    }
-
     fn update_games_main(&mut self, message: games_main::Message) -> Task<Message> {
         if let Screen::GamesMain(games_main) = &mut self.screen {
             match games_main.update(message) {
@@ -218,12 +202,12 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 games_main::Action::RunWithEmulator(options) => {
-                    if options.extract_files {
-                        let temp_dir = env::temp_dir();
-                        let temp_dir = PathBuf::from(&temp_dir);
-                        let source_path = PathBuf::from(&options.path); // .join(&options.selected_file.file_name);
-
-                        extract_zip_files(&options.files, &source_path, &temp_dir);
+                    match process_files_for_emulator(&options) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            return Task::none();
+                        }
                     }
                     Task::perform(
                         run_with_emulator_async(options),
@@ -279,6 +263,7 @@ impl IcedGameCollection {
             }
             Err(_) => println!("Failed to run with emulator"),
         }
+        // TODO: clean up temporary files
         Task::none()
     }
 }
