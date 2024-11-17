@@ -116,19 +116,7 @@ impl AddReleaseMainScreen {
         let back_button = button("Back").on_press(Message::Back);
         let release_name_input_field =
             text_input("Enter release name", &self.release.name).on_input(Message::NameChanged);
-
-        let selected_games_title = text("Selected Games:");
-
-        let selected_games_list = self
-            .release
-            .games
-            .iter()
-            .map(|game_id| {
-                let game = self.games.iter().find(|game| game.id == *game_id).unwrap();
-                text(&game.name).into()
-            })
-            .collect::<Vec<Element<Message>>>();
-
+        let selected_games_list = self.create_selected_games_list();
         let manage_games_button: button::Button<'_, Message> = button("Manage Games")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageGames);
@@ -143,6 +131,83 @@ impl AddReleaseMainScreen {
             selected_system,
             Message::SystemSelected,
         );
+        let manage_systems_button = button("Manage Systems")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ManageSystems);
+
+        let file_picker_row = self.create_file_picker();
+        let files_list = self.create_files_list(&selected_system);
+
+        let main_buttons = row![
+            button("Submit").on_press(Message::Submit),
+            button("Clear").on_press(Message::Clear)
+        ];
+
+        column![
+            back_button,
+            release_name_input_field,
+            selected_games_list,
+            manage_games_button,
+            systems_select,
+            manage_systems_button,
+            file_picker_row,
+            files_list,
+            main_buttons
+        ]
+        .into()
+    }
+
+    fn create_selected_games_list(&self) -> Element<Message> {
+        let selected_games_title = text("Selected Games:");
+
+        let selected_games_list = self
+            .release
+            .games
+            .iter()
+            .map(|game_id| {
+                let game = self.games.iter().find(|game| game.id == *game_id).unwrap();
+                text(&game.name).into()
+            })
+            .collect::<Vec<Element<Message>>>();
+
+        let available_games: Vec<Game> = self
+            .games
+            .iter()
+            .filter(|g| !self.release.games.contains(&g.id))
+            .cloned()
+            .collect();
+
+        let game_picker = pick_list(
+            available_games,
+            self.selected_game.clone(),
+            Message::GameSelected,
+        );
+
+        column![
+            selected_games_title,
+            Column::with_children(selected_games_list),
+            game_picker
+        ]
+        .into()
+    }
+
+    fn create_file_picker(&self) -> Element<Message> {
+        let collection_file_type_picker = pick_list(
+            vec![CollectionFileType::Rom, CollectionFileType::DiskImage],
+            self.selected_file_type.clone(),
+            Message::CollectionFileTypeSelected,
+        );
+        let add_file_button = button("Add File").on_press_maybe(
+            if self.release.system_id > 0 && self.selected_file_type.is_some() {
+                Some(Message::SelectFile)
+            } else {
+                None
+            },
+        );
+        row![collection_file_type_picker, add_file_button].into()
+    }
+
+    fn create_files_list(&self, selected_system: &Option<&System>) -> Element<Message> {
         let emulators_for_system = if let Some(selected_system) = selected_system {
             self.emulators
                 .iter()
@@ -216,54 +281,6 @@ impl AddReleaseMainScreen {
                 .into()
             })
             .collect::<Vec<iced::Element<Message>>>();
-
-        let collection_file_type_picker = pick_list(
-            vec![CollectionFileType::Rom, CollectionFileType::DiskImage],
-            self.selected_file_type.clone(),
-            Message::CollectionFileTypeSelected,
-        );
-        let add_file_button = button("Add File").on_press_maybe(
-            if self.release.system_id > 0 && self.selected_file_type.is_some() {
-                Some(Message::SelectFile)
-            } else {
-                None
-            },
-        );
-
-        let file_picker_row = row![collection_file_type_picker, add_file_button];
-
-        let manage_systems_button = button("Manage Systems")
-            .width(iced::Length::Fixed(200.0))
-            .on_press(Message::ManageSystems);
-        let available_games: Vec<Game> = self
-            .games
-            .iter()
-            .filter(|g| !self.release.games.contains(&g.id))
-            .cloned()
-            .collect();
-        let game_picker = pick_list(
-            available_games,
-            self.selected_game.clone(),
-            Message::GameSelected,
-        );
-        let main_buttons = row![
-            button("Submit").on_press(Message::Submit),
-            button("Clear").on_press(Message::Clear)
-        ];
-
-        column![
-            back_button,
-            release_name_input_field,
-            selected_games_title,
-            Column::with_children(selected_games_list),
-            game_picker,
-            manage_games_button,
-            systems_select,
-            manage_systems_button,
-            file_picker_row,
-            Column::with_children(files_list),
-            main_buttons
-        ]
-        .into()
+        Column::with_children(files_list).into()
     }
 }
