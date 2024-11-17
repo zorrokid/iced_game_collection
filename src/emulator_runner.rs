@@ -13,8 +13,7 @@ pub struct EmulatorRunOptions {
     pub files: Vec<CollectionFile>, // all files for release?
     pub selected_file_name: String, // file name selected for running (either a single file or a file inside a zip archive)
     pub source_path: String,        // where to find files
-    pub extract_files: bool,
-    pub target_path: PathBuf, // where to extract / copy files
+    pub target_path: PathBuf,       // where to extract / copy files
 }
 
 pub async fn run_with_emulator_async(
@@ -25,7 +24,6 @@ pub async fn run_with_emulator_async(
         files,
         selected_file_name,
         source_path,
-        extract_files,
         target_path,
     } = emulator_run_options;
     if files.is_empty() {
@@ -63,7 +61,7 @@ pub async fn run_with_emulator_async(
 
 pub fn process_files_for_emulator(options: &EmulatorRunOptions) -> Result<(), Error> {
     let source_path = PathBuf::from(&options.source_path); // .join(&options.selected_file.file_name);
-    if options.extract_files {
+    if options.emulator.extract_files {
         // TODO: extract all files or only selected_file?
         extract_zip_files(&options.files, &source_path, &options.target_path)
     } else {

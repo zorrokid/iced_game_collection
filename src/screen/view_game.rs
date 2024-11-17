@@ -94,7 +94,6 @@ impl ViewGame {
                                                 .to_string_lossy()
                                                 .to_string(),
                                             source_path: system.roms_destination_path.clone(),
-                                            extract_files: (*emulator).extract_files,
                                             target_path: env::temp_dir(),
                                         }))
                                     }

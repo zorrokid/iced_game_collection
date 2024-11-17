@@ -249,7 +249,6 @@ impl AddReleaseMainScreen {
                                             files: self.release.files.clone(),
                                             selected_file_name: file_name.clone(),
                                             source_path: system.roms_destination_path.clone(),
-                                            extract_files: (*emulator).extract_files,
                                             target_path: env::temp_dir(),
                                         }))
                                     }
@@ -263,7 +262,6 @@ impl AddReleaseMainScreen {
                                                 .into_string()
                                                 .unwrap(), // TODO: this is not realiable
                                             source_path: system.roms_destination_path.clone(),
-                                            extract_files: (*emulator).extract_files,
                                             target_path: env::temp_dir(),
                                         }))
                                     }
