@@ -163,6 +163,7 @@ pub struct Collection {
     pub emulators: Vec<Emulator>,
     pub games: Vec<Game>,
     pub releases: Vec<Release>,
+    pub settings: Settings,
 }
 
 #[derive(Debug, Clone)]
@@ -178,7 +179,7 @@ pub enum CollectionFileType {
     TapeImage,
     ScreenShot,
     Manual,
-    BoxArt,
+    CoverScan,
 }
 
 impl ToString for CollectionFileType {
@@ -189,7 +190,7 @@ impl ToString for CollectionFileType {
             CollectionFileType::TapeImage => "Tape Image".to_string(),
             CollectionFileType::ScreenShot => "Screen Shot".to_string(),
             CollectionFileType::Manual => "Manual".to_string(),
-            CollectionFileType::BoxArt => "Box Art".to_string(),
+            CollectionFileType::CoverScan => "Cover scan".to_string(),
         }
     }
 }
@@ -212,6 +213,11 @@ impl Display for CollectionFile {
 pub struct FileInfo {
     pub name: String,
     pub checksum: String,
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
+pub struct Settings {
+    pub collection_root_dir: String,
 }
 
 pub fn init_new_emulator(emulators: &Vec<Emulator>) -> Emulator {

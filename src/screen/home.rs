@@ -9,6 +9,7 @@ pub enum Message {
     ManageSystems,
     ManageGames,
     ManageEmulators,
+    ManageSettings,
     Exit,
 }
 
@@ -18,6 +19,7 @@ pub enum Action {
     ManageSystems,
     ManageGames,
     ManageEmulators,
+    ManageSettings,
     Exit,
 }
 
@@ -37,6 +39,7 @@ impl Home {
             Message::ManageGames => Action::ManageGames,
             Message::AddRelease => Action::AddRelease,
             Message::ManageEmulators => Action::ManageEmulators,
+            Message::ManageSettings => Action::ManageSettings,
             Message::Exit => Action::Exit,
         }
     }
@@ -57,6 +60,9 @@ impl Home {
         let manage_emulators_button = button("Manage emulators")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageEmulators);
+        let settings_button = button("Settings")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ManageSettings);
         let exit_button = button("Save & Exit")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::Exit);
@@ -67,6 +73,7 @@ impl Home {
             manage_systems_button,
             manage_games_button,
             manage_emulators_button,
+            settings_button,
             exit_button
         ]
         .into()

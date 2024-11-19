@@ -7,6 +7,8 @@ pub mod home;
 pub mod manage_emulators;
 pub mod manage_games;
 pub mod manage_systems;
+pub mod settings_main;
+pub mod settings_screen;
 pub mod view_game;
 pub use add_release_main::AddReleaseMain;
 pub use error::Error;
@@ -15,6 +17,7 @@ pub use home::Home;
 pub use manage_emulators::ManageEmulators;
 pub use manage_games::ManageGames;
 pub use manage_systems::ManageSystems;
+pub use settings_main::SettingsMain;
 
 pub enum Screen {
     Home(Home),
@@ -24,4 +27,5 @@ pub enum Screen {
     ManageEmulators(ManageEmulators),
     Error(Error),
     GamesMain(GamesMain),
+    SettingsMain(SettingsMain),
 }

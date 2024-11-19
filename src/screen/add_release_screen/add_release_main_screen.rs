@@ -233,7 +233,7 @@ impl AddReleaseMainScreen {
                     self.selected_file.clone(),
                     Message::FileSelected,
                 );
-                let emulator_button = emulators_for_system
+                let emulator_buttons = emulators_for_system
                     .iter()
                     .map(|emulator| {
                         button(emulator.name.as_str())
@@ -274,7 +274,7 @@ impl AddReleaseMainScreen {
                 row![
                     container_filename,
                     file_picker,
-                    Column::with_children(emulator_button)
+                    Column::with_children(emulator_buttons)
                 ]
                 .into()
             })

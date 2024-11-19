@@ -1,9 +1,6 @@
 use crate::{
     error::Error,
-    model::{
-        Collection, Emulator, Game, GameListModel, HasId, Release, ReleaseListModel, System,
-        SystemListModel,
-    },
+    model::{Collection, Emulator, Game, GameListModel, HasId, Release, ReleaseListModel, System},
 };
 use async_std::{fs as fs_async, task};
 use lazy_static::lazy_static;
@@ -42,6 +39,7 @@ impl Database {
                     emulators: vec![],
                     games: vec![],
                     releases: vec![],
+                    settings: Default::default(),
                 })
             }));
         }
@@ -77,6 +75,10 @@ impl Database {
 
     pub fn get_release(&self, id: i32) -> Option<Release> {
         get_cloned(&self.collection.releases, id)
+    }
+
+    pub fn get_settings(&self) -> crate::model::Settings {
+        self.collection.settings.clone()
     }
 
     // add_or_update

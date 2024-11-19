@@ -6,7 +6,7 @@ mod model;
 mod screen;
 
 use database::Database;
-use emulator_runner::{process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions};
+use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
 use iced::{exit, Task};
 use screen::add_release_main;
@@ -16,6 +16,7 @@ use screen::home;
 use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
+use screen::settings_main;
 use screen::view_game;
 
 use crate::screen::Screen;
@@ -43,6 +44,7 @@ enum Message {
     GamesMain(games_main::Message),
     FinishedRunningWithEmulator(Result<(), Error>),
     Error(error_screen::Message),
+    SettingsMain(settings_main::Message),
 }
 
 impl IcedGameCollection {
@@ -64,6 +66,7 @@ impl IcedGameCollection {
             Screen::GamesMain(games_main) => games_main.title(),
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::Error(error) => error.title(),
+            Screen::SettingsMain(settings_main) => settings_main.title(),
         }
     }
 
@@ -79,6 +82,7 @@ impl IcedGameCollection {
                 self.update_finished_running_emulator(result)
             }
             Message::Error(message) => self.update_error(message),
+            Message::SettingsMain(message) => self.update_settings_main(message),
         }
     }
 
@@ -95,6 +99,21 @@ impl IcedGameCollection {
                 add_emulator.view().map(Message::ManageEmulators)
             }
             Screen::Error(error) => error.view().map(Message::Error),
+            Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
+        }
+    }
+
+    fn update_settings_main(&mut self, message: settings_main::Message) -> Task<Message> {
+        if let Screen::SettingsMain(settings_main) = &mut self.screen {
+            match settings_main.update(message) {
+                settings_main::Action::Back => {
+                    self.screen = Screen::Home(screen::Home::new());
+                    Task::none()
+                }
+                settings_main::Action::None => Task::none(),
+            }
+        } else {
+            Task::none()
         }
     }
 
@@ -163,6 +182,10 @@ impl IcedGameCollection {
                 },
                 home::Action::ManageEmulators => {
                     self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
+                    Task::none()
+                }
+                home::Action::ManageSettings => {
+                    self.screen = Screen::SettingsMain(screen::SettingsMain::new());
                     Task::none()
                 }
             }
