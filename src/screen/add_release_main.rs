@@ -26,7 +26,6 @@ pub enum Action {
     Back,
     None,
     Run(Task<Message>),
-    Error(String),
     ReleaseSubmitted,
     RunWithEmulator(EmulatorRunOptions),
 }
@@ -145,9 +144,6 @@ impl AddReleaseMain {
                             Action::None
                         }
                         manage_systems::Action::None => Action::None,
-                        manage_systems::Action::Run(task) => {
-                            Action::Run(task.map(Message::ManageSystemsScreen))
-                        }
                         manage_systems::Action::SystemSubmitted => {
                             self.screen = create_main_screen(&self.release);
                             Action::None

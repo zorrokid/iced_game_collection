@@ -111,6 +111,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 settings_main::Action::None => Task::none(),
+                settings_main::Action::Run(task) => task.map(Message::SettingsMain),
             }
         } else {
             Task::none()
@@ -133,7 +134,6 @@ impl IcedGameCollection {
                     self.screen = Screen::ManageSystems(screen::ManageSystems::new(Some(id)));
                     Task::none()
                 }
-                manage_systems::Action::Run(task) => task.map(Message::ManageSystems),
             }
         } else {
             Task::none()
@@ -203,10 +203,6 @@ impl IcedGameCollection {
                 }
                 add_release_main::Action::Run(task) => task.map(Message::AddReleaseMain),
                 add_release_main::Action::None => Task::none(),
-                add_release_main::Action::Error(e) => {
-                    self.screen = Screen::Error(screen::Error::new(e));
-                    Task::none()
-                }
                 add_release_main::Action::RunWithEmulator(options) => Task::perform(
                     run_with_emulator_async(options),
                     Message::FinishedRunningWithEmulator,

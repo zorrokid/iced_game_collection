@@ -1,6 +1,9 @@
 use crate::{
     error::Error,
-    model::{Collection, Emulator, Game, GameListModel, HasId, Release, ReleaseListModel, System},
+    model::{
+        Collection, Emulator, Game, GameListModel, HasId, Release, ReleaseListModel, Settings,
+        System,
+    },
 };
 use async_std::{fs as fs_async, task};
 use lazy_static::lazy_static;
@@ -97,6 +100,10 @@ impl Database {
 
     pub fn add_or_update_emulator(&mut self, emulator: Emulator) {
         add_or_update(&mut self.collection.emulators, emulator);
+    }
+
+    pub fn add_or_update_settings(&mut self, settings: Settings) {
+        self.collection.settings = settings;
     }
 
     // delete

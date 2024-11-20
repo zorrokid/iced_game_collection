@@ -1,10 +1,7 @@
 use crate::database::Database;
-use crate::error::Error;
-use crate::files::pick_folder;
 use crate::model::{init_new_system, FolderType, System};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Task;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct ManageSystems {
@@ -19,8 +16,6 @@ pub enum Message {
     Submit,
     EditSystem(i32),
     DeleteSystem(i32),
-    SelectFolder(FolderType),
-    FolderAdded(Result<(PathBuf, FolderType), Error>),
     Clear,
 }
 
@@ -28,7 +23,6 @@ pub enum Action {
     GoHome,
     None,
     EditSystem(i32),
-    Run(Task<Message>),
     SystemDeleted,
     SystemSubmitted,
 }
@@ -74,25 +68,6 @@ impl ManageSystems {
                 db.write().unwrap().delete_system(id);
                 Action::SystemDeleted
             }
-            Message::SelectFolder(folder_type) => Action::Run(Task::perform(
-                pick_folder(folder_type),
-                Message::FolderAdded,
-            )),
-            Message::FolderAdded(Ok((path, folder_type))) => {
-                match folder_type {
-                    FolderType::Source => {
-                        self.system.roms_source_path = path.to_string_lossy().to_string()
-                    }
-                    FolderType::Destination => {
-                        self.system.roms_destination_path = path.to_string_lossy().to_string()
-                    }
-                }
-                Action::None
-            }
-            Message::FolderAdded(Err(err)) => {
-                print!("Error adding folder: {:?}", err);
-                Action::None
-            }
             Message::Clear => {
                 self.system = init_new_system(&self.systems);
                 Action::None
@@ -120,29 +95,10 @@ impl ManageSystems {
             })
             .collect::<Vec<iced::Element<Message>>>();
 
-        let folders_title = text("Select source and destination folders for roms/software images");
-        let add_source_folder_button =
-            button("Select source folder").on_press(Message::SelectFolder(FolderType::Source));
-
-        let source_folder_text = text(format!("Source: {}", self.system.roms_source_path));
-
-        let add_destination_folder_button = button("Select destination folder")
-            .on_press(Message::SelectFolder(FolderType::Destination));
-
-        let destination_folder_text = text(format!(
-            "Destination: {}",
-            self.system.roms_destination_path
-        ));
-
         let back_button = button("Back").on_press(Message::GoHome);
         column![
             back_button,
             name_input_field,
-            folders_title,
-            add_source_folder_button,
-            source_folder_text,
-            add_destination_folder_button,
-            destination_folder_text,
             main_buttons,
             Column::with_children(systems_list)
         ]

@@ -10,13 +10,13 @@ use std::io::{Cursor, Read};
 use std::path::{Path as SyncPath, PathBuf as SyncPathBuf};
 use zip::read::ZipArchive;
 
-pub async fn pick_folder(folder_type: FolderType) -> Result<(SyncPathBuf, FolderType), Error> {
+pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a folder")
         .pick_folder()
         .await
         .ok_or(Error::DialogClosed)?;
-    Ok((file_handle.path().to_owned(), folder_type))
+    Ok(file_handle.path().to_owned())
 }
 
 pub async fn pick_file(

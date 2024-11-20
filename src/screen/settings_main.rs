@@ -1,7 +1,9 @@
+use crate::database::Database;
 use crate::model::Settings;
 use crate::screen::settings_screen::settings_main_screen;
 
 use super::settings_screen::SettingsScreen;
+use iced::Task;
 
 pub struct SettingsMain {
     screen: SettingsScreen,
@@ -16,6 +18,7 @@ pub enum Message {
 pub enum Action {
     Back,
     None,
+    Run(Task<Message>),
 }
 
 impl SettingsMain {
@@ -43,10 +46,18 @@ impl SettingsMain {
                     match screen.update(message) {
                         settings_main_screen::Action::SetCollectionRootDir(dir) => {
                             self.settings.collection_root_dir = dir;
+                            let db = Database::get_instance();
+                            db.write()
+                                .unwrap()
+                                .add_or_update_settings(self.settings.clone());
+
                             Action::None
                         }
                         settings_main_screen::Action::Back => Action::Back,
                         settings_main_screen::Action::None => Action::None,
+                        settings_main_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::SettingsMainScreen))
+                        }
                     }
                 } else {
                     Action::None
