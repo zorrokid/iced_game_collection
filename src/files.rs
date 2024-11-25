@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::model::{CollectionFile, CollectionFileType, FileInfo, FolderType};
+use crate::model::{CollectionFile, CollectionFileType, FileInfo};
 use async_std::fs::{copy as async_copy, remove_file, File as AsyncFile};
 use async_std::path::Path as AsyncPath;
 use async_std::prelude::*;
@@ -20,19 +20,20 @@ pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
 }
 
 pub async fn pick_file(
-    source_path: String,
-    destination_path: String,
+    destination_path: SyncPathBuf,
     collection_file_type: CollectionFileType,
 ) -> Result<CollectionFile, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
-        .set_directory(source_path.clone())
         .pick_file()
         .await
         .ok_or(Error::DialogClosed)?;
 
-    let async_path = AsyncPath::new(file_handle.path());
-    let is_zip = is_zip_file(async_path).await?;
+    let file_directory_path = file_handle.path().parent().ok_or(Error::IoError(
+        "Failed to get parent directory of the file.".to_string(),
+    ))?;
+
+    let is_zip = is_zip_file(AsyncPath::new(file_handle.path())).await?;
 
     let files = if is_zip {
         Some(read_zip_file(file_handle.path().to_str().unwrap()).await?)
@@ -40,15 +41,22 @@ pub async fn pick_file(
         None
     };
 
-    let file_name = file_handle
+    let file_name_result = file_handle
         .path()
         .file_name()
         .ok_or(Error::IoError("file name not available".to_string()))?
-        .to_owned();
+        .to_owned()
+        .into_string();
+
+    let file_name = file_name_result.map_err(|_| {
+        Error::IoError(format!(
+            "Failed to get file name (invalid unicode data in file name)"
+        ))
+    })?;
 
     let path = AsyncPath::new(&destination_path).join(file_name.clone());
 
-    if destination_path != source_path && !destination_path.is_empty() {
+    if destination_path != SyncPathBuf::from(file_directory_path) {
         async_copy(file_handle.path(), &path)
             .await
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;

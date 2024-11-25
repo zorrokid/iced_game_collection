@@ -1,7 +1,6 @@
 use crate::database::Database;
-use crate::model::{init_new_system, FolderType, System};
+use crate::model::{init_new_system, System};
 use iced::widget::{button, column, row, text, text_input, Column};
-use iced::Task;
 
 #[derive(Debug, Clone)]
 pub struct ManageSystems {

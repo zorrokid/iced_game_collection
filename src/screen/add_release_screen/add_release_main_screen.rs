@@ -3,7 +3,8 @@ use std::{env, vec};
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::pick_file;
-use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, System};
+use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, Settings, System};
+use crate::util::file_path_builder::FilePathBuilder;
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
@@ -16,6 +17,8 @@ pub struct AddReleaseMainScreen {
     selected_file: Option<String>,
     emulators: Vec<Emulator>,
     selected_file_type: Option<CollectionFileType>,
+    settings: Settings,
+    file_path_builder: FilePathBuilder,
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +34,7 @@ pub enum Message {
     Submit,
     Clear,
     FileSelected(String),
-    RunWithEmulator(EmulatorRunOptions),
+    RunWithEmulator(Emulator, String, CollectionFileType),
     CollectionFileTypeSelected(CollectionFileType),
 }
 
@@ -53,9 +56,12 @@ pub enum Action {
 impl AddReleaseMainScreen {
     pub fn new(release: Release) -> Self {
         let db = crate::database::Database::get_instance();
-        let games = db.read().unwrap().get_games();
-        let systems = db.read().unwrap().get_systems();
-        let emulators = db.read().unwrap().get_emulators();
+        let read_handle = db.read().unwrap();
+        let games = read_handle.get_games();
+        let systems = read_handle.get_systems();
+        let emulators = read_handle.get_emulators();
+        let settings = read_handle.get_settings();
+        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
 
         Self {
             games,
@@ -65,6 +71,8 @@ impl AddReleaseMainScreen {
             selected_file: None,
             emulators,
             selected_file_type: None,
+            settings,
+            file_path_builder,
         }
     }
 
@@ -81,13 +89,15 @@ impl AddReleaseMainScreen {
                     .systems
                     .iter()
                     .find(|system| system.id == self.release.system_id);
-                if let (Some(system), Some(selected_file)) =
+                if let (Some(system), Some(selected_file_type)) =
                     (selected_system, self.selected_file_type.clone())
                 {
-                    let source_path = system.roms_source_path.clone();
-                    let destination_path = system.roms_destination_path.clone();
                     Action::Run(Task::perform(
-                        pick_file(source_path, destination_path, selected_file),
+                        pick_file(
+                            self.file_path_builder
+                                .build_target_directory(system, &selected_file_type),
+                            selected_file_type,
+                        ),
                         Message::FileAdded,
                     ))
                 } else {
@@ -104,7 +114,23 @@ impl AddReleaseMainScreen {
                 self.selected_file = Some(file);
                 Action::None
             }
-            Message::RunWithEmulator(options) => Action::RunWithEmulator(options),
+            Message::RunWithEmulator(emulator, selected_file_name, collection_file_type) => {
+                let system = self
+                    .systems
+                    .iter()
+                    .find(|s| s.id == self.release.system_id)
+                    .unwrap();
+                let options = EmulatorRunOptions {
+                    emulator,
+                    files: self.release.files.clone(),
+                    selected_file_name: selected_file_name,
+                    source_path: self
+                        .file_path_builder
+                        .build_target_directory(system, &collection_file_type),
+                    target_path: env::temp_dir(),
+                };
+                Action::RunWithEmulator(options)
+            }
             Message::CollectionFileTypeSelected(file_type) => {
                 self.selected_file_type = Some(file_type);
                 Action::None
@@ -238,34 +264,18 @@ impl AddReleaseMainScreen {
                     .map(|emulator| {
                         button(emulator.name.as_str())
                             .on_press_maybe({
-                                match (
-                                    self.selected_file.clone(),
-                                    selected_system,
-                                    emulator.extract_files,
-                                ) {
-                                    (Some(file_name), Some(system), true) => {
-                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
-                                            emulator: (*emulator).clone(),
-                                            files: self.release.files.clone(),
-                                            selected_file_name: file_name.clone(),
-                                            source_path: system.roms_destination_path.clone(),
-                                            target_path: env::temp_dir(),
-                                        }))
-                                    }
-                                    (_, Some(system), false) => {
-                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
-                                            emulator: (*emulator).clone(),
-                                            files: self.release.files.clone(),
-                                            selected_file_name: file
-                                                .clone()
-                                                .file_name
-                                                .into_string()
-                                                .unwrap(), // TODO: this is not realiable
-                                            source_path: system.roms_destination_path.clone(),
-                                            target_path: env::temp_dir(),
-                                        }))
-                                    }
-                                    (_, _, _) => None,
+                                match (&self.selected_file, emulator.extract_files) {
+                                    (Some(file_name), true) => Some(Message::RunWithEmulator(
+                                        (*emulator).clone(),
+                                        file_name.clone(),
+                                        file.collection_file_type.clone(),
+                                    )),
+                                    (_, false) => Some(Message::RunWithEmulator(
+                                        (*emulator).clone(),
+                                        file.clone().file_name,
+                                        file.collection_file_type.clone(),
+                                    )),
+                                    (_, _) => None,
                                 }
                             })
                             .into()

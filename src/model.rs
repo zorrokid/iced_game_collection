@@ -52,8 +52,7 @@ impl HasId for GameListModel {
 pub struct System {
     pub id: i32,
     pub name: String,
-    pub roms_source_path: String,
-    pub roms_destination_path: String,
+    pub directory: String,
 }
 
 impl Display for System {
@@ -182,6 +181,19 @@ pub enum CollectionFileType {
     CoverScan,
 }
 
+impl CollectionFileType {
+    pub fn directory(&self) -> &str {
+        match self {
+            CollectionFileType::Rom => "roms",
+            CollectionFileType::DiskImage => "disk_images",
+            CollectionFileType::TapeImage => "tape_images",
+            CollectionFileType::ScreenShot => "screenshots",
+            CollectionFileType::Manual => "manuals",
+            CollectionFileType::CoverScan => "cover_scans",
+        }
+    }
+}
+
 impl ToString for CollectionFileType {
     fn to_string(&self) -> String {
         match self {
@@ -197,7 +209,7 @@ impl ToString for CollectionFileType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
-    pub file_name: OsString,
+    pub file_name: String,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
     pub collection_file_type: CollectionFileType,
@@ -205,7 +217,7 @@ pub struct CollectionFile {
 
 impl Display for CollectionFile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.file_name.to_string_lossy())
+        write!(f, "{}", self.file_name)
     }
 }
 
@@ -235,8 +247,7 @@ pub fn init_new_system(systems: &Vec<System>) -> System {
     System {
         id: get_new_id(&systems),
         name: "".to_string(),
-        roms_source_path: "".to_string(),
-        roms_destination_path: "".to_string(),
+        directory: "".to_string(),
     }
 }
 

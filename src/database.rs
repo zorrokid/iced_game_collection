@@ -37,12 +37,15 @@ impl Database {
     pub fn get_instance() -> Arc<RwLock<Database>> {
         lazy_static! {
             static ref INSTANCE: Arc<RwLock<Database>> = Arc::new(RwLock::new(Database {
-                collection: task::block_on(Database::load()).unwrap_or_else(|_| Collection {
-                    systems: vec![],
-                    emulators: vec![],
-                    games: vec![],
-                    releases: vec![],
-                    settings: Default::default(),
+                collection: task::block_on(Database::load()).unwrap_or_else(|error| {
+                    print!("Error loading collection: {}", error);
+                    Collection {
+                        systems: vec![],
+                        emulators: vec![],
+                        games: vec![],
+                        releases: vec![],
+                        settings: Default::default(),
+                    }
                 })
             }));
         }

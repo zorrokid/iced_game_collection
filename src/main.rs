@@ -4,6 +4,7 @@ mod error;
 mod files;
 mod model;
 mod screen;
+mod util;
 
 use database::Database;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};

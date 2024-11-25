@@ -12,7 +12,7 @@ pub struct EmulatorRunOptions {
     pub emulator: Emulator,
     pub files: Vec<CollectionFile>, // all files for release?
     pub selected_file_name: String, // file name selected for running (either a single file or a file inside a zip archive)
-    pub source_path: String,        // where to find files
+    pub source_path: PathBuf,       // where to find files
     pub target_path: PathBuf,       // where to extract / copy files
 }
 

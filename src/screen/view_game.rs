@@ -1,8 +1,9 @@
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, ptr::read};
 
 use crate::{
     emulator_runner::EmulatorRunOptions,
     model::{CollectionFile, Emulator, Game, Release, System},
+    util::file_path_builder::FilePathBuilder,
 };
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
@@ -13,12 +14,13 @@ pub struct ViewGame {
     releases: Vec<Release>,
     systems: Vec<System>,
     selected_files: HashMap<i32, CollectionFile>,
+    file_path_builder: FilePathBuilder,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(EmulatorRunOptions),
+    RunWithEmulator(Emulator, Vec<CollectionFile>, CollectionFile),
     EditRelease(i32),
     FileSelected(i32, CollectionFile),
 }
@@ -34,23 +36,45 @@ pub enum Action {
 impl ViewGame {
     pub fn new(game_id: i32) -> Self {
         let db = crate::database::Database::get_instance();
-        let game = db.read().unwrap().get_game(game_id).unwrap();
-        let emulators = db.read().unwrap().get_emulators();
-        let releases = db.read().unwrap().get_releases_with_game(game_id);
-        let systems = db.read().unwrap().get_systems();
+        let read_handle = db.read().unwrap();
+
+        let game = read_handle.get_game(game_id).unwrap();
+        let emulators = read_handle.get_emulators();
+        let releases = read_handle.get_releases_with_game(game_id);
+        let systems = read_handle.get_systems();
+        let settings = read_handle.get_settings();
+        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
+
         Self {
             game,
             emulators,
             releases,
             systems,
             selected_files: HashMap::new(),
+            file_path_builder,
         }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(options) => Action::RunWithEmulator(options),
+            Message::RunWithEmulator(emulator, files, file) => {
+                let system = self
+                    .systems
+                    .iter()
+                    .find(|system| system.id == emulator.system_id)
+                    .unwrap();
+
+                Action::RunWithEmulator(EmulatorRunOptions {
+                    emulator,
+                    files,
+                    selected_file_name: file.file_name.clone(),
+                    source_path: self
+                        .file_path_builder
+                        .build_target_directory(system, &file.collection_file_type),
+                    target_path: env::temp_dir(),
+                })
+            }
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::FileSelected(id, file_name) => {
                 self.selected_files.insert(id, file_name);
@@ -85,18 +109,11 @@ impl ViewGame {
                         button(emulator.name.as_str())
                             .on_press_maybe({
                                 match self.selected_files.get(&release.id) {
-                                    Some(file) => {
-                                        Some(Message::RunWithEmulator(EmulatorRunOptions {
-                                            emulator: (*emulator).clone(),
-                                            files: release.files.clone(),
-                                            selected_file_name: file
-                                                .file_name
-                                                .to_string_lossy()
-                                                .to_string(),
-                                            source_path: system.roms_destination_path.clone(),
-                                            target_path: env::temp_dir(),
-                                        }))
-                                    }
+                                    Some(file) => Some(Message::RunWithEmulator(
+                                        (*emulator).clone(),
+                                        release.files.clone(),
+                                        file.clone(),
+                                    )),
                                     None => None,
                                 }
                             })
