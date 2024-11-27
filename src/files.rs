@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::model::{CollectionFile, CollectionFileType, FileInfo};
-use async_std::fs::{copy as async_copy, remove_file, File as AsyncFile};
+use async_std::fs::{copy as async_copy, create_dir_all, remove_file, File as AsyncFile};
 use async_std::path::Path as AsyncPath;
 use async_std::prelude::*;
 use sha1::{Digest, Sha1};
@@ -31,11 +31,20 @@ pub async fn pick_file(
 
     let picked_file_path = picked_file_handle.path();
 
+    println!("picked_file_path: {:?}", picked_file_path);
+
     let picked_file_directory_path = picked_file_path.parent().ok_or(Error::IoError(
         "Failed to get parent directory of the file.".to_string(),
     ))?;
 
+    println!(
+        "picked_file_directory_path: {:?}",
+        picked_file_directory_path,
+    );
+
     let is_zip = is_zip_file(AsyncPath::new(picked_file_path)).await?;
+
+    println!("is_zip: {:?}", is_zip);
 
     let files_in_zip = if is_zip {
         Some(read_zip_file(picked_file_path).await?)
@@ -54,11 +63,21 @@ pub async fn pick_file(
             ))
         })?;
 
+    println!("picked_file_name: {:?}", picked_file_name);
+
     let destination_file_path = AsyncPath::new(&destination_path).join(picked_file_name.clone());
 
+    println!("destination_file_path: {:?}", destination_file_path);
+
     if destination_path != SyncPathBuf::from(picked_file_directory_path) {
+        if let Some(parent) = destination_file_path.parent() {
+            create_dir_all(parent)
+                .await
+                .map_err(|e| Error::IoError(format!("Failed to create directory: {}", e)))?;
+        }
         // TODO: add flag to copy or move the file
-        async_copy(picked_file_handle.path(), &destination_file_path)
+        println!("Copying file to destination.");
+        async_copy(picked_file_path, &destination_file_path)
             .await
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
     }
@@ -113,8 +132,18 @@ pub async fn read_zip_file(file_path: &SyncPath) -> Result<Vec<FileInfo>, Error>
         hasher.update(&contents);
         let checksum = format!("{:x}", hasher.finalize());
 
+        let zipped_file_path = file.enclosed_name().ok_or(Error::IoError(
+            "Failed to get the name of the file in the Zip archive.".to_string(),
+        ))?;
+
+        let zipped_file_path = zipped_file_path.to_str().ok_or(Error::IoError(
+            "Failed to convert file path to string.".to_string(),
+        ))?;
+
+        println!("zipped_file_path: {:?}", zipped_file_path);
+
         file_infos.push(FileInfo {
-            name: file.name().to_string(),
+            name: zipped_file_path.to_string(),
             checksum,
         });
     }
