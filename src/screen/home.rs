@@ -1,6 +1,10 @@
-use iced::widget::{button, column};
+use iced::widget::{button, column, text};
 
-pub struct Home {}
+use crate::{database::Database, model::Settings};
+
+pub struct Home {
+    settings: Settings,
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -25,7 +29,11 @@ pub enum Action {
 
 impl Home {
     pub fn new() -> Self {
-        Self {}
+        let db = Database::get_instance();
+        let read_handle = db.read().unwrap();
+        let settings = read_handle.get_settings();
+
+        Self { settings }
     }
 
     pub fn title(&self) -> String {
@@ -45,6 +53,22 @@ impl Home {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
+        let settings_button = button("Settings")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::ManageSettings);
+        let exit_button = button("Save & Exit")
+            .width(iced::Length::Fixed(200.0))
+            .on_press(Message::Exit);
+
+        if self.settings.collection_root_dir.is_empty() {
+            return column![
+                text("Welcome to Iced Game Collection!"),
+                text("Please set your collection root directory in settings."),
+                settings_button,
+                exit_button
+            ]
+            .into();
+        }
         let view_games_button = button("View Games")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ViewGames);
@@ -60,13 +84,6 @@ impl Home {
         let manage_emulators_button = button("Manage emulators")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageEmulators);
-        let settings_button = button("Settings")
-            .width(iced::Length::Fixed(200.0))
-            .on_press(Message::ManageSettings);
-        let exit_button = button("Save & Exit")
-            .width(iced::Length::Fixed(200.0))
-            .on_press(Message::Exit);
-
         column![
             view_games_button,
             add_release_button,
