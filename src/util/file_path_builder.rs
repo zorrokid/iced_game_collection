@@ -66,4 +66,24 @@ mod tests {
             PathBuf::from("/home/user/collection/system/disk_images/file.zip")
         );
     }
+
+    #[test]
+    fn test_build_target_directory() {
+        let collection_root_dir = "/home/user/collection".to_string();
+        let file_path_builder = FilePathBuilder::new(collection_root_dir);
+
+        let system = System {
+            id: 1,
+            name: "System".to_string(),
+            directory: "system".to_string(),
+        };
+
+        let file_type = CollectionFileType::DiskImage;
+
+        let path = file_path_builder.build_target_directory(&system, &file_type);
+        assert_eq!(
+            path,
+            PathBuf::from("/home/user/collection/system/disk_images")
+        );
+    }
 }
