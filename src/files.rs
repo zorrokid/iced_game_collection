@@ -29,20 +29,21 @@ pub async fn pick_file(
         .await
         .ok_or(Error::DialogClosed)?;
 
-    let file_directory_path = file_handle.path().parent().ok_or(Error::IoError(
+    let file_path = file_handle.path();
+
+    let file_directory_path = file_path.parent().ok_or(Error::IoError(
         "Failed to get parent directory of the file.".to_string(),
     ))?;
 
-    let is_zip = is_zip_file(AsyncPath::new(file_handle.path())).await?;
+    let is_zip = is_zip_file(AsyncPath::new(file_path)).await?;
 
     let files = if is_zip {
-        Some(read_zip_file(file_handle.path().to_str().unwrap()).await?)
+        Some(read_zip_file(file_path).await?)
     } else {
         None
     };
 
-    let file_name_result = file_handle
-        .path()
+    let file_name_result = file_path
         .file_name()
         .ok_or(Error::IoError("file name not available".to_string()))?
         .to_owned()
@@ -80,7 +81,7 @@ pub async fn pick_file(
     Ok(id)
 }*/
 
-pub async fn read_zip_file(file_path: &str) -> Result<Vec<FileInfo>, Error> {
+pub async fn read_zip_file(file_path: &SyncPath) -> Result<Vec<FileInfo>, Error> {
     let file = AsyncFile::open(file_path)
         .await
         .map_err(|_| Error::IoError("Failed opening file.".to_string()))?;
