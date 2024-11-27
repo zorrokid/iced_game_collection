@@ -23,50 +23,50 @@ pub async fn pick_file(
     destination_path: SyncPathBuf,
     collection_file_type: CollectionFileType,
 ) -> Result<CollectionFile, Error> {
-    let file_handle = rfd::AsyncFileDialog::new()
+    let picked_file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
         .pick_file()
         .await
         .ok_or(Error::DialogClosed)?;
 
-    let file_path = file_handle.path();
+    let picked_file_path = picked_file_handle.path();
 
-    let file_directory_path = file_path.parent().ok_or(Error::IoError(
+    let picked_file_directory_path = picked_file_path.parent().ok_or(Error::IoError(
         "Failed to get parent directory of the file.".to_string(),
     ))?;
 
-    let is_zip = is_zip_file(AsyncPath::new(file_path)).await?;
+    let is_zip = is_zip_file(AsyncPath::new(picked_file_path)).await?;
 
-    let files = if is_zip {
-        Some(read_zip_file(file_path).await?)
+    let files_in_zip = if is_zip {
+        Some(read_zip_file(picked_file_path).await?)
     } else {
         None
     };
 
-    let file_name_result = file_path
+    let picked_file_name = picked_file_path
         .file_name()
         .ok_or(Error::IoError("file name not available".to_string()))?
         .to_owned()
-        .into_string();
+        .into_string()
+        .map_err(|_| {
+            Error::IoError(format!(
+                "Failed to get file name (invalid unicode data in file name)"
+            ))
+        })?;
 
-    let file_name = file_name_result.map_err(|_| {
-        Error::IoError(format!(
-            "Failed to get file name (invalid unicode data in file name)"
-        ))
-    })?;
+    let destination_file_path = AsyncPath::new(&destination_path).join(picked_file_name.clone());
 
-    let path = AsyncPath::new(&destination_path).join(file_name.clone());
-
-    if destination_path != SyncPathBuf::from(file_directory_path) {
-        async_copy(file_handle.path(), &path)
+    if destination_path != SyncPathBuf::from(picked_file_directory_path) {
+        // TODO: add flag to copy or move the file
+        async_copy(picked_file_handle.path(), &destination_file_path)
             .await
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
     }
 
     Ok(CollectionFile {
-        file_name,
+        file_name: picked_file_name,
         is_zip,
-        files,
+        files: files_in_zip,
         collection_file_type,
     })
 }
