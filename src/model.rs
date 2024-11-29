@@ -2,8 +2,6 @@ use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use std::ffi::OsString;
-
 #[derive(Debug, Clone)]
 pub struct GameListModel {
     pub id: i32,
@@ -209,6 +207,7 @@ impl ToString for CollectionFileType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
+    pub id: String,
     pub file_name: String,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,

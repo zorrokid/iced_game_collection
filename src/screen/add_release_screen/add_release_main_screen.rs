@@ -2,11 +2,12 @@ use std::{env, vec};
 
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
-use crate::files::pick_file;
+use crate::files::{pick_file, PickedFile};
 use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, Settings, System};
 use crate::util::file_path_builder::FilePathBuilder;
 use iced::widget::{button, column, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMainScreen {
@@ -30,7 +31,7 @@ pub enum Message {
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
-    FileAdded(Result<CollectionFile, Error>),
+    FileAdded(Result<PickedFile, Error>),
     Submit,
     Clear,
     FileSelected(String),
@@ -96,7 +97,6 @@ impl AddReleaseMainScreen {
                         pick_file(
                             self.file_path_builder
                                 .build_target_directory(system, &selected_file_type),
-                            selected_file_type,
                         ),
                         Message::FileAdded,
                     ))
@@ -105,7 +105,13 @@ impl AddReleaseMainScreen {
                 }
             }
             Message::FileAdded(result) => match result {
-                Ok(picked_file) => Action::AddFile(picked_file),
+                Ok(picked_file) => Action::AddFile(CollectionFile {
+                    id: Uuid::new_v4().to_string(),
+                    file_name: picked_file.file_name,
+                    collection_file_type: self.selected_file_type.clone().unwrap(),
+                    files: picked_file.files,
+                    is_zip: picked_file.is_zip,
+                }),
                 Err(_) => Action::None,
             },
             Message::Submit => Action::Submit(self.release.clone()),
@@ -219,7 +225,13 @@ impl AddReleaseMainScreen {
 
     fn create_file_picker(&self) -> Element<Message> {
         let collection_file_type_picker = pick_list(
-            vec![CollectionFileType::Rom, CollectionFileType::DiskImage],
+            vec![
+                CollectionFileType::Rom,
+                CollectionFileType::DiskImage,
+                CollectionFileType::CoverScan,
+                CollectionFileType::Manual,
+                CollectionFileType::ScreenShot,
+            ],
             self.selected_file_type.clone(),
             Message::CollectionFileTypeSelected,
         );

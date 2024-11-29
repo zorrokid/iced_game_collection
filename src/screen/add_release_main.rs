@@ -3,10 +3,12 @@ use crate::emulator_runner::EmulatorRunOptions;
 use crate::manage_games;
 use crate::manage_systems;
 use crate::model::init_new_release;
+use crate::model::CollectionFile;
 use crate::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMain {
@@ -84,7 +86,13 @@ impl AddReleaseMain {
                             Action::None
                         }
                         add_release_main_screen::Action::AddFile(file) => {
-                            self.release.files.push(file);
+                            self.release.files.push(CollectionFile {
+                                id: Uuid::new_v4().to_string(),
+                                file_name: file.file_name,
+                                is_zip: file.is_zip,
+                                files: file.files,
+                                collection_file_type: file.collection_file_type,
+                            });
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }

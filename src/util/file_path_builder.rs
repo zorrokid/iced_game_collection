@@ -1,5 +1,6 @@
 use crate::model::{CollectionFile, CollectionFileType, System};
 use std::path::PathBuf;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct FilePathBuilder {
@@ -51,6 +52,7 @@ mod tests {
         };
 
         let file_name = CollectionFile {
+            id: Uuid::new_v4().to_string(),
             file_name: "file.zip".to_string(),
             is_zip: true,
             files: Some(vec![FileInfo {

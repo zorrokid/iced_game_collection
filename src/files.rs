@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::model::{CollectionFile, CollectionFileType, FileInfo};
+use crate::model::{CollectionFile, FileInfo};
 use async_std::fs::{copy as async_copy, create_dir_all, remove_file, File as AsyncFile};
 use async_std::path::Path as AsyncPath;
 use async_std::prelude::*;
@@ -10,6 +10,13 @@ use std::io::{Cursor, Read};
 use std::path::{Path as SyncPath, PathBuf as SyncPathBuf};
 use zip::read::ZipArchive;
 
+#[derive(Debug, Clone)]
+pub struct PickedFile {
+    pub file_name: String,
+    pub is_zip: bool,
+    pub files: Option<Vec<FileInfo>>,
+}
+
 pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
     let file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a folder")
@@ -19,10 +26,7 @@ pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
     Ok(file_handle.path().to_owned())
 }
 
-pub async fn pick_file(
-    destination_path: SyncPathBuf,
-    collection_file_type: CollectionFileType,
-) -> Result<CollectionFile, Error> {
+pub async fn pick_file(destination_path: SyncPathBuf) -> Result<PickedFile, Error> {
     let picked_file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
         .pick_file()
@@ -82,11 +86,10 @@ pub async fn pick_file(
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
     }
 
-    Ok(CollectionFile {
+    Ok(PickedFile {
         file_name: picked_file_name,
         is_zip,
         files: files_in_zip,
-        collection_file_type,
     })
 }
 
