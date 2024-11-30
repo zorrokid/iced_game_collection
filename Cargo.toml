@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 async-process = "2.3.0"
 async-std = "1.13.0"
-iced = {version = "0.13"}
+iced = {version = "0.13", features = ["image"]}
 lazy_static = "1.5.0"
 rfd = "0.15.0"
 serde =  {version="1.0.210", features = ["derive"]}
