@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::files::{pick_file, PickedFile};
 use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, Settings, System};
 use crate::util::file_path_builder::FilePathBuilder;
-use iced::widget::{button, column, pick_list, row, text, text_input, Column};
+use iced::widget::{button, column, image, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 use uuid::Uuid;
 
@@ -168,7 +168,8 @@ impl AddReleaseMainScreen {
             .on_press(Message::ManageSystems);
 
         let file_picker_row = self.create_file_picker();
-        let files_list = self.create_files_list(&selected_system);
+        let emulator_files_list = self.create_emulator_files_list(&selected_system);
+        let scan_files_list = self.create_scan_files_list();
 
         let main_buttons = row![
             button("Submit").on_press(Message::Submit),
@@ -183,7 +184,8 @@ impl AddReleaseMainScreen {
             systems_select,
             manage_systems_button,
             file_picker_row,
-            files_list,
+            emulator_files_list,
+            scan_files_list,
             main_buttons
         ]
         .into()
@@ -245,7 +247,27 @@ impl AddReleaseMainScreen {
         row![collection_file_type_picker, add_file_button].into()
     }
 
-    fn create_files_list(&self, selected_system: &Option<&System>) -> Element<Message> {
+    fn create_scan_files_list(&self) -> Element<Message> {
+        let scan_files_list = self
+            .release
+            .files
+            .iter()
+            .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
+            .map(|file| {
+                let system = self
+                    .systems
+                    .iter()
+                    .find(|s| s.id == self.release.system_id)
+                    .unwrap();
+                let file_path = self.file_path_builder.build_file_path(system, file);
+                let image = image(file_path).into();
+                image
+            })
+            .collect::<Vec<iced::Element<Message>>>();
+        Column::with_children(scan_files_list).into()
+    }
+
+    fn create_emulator_files_list(&self, selected_system: &Option<&System>) -> Element<Message> {
         let emulators_for_system = if let Some(selected_system) = selected_system {
             self.emulators
                 .iter()
@@ -255,10 +277,18 @@ impl AddReleaseMainScreen {
             vec![]
         };
 
+        // TODO: get file types supported by emulators for the selected system
+
         let files_list = self
             .release
             .files
             .iter()
+            .filter(|f| {
+                // TODO: emulator should know it's supported file types and we would filter by the file types supported by emulator
+                f.collection_file_type == CollectionFileType::Rom
+                    || f.collection_file_type == CollectionFileType::DiskImage
+                    || f.collection_file_type == CollectionFileType::TapeImage
+            })
             .map(|file| {
                 let container_filename = text(file.to_string());
                 let content_files: Vec<String> = if let Some(files) = &file.files {
