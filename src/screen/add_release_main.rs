@@ -2,7 +2,6 @@ use crate::database::Database;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::manage_games;
 use crate::manage_systems;
-use crate::model::init_new_release;
 use crate::model::CollectionFile;
 use crate::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
@@ -33,13 +32,13 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(edit_release_id: Option<i32>) -> Self {
+    pub fn new(edit_release_id: Option<String>) -> Self {
         let db = Database::get_instance();
         let releases = db.read().unwrap().to_release_list_model();
-        let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(id));
+        let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(&id));
         let release = match edit_release {
             Some(release) => release,
-            None => init_new_release(&releases),
+            None => Release::default(),
         };
         Self {
             screen: create_main_screen(&release),
@@ -107,7 +106,7 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::Clear => {
                             let db = Database::get_instance();
                             let releases = db.read().unwrap().to_release_list_model();
-                            self.release = init_new_release(&releases);
+                            self.release = Release::default();
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }

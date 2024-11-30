@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{init_new_system, System};
+use crate::model::System;
 use crate::util::directory::create_directory_name;
 use iced::widget::{button, column, row, text, text_input, Column};
 
@@ -14,28 +14,28 @@ pub enum Message {
     NameChanged(String),
     GoHome,
     Submit,
-    EditSystem(i32),
-    DeleteSystem(i32),
+    EditSystem(String),
+    DeleteSystem(String),
     Clear,
 }
 
 pub enum Action {
     GoHome,
     None,
-    EditSystem(i32),
+    EditSystem(String),
     SystemDeleted,
     SystemSubmitted,
 }
 
 impl ManageSystems {
-    pub fn new(edit_system_id: Option<i32>) -> Self {
+    pub fn new(edit_system_id: Option<String>) -> Self {
         let db = Database::get_instance();
         let systems = db.read().unwrap().get_systems();
-        let edit_system = edit_system_id.and_then(|id| db.read().unwrap().get_system(id));
+        let edit_system = edit_system_id.and_then(|id| db.read().unwrap().get_system(&id));
         Self {
             system: match edit_system {
                 Some(system) => system,
-                None => init_new_system(&systems),
+                None => System::default(),
             },
             systems,
         }
@@ -66,11 +66,11 @@ impl ManageSystems {
             Message::EditSystem(id) => Action::EditSystem(id),
             Message::DeleteSystem(id) => {
                 let db = Database::get_instance();
-                db.write().unwrap().delete_system(id);
+                db.write().unwrap().delete_system(&id);
                 Action::SystemDeleted
             }
             Message::Clear => {
-                self.system = init_new_system(&self.systems);
+                self.system = System::default();
                 Action::None
             }
         }
@@ -89,8 +89,8 @@ impl ManageSystems {
             .map(|system| {
                 row![
                     text(system.to_string()).width(iced::Length::Fixed(300.0)),
-                    button("Edit").on_press(Message::EditSystem(system.id)),
-                    button("Delete").on_press(Message::DeleteSystem(system.id)),
+                    button("Edit").on_press(Message::EditSystem(system.id.clone())),
+                    button("Delete").on_press(Message::DeleteSystem(system.id.clone())),
                 ]
                 .into()
             })

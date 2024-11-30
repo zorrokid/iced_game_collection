@@ -9,7 +9,7 @@ use super::view_game;
 
 pub struct GamesMain {
     screen: GamesScreen,
-    selected_game_id: Option<i32>,
+    selected_game_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ impl GamesMain {
                 if let GamesScreen::GamesMainScreen(screen) = &mut self.screen {
                     match screen.update(message) {
                         games_main_screen::Action::ViewGame(id) => {
-                            self.selected_game_id = Some(id);
+                            self.selected_game_id = Some(id.clone());
                             self.screen = GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
                             Action::None
                         }
@@ -80,7 +80,7 @@ impl GamesMain {
                 if let GamesScreen::EditReleaseScreen(screen) = &mut self.screen {
                     match screen.update(message) {
                         add_release_main::Action::Back => {
-                            if let Some(id) = self.selected_game_id {
+                            if let Some(id) = self.selected_game_id.clone() {
                                 self.screen =
                                     GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
                             } else {
@@ -89,7 +89,7 @@ impl GamesMain {
                             Action::None
                         }
                         add_release_main::Action::ReleaseSubmitted => {
-                            if let Some(id) = self.selected_game_id {
+                            if let Some(id) = self.selected_game_id.clone() {
                                 self.screen =
                                     GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
                             } else {

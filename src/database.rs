@@ -67,19 +67,19 @@ impl Database {
 
     // get single item
 
-    pub fn get_system(&self, id: i32) -> Option<System> {
+    pub fn get_system(&self, id: &String) -> Option<System> {
         get_cloned(&self.collection.systems, id)
     }
 
-    pub fn get_emulator(&self, id: i32) -> Option<Emulator> {
+    pub fn get_emulator(&self, id: &String) -> Option<Emulator> {
         get_cloned(&self.collection.emulators, id)
     }
 
-    pub fn get_game(&self, id: i32) -> Option<Game> {
+    pub fn get_game(&self, id: &String) -> Option<Game> {
         get_cloned(&self.collection.games, id)
     }
 
-    pub fn get_release(&self, id: i32) -> Option<Release> {
+    pub fn get_release(&self, id: &String) -> Option<Release> {
         get_cloned(&self.collection.releases, id)
     }
 
@@ -111,20 +111,20 @@ impl Database {
 
     // delete
 
-    pub fn delete_system(&mut self, id: i32) {
+    pub fn delete_system(&mut self, id: &String) {
         // TODO: check if system is used in a release (delete is disabled in UI in this case but should be checked anyway)
-        self.collection.systems.retain(|s| s.id != id);
+        self.collection.systems.retain(|s| s.id != *id);
     }
 
-    pub fn delete_game(&mut self, game_id: i32) {
+    pub fn delete_game(&mut self, game_id: &String) {
         // TODO: check if game is used in a release (delete is disabled in UI in this case but should be checked anyway)
-        self.collection.games.retain(|game| game.id != game_id);
+        self.collection.games.retain(|game| game.id != *game_id);
     }
 
-    pub fn delete_emulator(&mut self, emulator_id: i32) {
+    pub fn delete_emulator(&mut self, emulator_id: &String) {
         self.collection
             .emulators
-            .retain(|emulator| emulator.id != emulator_id);
+            .retain(|emulator| emulator.id != *emulator_id);
     }
 
     // to list model
@@ -177,7 +177,7 @@ impl Database {
 
     // special
 
-    pub fn get_releases_with_game(&self, id: i32) -> Vec<Release> {
+    pub fn get_releases_with_game(&self, id: &String) -> Vec<Release> {
         let releases_with_game = self
             .collection
             .releases
@@ -197,6 +197,6 @@ fn add_or_update<T: HasId>(items: &mut Vec<T>, item: T) {
     }
 }
 
-fn get_cloned<T: HasId + Clone>(items: &Vec<T>, id: i32) -> Option<T> {
-    items.iter().find(|item| item.id() == id).cloned()
+fn get_cloned<T: HasId + Clone>(items: &Vec<T>, id: &String) -> Option<T> {
+    items.iter().find(|item| item.id() == *id).cloned()
 }

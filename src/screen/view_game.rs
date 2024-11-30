@@ -13,7 +13,7 @@ pub struct ViewGame {
     emulators: Vec<Emulator>,
     releases: Vec<Release>,
     systems: Vec<System>,
-    selected_files: HashMap<i32, CollectionFile>,
+    selected_files: HashMap<String, CollectionFile>,
     file_path_builder: FilePathBuilder,
 }
 
@@ -21,26 +21,26 @@ pub struct ViewGame {
 pub enum Message {
     GoToGames,
     RunWithEmulator(Emulator, Vec<CollectionFile>, CollectionFile),
-    EditRelease(i32),
-    FileSelected(i32, CollectionFile),
+    EditRelease(String),
+    FileSelected(String, CollectionFile),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
     RunWithEmulator(EmulatorRunOptions),
-    EditRelease(i32),
+    EditRelease(String),
     None,
 }
 
 impl ViewGame {
-    pub fn new(game_id: i32) -> Self {
+    pub fn new(game_id: String) -> Self {
         let db = crate::database::Database::get_instance();
         let read_handle = db.read().unwrap();
 
-        let game = read_handle.get_game(game_id).unwrap();
+        let game = read_handle.get_game(&game_id).unwrap();
         let emulators = read_handle.get_emulators();
-        let releases = read_handle.get_releases_with_game(game_id);
+        let releases = read_handle.get_releases_with_game(&game_id);
         let systems = read_handle.get_systems();
         let settings = read_handle.get_settings();
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
@@ -102,7 +102,8 @@ impl ViewGame {
                     .filter(|emulator| emulator.system_id == release.system_id)
                     .collect::<Vec<&Emulator>>();
 
-                let edit_release_button = button("Edit").on_press(Message::EditRelease(release.id));
+                let edit_release_button =
+                    button("Edit").on_press(Message::EditRelease(release.id.clone()));
                 let emulator_buttons = emulators_for_system
                     .iter()
                     .map(|emulator| {
@@ -128,7 +129,7 @@ impl ViewGame {
                     } else {
                         None
                     },
-                    |file| Message::FileSelected(release.id, file.clone()),
+                    |file| Message::FileSelected(release.id.clone(), file.clone()),
                 );
 
                 let release_row = row![

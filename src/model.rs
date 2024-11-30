@@ -1,10 +1,11 @@
 use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct GameListModel {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub can_delete: bool,
 }
@@ -12,7 +13,7 @@ pub struct GameListModel {
 impl From<&Game> for GameListModel {
     fn from(game: &Game) -> Self {
         GameListModel {
-            id: game.id,
+            id: game.id.clone(),
             name: game.name.clone(),
             can_delete: false,
         }
@@ -21,34 +22,22 @@ impl From<&Game> for GameListModel {
 
 #[derive(Debug, Clone)]
 pub struct ReleaseListModel {
-    pub id: i32,
+    pub id: String,
     pub name: String,
 }
 
 impl From<&Release> for ReleaseListModel {
     fn from(release: &Release) -> Self {
         ReleaseListModel {
-            id: release.id,
+            id: release.id.clone(),
             name: release.name.clone(),
         }
     }
 }
 
-impl HasId for ReleaseListModel {
-    fn id(&self) -> i32 {
-        self.id
-    }
-}
-
-impl HasId for GameListModel {
-    fn id(&self) -> i32 {
-        self.id
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub directory: String,
 }
@@ -61,7 +50,7 @@ impl Display for System {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemListModel {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub can_delete: bool,
 }
@@ -69,7 +58,7 @@ pub struct SystemListModel {
 impl From<&System> for SystemListModel {
     fn from(system: &System) -> Self {
         SystemListModel {
-            id: system.id,
+            id: system.id.clone(),
             name: system.name.clone(),
             can_delete: false,
         }
@@ -78,12 +67,12 @@ impl From<&System> for SystemListModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Release {
-    pub id: i32,
+    pub id: String,
     pub name: String,
-    pub system_id: i32,
+    pub system_id: String,
     pub files: Vec<CollectionFile>,
     // Release can be a single game or compilation of games
-    pub games: Vec<i32>,
+    pub games: Vec<String>,
 }
 
 impl Display for Release {
@@ -94,45 +83,57 @@ impl Display for Release {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Emulator {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub executable: String,
     pub arguments: String,
-    pub system_id: i32,
+    pub system_id: String,
     pub extract_files: bool,
 }
 
 pub trait HasId {
-    fn id(&self) -> i32;
+    fn id(&self) -> String;
+}
+
+impl HasId for ReleaseListModel {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+}
+
+impl HasId for GameListModel {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
 }
 
 impl HasId for Game {
-    fn id(&self) -> i32 {
-        self.id
+    fn id(&self) -> String {
+        self.id.clone()
     }
 }
 
 impl HasId for System {
-    fn id(&self) -> i32 {
-        self.id
+    fn id(&self) -> String {
+        self.id.clone()
     }
 }
 
 impl HasId for Emulator {
-    fn id(&self) -> i32 {
-        self.id
+    fn id(&self) -> String {
+        self.id.clone()
     }
 }
 
 impl HasId for Release {
-    fn id(&self) -> i32 {
-        self.id
+    fn id(&self) -> String {
+        self.id.clone()
     }
 }
 
 impl HasId for SystemListModel {
-    fn id(&self) -> i32 {
-        self.id
+    fn id(&self) -> String {
+        self.id.clone()
     }
 }
 
@@ -144,7 +145,7 @@ impl Display for SystemListModel {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
-    pub id: i32,
+    pub id: String,
     pub name: String,
 }
 
@@ -231,46 +232,50 @@ pub struct Settings {
     pub collection_root_dir: String,
 }
 
-pub fn init_new_emulator(emulators: &Vec<Emulator>) -> Emulator {
-    Emulator {
-        id: get_new_id(&emulators),
-        name: "".to_string(),
-        executable: "".to_string(),
-        arguments: "".to_string(),
-        system_id: 0,
-        extract_files: false,
+impl Default for Emulator {
+    fn default() -> Self {
+        Emulator {
+            id: get_new_id(),
+            name: "".to_string(),
+            executable: "".to_string(),
+            arguments: "".to_string(),
+            system_id: "".to_string(),
+            extract_files: false,
+        }
     }
 }
 
-pub fn init_new_system(systems: &Vec<System>) -> System {
-    System {
-        id: get_new_id(&systems),
-        name: "".to_string(),
-        directory: "".to_string(),
+impl Default for System {
+    fn default() -> Self {
+        System {
+            id: get_new_id(),
+            name: "".to_string(),
+            directory: "".to_string(),
+        }
     }
 }
 
-pub fn init_new_game(games: &Vec<GameListModel>) -> Game {
-    Game {
-        id: get_new_id(&games),
-        name: "".to_string(),
+impl Default for Game {
+    fn default() -> Self {
+        Game {
+            id: get_new_id(),
+            name: "".to_string(),
+        }
     }
 }
 
-pub fn init_new_release(releases: &Vec<ReleaseListModel>) -> Release {
-    Release {
-        id: get_new_id(&releases),
-        name: "".to_string(),
-        system_id: 0,
-        files: vec![],
-        games: vec![],
+impl Default for Release {
+    fn default() -> Self {
+        Release {
+            id: get_new_id(),
+            name: "".to_string(),
+            system_id: "".to_string(),
+            files: vec![],
+            games: vec![],
+        }
     }
 }
 
-fn get_new_id<T: HasId>(items: &Vec<T>) -> i32 {
-    items
-        .iter()
-        .max_by_key(|item| item.id())
-        .map(|item| item.id() + 1)
-        .unwrap_or(1)
+fn get_new_id() -> String {
+    Uuid::new_v4().to_string()
 }

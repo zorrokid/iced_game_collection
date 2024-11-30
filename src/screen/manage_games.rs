@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{init_new_game, Game, GameListModel};
+use crate::model::{Game, GameListModel};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
@@ -13,8 +13,8 @@ pub struct ManageGames {
 pub enum Message {
     Back,
     SubmitGame,
-    DeleteGame(i32),
-    EditGame(i32),
+    DeleteGame(String),
+    EditGame(String),
     NameChanged(String),
     Clear,
 }
@@ -34,7 +34,7 @@ impl ManageGames {
         Self {
             game: match edit_game {
                 Some(game) => game,
-                None => init_new_game(&games),
+                None => Game::default(),
             },
             games,
         }
@@ -62,13 +62,13 @@ impl ManageGames {
             }
             Message::DeleteGame(id) => {
                 let db = Database::get_instance();
-                db.write().unwrap().delete_game(id);
+                db.write().unwrap().delete_game(&id);
                 self.update_games();
                 Action::GameDeleted
             }
             Message::EditGame(id) => {
                 let db = Database::get_instance();
-                self.game = db.read().unwrap().get_game(id).unwrap();
+                self.game = db.read().unwrap().get_game(&id).unwrap();
                 Action::None
             }
             Message::NameChanged(name) => {
@@ -76,7 +76,7 @@ impl ManageGames {
                 Action::None
             }
             Message::Clear => {
-                self.game = init_new_game(&self.games);
+                self.game = Game::default();
                 Action::None
             }
         }
@@ -98,11 +98,11 @@ impl ManageGames {
                 row![
                     text(&game.name).width(iced::Length::Fixed(300.0)),
                     button("Edit")
-                        .on_press(Message::EditGame(game.id))
+                        .on_press(Message::EditGame(game.id.clone()))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
                         .on_press_maybe(if game.can_delete {
-                            Some(Message::DeleteGame(game.id))
+                            Some(Message::DeleteGame(game.id.clone()))
                         } else {
                             None
                         })

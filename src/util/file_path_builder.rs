@@ -46,7 +46,7 @@ mod tests {
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
         let system = System {
-            id: 1,
+            id: Uuid::new_v4().to_string(),
             name: "System".to_string(),
             directory: "system".to_string(),
         };
@@ -75,7 +75,7 @@ mod tests {
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
         let system = System {
-            id: 1,
+            id: Uuid::new_v4().to_string(),
             name: "System".to_string(),
             directory: "system".to_string(),
         };

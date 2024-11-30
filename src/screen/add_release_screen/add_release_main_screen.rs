@@ -236,7 +236,7 @@ impl AddReleaseMainScreen {
             Message::CollectionFileTypeSelected,
         );
         let add_file_button = button("Add File").on_press_maybe(
-            if self.release.system_id > 0 && self.selected_file_type.is_some() {
+            if !self.release.system_id.is_empty() && self.selected_file_type.is_some() {
                 Some(Message::SelectFile)
             } else {
                 None

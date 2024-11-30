@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{init_new_emulator, Emulator, System};
+use crate::model::{Emulator, System};
 use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 
@@ -17,8 +17,8 @@ pub enum Message {
     ArgumentsChanged(String),
     Submit,
     GoHome,
-    EditEmulator(i32),
-    DeleteEmulator(i32),
+    EditEmulator(String),
+    DeleteEmulator(String),
     Clear,
     ExtractFilesChanged(bool),
 }
@@ -26,21 +26,21 @@ pub enum Message {
 pub enum Action {
     GoHome,
     None,
-    EditEmulator(i32),
+    EditEmulator(String),
     EmulatorSubmitted,
     EmulatorDeleted,
 }
 
 impl ManageEmulators {
-    pub fn new(edit_emulator_id: Option<i32>) -> Self {
+    pub fn new(edit_emulator_id: Option<String>) -> Self {
         let db = Database::get_instance();
         let emulators = db.read().unwrap().get_emulators();
         let systems = db.read().unwrap().get_systems();
-        let edit_emulator = edit_emulator_id.and_then(|id| db.read().unwrap().get_emulator(id));
+        let edit_emulator = edit_emulator_id.and_then(|id| db.read().unwrap().get_emulator(&id));
         Self {
             emulator: match edit_emulator {
                 Some(emulator) => emulator,
-                None => init_new_emulator(&emulators),
+                None => Emulator::default(),
             },
             emulators,
             systems,
@@ -83,11 +83,11 @@ impl ManageEmulators {
             Message::EditEmulator(id) => Action::EditEmulator(id),
             Message::DeleteEmulator(id) => {
                 let db = Database::get_instance();
-                db.write().unwrap().delete_emulator(id);
+                db.write().unwrap().delete_emulator(&id);
                 Action::EmulatorDeleted
             }
             Message::Clear => {
-                self.emulator = init_new_emulator(&self.emulators);
+                self.emulator = Emulator::default();
                 Action::None
             }
             Message::ExtractFilesChanged(is_checked) => {
@@ -124,8 +124,8 @@ impl ManageEmulators {
             .map(|emulator| {
                 row![
                     text(emulator.name.to_string()).width(iced::Length::Fixed(300.0)),
-                    button("Edit").on_press(Message::EditEmulator(emulator.id)),
-                    button("Delete").on_press(Message::DeleteEmulator(emulator.id)),
+                    button("Edit").on_press(Message::EditEmulator(emulator.id.clone())),
+                    button("Delete").on_press(Message::DeleteEmulator(emulator.id.clone())),
                 ]
                 .into()
             })

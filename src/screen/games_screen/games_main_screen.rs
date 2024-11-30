@@ -12,13 +12,13 @@ pub struct GamesMainScreen {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ViewGame(i32),
+    ViewGame(String),
     GoHome,
 }
 
 pub enum Action {
     GoHome,
-    ViewGame(i32),
+    ViewGame(String),
 }
 
 impl GamesMainScreen {
@@ -39,7 +39,7 @@ impl GamesMainScreen {
         let games = self.games.iter().map(|game| {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
-                button("View").on_press(Message::ViewGame(game.id)),
+                button("View").on_press(Message::ViewGame(game.id.clone())),
             ]
             .into()
         });
