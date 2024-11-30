@@ -1,4 +1,4 @@
-use std::{env, vec};
+use std::{collections::HashMap, env, vec};
 
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
@@ -15,7 +15,7 @@ pub struct AddReleaseMainScreen {
     selected_game: Option<Game>,
     release: Release,
     systems: Vec<System>,
-    selected_file: Option<String>,
+    selected_file: HashMap<String, String>,
     emulators: Vec<Emulator>,
     selected_file_type: Option<CollectionFileType>,
     settings: Settings,
@@ -34,7 +34,7 @@ pub enum Message {
     FileAdded(Result<PickedFile, Error>),
     Submit,
     Clear,
-    FileSelected(String),
+    FileSelected(String, String),
     RunWithEmulator(Emulator, String, CollectionFileType),
     CollectionFileTypeSelected(CollectionFileType),
 }
@@ -69,7 +69,7 @@ impl AddReleaseMainScreen {
             selected_game: None,
             release,
             systems,
-            selected_file: None,
+            selected_file: HashMap::new(),
             emulators,
             selected_file_type: None,
             settings,
@@ -116,8 +116,8 @@ impl AddReleaseMainScreen {
             },
             Message::Submit => Action::Submit(self.release.clone()),
             Message::Clear => Action::Clear,
-            Message::FileSelected(file) => {
-                self.selected_file = Some(file);
+            Message::FileSelected(id, file) => {
+                self.selected_file.insert(id, file);
                 Action::None
             }
             Message::RunWithEmulator(emulator, selected_file_name, collection_file_type) => {
@@ -268,15 +268,22 @@ impl AddReleaseMainScreen {
                 };
                 let file_picker = pick_list(
                     content_files,
-                    self.selected_file.clone(),
-                    Message::FileSelected,
+                    if self.selected_file.contains_key(file.id.as_str()) {
+                        Some(self.selected_file.get(file.id.as_str()).unwrap())
+                    } else {
+                        None
+                    },
+                    move |selected_file_name| {
+                        Message::FileSelected(file.id.clone(), selected_file_name)
+                    },
                 );
                 let emulator_buttons = emulators_for_system
                     .iter()
                     .map(|emulator| {
                         button(emulator.name.as_str())
                             .on_press_maybe({
-                                match (&self.selected_file, emulator.extract_files) {
+                                let selected_file = self.selected_file.get(file.id.as_str());
+                                match (selected_file, emulator.extract_files) {
                                     (Some(file_name), true) => Some(Message::RunWithEmulator(
                                         (*emulator).clone(),
                                         file_name.clone(),
