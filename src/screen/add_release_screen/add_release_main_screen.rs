@@ -264,13 +264,11 @@ impl AddReleaseMainScreen {
                     .iter()
                     .find(|s| s.id == self.release.system_id)
                     .unwrap();
-                // let file_path = self.file_path_builder.build_file_path(system, file);
                 let thumb_path = get_thumbnail_path(file, &self.settings, system).unwrap();
-                let image = image(thumb_path);
                 let file_path = self.file_path_builder.build_file_path(system, file);
-                let view_image_button =
-                    button("View Image").on_press(Message::ViewImage(file_path));
-                row![image, view_image_button].into()
+                let image = image(thumb_path);
+                let view_image_button = button(image).on_press(Message::ViewImage(file_path));
+                view_image_button.into()
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(scan_files_list).into()
