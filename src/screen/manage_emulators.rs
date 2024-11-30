@@ -21,6 +21,7 @@ pub enum Message {
     DeleteEmulator(String),
     Clear,
     ExtractFilesChanged(bool),
+    SupportedFileTypeExtensionsChanged(String),
 }
 
 pub enum Action {
@@ -94,6 +95,13 @@ impl ManageEmulators {
                 self.emulator.extract_files = is_checked;
                 Action::None
             }
+            Message::SupportedFileTypeExtensionsChanged(extensions) => {
+                self.emulator.supported_file_type_extensions = extensions
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect();
+                Action::None
+            }
         }
     }
 
@@ -118,6 +126,12 @@ impl ManageEmulators {
             button("Clear").on_press(Message::Clear)
         ];
 
+        let supported_file_type_extensions = text_input(
+            "Enter supported file type extensions (as comma separated list)",
+            &self.emulator.supported_file_type_extensions.join(", "),
+        )
+        .on_input(Message::SupportedFileTypeExtensionsChanged);
+
         let emulators_list = self
             .emulators
             .iter()
@@ -136,6 +150,7 @@ impl ManageEmulators {
             name_input_field,
             executable_input_field,
             arguments_input_field,
+            supported_file_type_extensions,
             systems_select,
             extract_files_checkbox,
             main_buttons,

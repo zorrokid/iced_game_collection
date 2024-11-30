@@ -314,6 +314,7 @@ impl AddReleaseMainScreen {
                         Message::FileSelected(file.id.clone(), selected_file_name)
                     },
                 );
+                // TODO: show only emulators that support the file type and file extension of the selected file
                 let emulator_buttons = emulators_for_system
                     .iter()
                     .map(|emulator| {

@@ -89,6 +89,7 @@ pub struct Emulator {
     pub arguments: String,
     pub system_id: String,
     pub extract_files: bool,
+    pub supported_file_type_extensions: Vec<String>,
 }
 
 pub trait HasId {
@@ -241,6 +242,7 @@ impl Default for Emulator {
             arguments: "".to_string(),
             system_id: "".to_string(),
             extract_files: false,
+            supported_file_type_extensions: vec![],
         }
     }
 }

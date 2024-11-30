@@ -73,6 +73,8 @@ pub async fn pick_file(destination_path: SyncPathBuf) -> Result<PickedFile, Erro
 
     println!("destination_file_path: {:?}", destination_file_path);
 
+    // TODO: rename all files to id of the file and store the original name of the file in the database
+
     if destination_path != SyncPathBuf::from(picked_file_directory_path) {
         if let Some(parent) = destination_file_path.parent() {
             create_dir_all(parent)
