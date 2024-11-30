@@ -14,11 +14,11 @@ impl FilePathBuilder {
         }
     }
 
-    pub fn build_file_path(&self, system: &System, file_name: &CollectionFile) -> PathBuf {
+    pub fn build_file_path(&self, system: &System, collection_file: &CollectionFile) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
         path.push(&system.directory);
-        path.push(&file_name.collection_file_type.directory());
-        path.push(&file_name.file_name);
+        path.push(&collection_file.collection_file_type.directory());
+        path.push(&collection_file.file_name);
         path
     }
 

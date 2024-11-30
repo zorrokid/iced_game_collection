@@ -5,6 +5,7 @@ use crate::error::Error;
 use crate::files::{pick_file, PickedFile};
 use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, Settings, System};
 use crate::util::file_path_builder::FilePathBuilder;
+use crate::util::image::get_thumbnail_path;
 use iced::widget::{button, column, image, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 use uuid::Uuid;
@@ -259,8 +260,9 @@ impl AddReleaseMainScreen {
                     .iter()
                     .find(|s| s.id == self.release.system_id)
                     .unwrap();
-                let file_path = self.file_path_builder.build_file_path(system, file);
-                let image = image(file_path).into();
+                // let file_path = self.file_path_builder.build_file_path(system, file);
+                let thumb_path = get_thumbnail_path(file, &self.settings, system).unwrap();
+                let image = image(thumb_path).into();
                 image
             })
             .collect::<Vec<iced::Element<Message>>>();
