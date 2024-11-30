@@ -317,6 +317,29 @@ impl AddReleaseMainScreen {
                 // TODO: show only emulators that support the file type and file extension of the selected file
                 let emulator_buttons = emulators_for_system
                     .iter()
+                    .filter(|e| {
+                        let file_type_extensions = file.files.as_ref().map(|files| {
+                            files
+                                .iter()
+                                .map(|file| {
+                                    file.name
+                                        .split('.')
+                                        .last()
+                                        .unwrap()
+                                        .to_string()
+                                        .to_lowercase()
+                                })
+                                .collect::<Vec<String>>()
+                        });
+                        e.supported_file_type_extensions.is_empty()
+                            || e.supported_file_type_extensions
+                                .contains(&file.file_name.split('.').last().unwrap().to_string())
+                            || file_type_extensions.map_or(false, |extensions| {
+                                e.supported_file_type_extensions
+                                    .iter()
+                                    .any(|ext| extensions.contains(ext))
+                            })
+                    })
                     .map(|emulator| {
                         button(emulator.name.as_str())
                             .on_press_maybe({

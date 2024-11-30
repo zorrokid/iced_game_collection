@@ -98,7 +98,7 @@ impl ManageEmulators {
             Message::SupportedFileTypeExtensionsChanged(extensions) => {
                 self.emulator.supported_file_type_extensions = extensions
                     .split(',')
-                    .map(|s| s.trim().to_string())
+                    .map(|s| s.trim().to_string().to_lowercase())
                     .collect();
                 Action::None
             }
