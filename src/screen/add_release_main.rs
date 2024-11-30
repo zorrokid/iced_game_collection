@@ -9,6 +9,8 @@ use crate::screen::add_release_screen::AddReleaseScreen;
 use iced::{Element, Task};
 use uuid::Uuid;
 
+use super::view_image;
+
 #[derive(Debug, Clone)]
 pub struct AddReleaseMain {
     screen: AddReleaseScreen,
@@ -21,6 +23,7 @@ pub enum Message {
     AddReleaseMainScreen(add_release_main_screen::Message),
     ManageGamesScreen(manage_games::Message),
     ManageSystemsScreen(manage_systems::Message),
+    ViewImageScreen(view_image::Message),
 }
 
 pub enum Action {
@@ -113,6 +116,11 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
                         }
+                        add_release_main_screen::Action::ViewImage(file) => {
+                            self.screen =
+                                AddReleaseScreen::ViewImageScreen(view_image::ViewImage::new(file));
+                            Action::None
+                        }
                     }
                 } else {
                     Action::None
@@ -160,6 +168,19 @@ impl AddReleaseMain {
                     Action::None
                 }
             }
+            Message::ViewImageScreen(sub_screen_message) => {
+                if let AddReleaseScreen::ViewImageScreen(sub_screen) = &mut self.screen {
+                    match sub_screen.update(sub_screen_message) {
+                        view_image::Action::Back => {
+                            self.screen = create_main_screen(&self.release);
+                            Action::None
+                        }
+                        _ => Action::None,
+                    }
+                } else {
+                    Action::None
+                }
+            }
         }
     }
 
@@ -173,6 +194,9 @@ impl AddReleaseMain {
             }
             AddReleaseScreen::ManageSystemsScreen(screen) => {
                 screen.view().map(Message::ManageSystemsScreen)
+            }
+            AddReleaseScreen::ViewImageScreen(screen) => {
+                screen.view().map(Message::ViewImageScreen)
             }
         }
     }

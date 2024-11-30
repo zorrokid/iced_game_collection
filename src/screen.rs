@@ -10,6 +10,7 @@ pub mod manage_systems;
 pub mod settings_main;
 pub mod settings_screen;
 pub mod view_game;
+pub mod view_image;
 pub use add_release_main::AddReleaseMain;
 pub use error::Error;
 pub use games_main::GamesMain;
