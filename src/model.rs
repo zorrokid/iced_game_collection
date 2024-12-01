@@ -207,6 +207,10 @@ impl ToString for CollectionFileType {
     }
 }
 
+pub trait GetFileExtensions {
+    fn get_file_extensions(&self) -> Vec<String>;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
     pub id: String,
@@ -214,6 +218,25 @@ pub struct CollectionFile {
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
     pub collection_file_type: CollectionFileType,
+}
+
+impl GetFileExtensions for CollectionFile {
+    fn get_file_extensions(&self) -> Vec<String> {
+        match &self.files {
+            Some(files) => files
+                .iter()
+                .map(|file| {
+                    file.name
+                        .split('.')
+                        .last()
+                        .unwrap()
+                        .to_string()
+                        .to_lowercase()
+                })
+                .collect::<Vec<String>>(),
+            None => vec![],
+        }
+    }
 }
 
 impl Display for CollectionFile {

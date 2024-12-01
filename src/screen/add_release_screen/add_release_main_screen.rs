@@ -4,7 +4,10 @@ use std::{collections::HashMap, env, vec};
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::{pick_file, PickedFile};
-use crate::model::{CollectionFile, CollectionFileType, Emulator, Game, Release, Settings, System};
+use crate::model::{
+    CollectionFile, CollectionFileType, Emulator, Game, GetFileExtensions, Release, Settings,
+    System,
+};
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use iced::widget::{button, column, image, pick_list, row, text, text_input, Column};
@@ -314,30 +317,14 @@ impl AddReleaseMainScreen {
                         Message::FileSelected(file.id.clone(), selected_file_name)
                     },
                 );
-                // TODO: show only emulators that support the file type and file extension of the selected file
                 let emulator_buttons = emulators_for_system
                     .iter()
                     .filter(|e| {
-                        let file_type_extensions = file.files.as_ref().map(|files| {
-                            files
-                                .iter()
-                                .map(|file| {
-                                    file.name
-                                        .split('.')
-                                        .last()
-                                        .unwrap()
-                                        .to_string()
-                                        .to_lowercase()
-                                })
-                                .collect::<Vec<String>>()
-                        });
                         e.supported_file_type_extensions.is_empty()
                             || e.supported_file_type_extensions
                                 .contains(&file.file_name.split('.').last().unwrap().to_string())
-                            || file_type_extensions.map_or(false, |extensions| {
-                                e.supported_file_type_extensions
-                                    .iter()
-                                    .any(|ext| extensions.contains(ext))
+                            || file.get_file_extensions().into_iter().any(|extension| {
+                                e.supported_file_type_extensions.contains(&extension)
                             })
                     })
                     .map(|emulator| {
