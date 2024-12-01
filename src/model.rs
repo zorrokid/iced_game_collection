@@ -239,6 +239,28 @@ impl GetFileExtensions for CollectionFile {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_file_extensions() {
+        let collection_file = CollectionFile {
+            id: get_new_id(),
+            file_name: "game.zip".to_string(),
+            is_zip: true,
+            files: Some(vec![FileInfo {
+                name: "game.rom".to_string(),
+                checksum: "checksum".to_string(),
+            }]),
+            collection_file_type: CollectionFileType::Rom,
+        };
+
+        let extensions = collection_file.get_file_extensions();
+        assert_eq!(extensions, vec!["rom".to_string()]);
+    }
+}
+
 impl Display for CollectionFile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.file_name)
