@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::model::{CollectionFile, FileInfo};
 use async_std::fs::{copy as async_copy, create_dir_all, remove_file, File as AsyncFile};
-use async_std::path::Path as AsyncPath;
+use async_std::path::{Path as AsyncPath, PathBuf};
 use async_std::prelude::*;
 use sha1::{Digest, Sha1};
 use std::fs::{copy, File};
@@ -15,6 +15,7 @@ pub struct PickedFile {
     pub file_name: String,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
+    pub file_path: PathBuf,
 }
 
 pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
@@ -26,7 +27,7 @@ pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
     Ok(file_handle.path().to_owned())
 }
 
-pub async fn pick_file(destination_path: SyncPathBuf) -> Result<PickedFile, Error> {
+pub async fn pick_file(/*destination_path: SyncPathBuf*/) -> Result<PickedFile, Error> {
     let picked_file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
         .pick_file()
@@ -36,15 +37,6 @@ pub async fn pick_file(destination_path: SyncPathBuf) -> Result<PickedFile, Erro
     let picked_file_path = picked_file_handle.path();
 
     println!("picked_file_path: {:?}", picked_file_path);
-
-    let picked_file_directory_path = picked_file_path.parent().ok_or(Error::IoError(
-        "Failed to get parent directory of the file.".to_string(),
-    ))?;
-
-    println!(
-        "picked_file_directory_path: {:?}",
-        picked_file_directory_path,
-    );
 
     let is_zip = is_zip_file(AsyncPath::new(picked_file_path)).await?;
 
@@ -69,30 +61,36 @@ pub async fn pick_file(destination_path: SyncPathBuf) -> Result<PickedFile, Erro
 
     println!("picked_file_name: {:?}", picked_file_name);
 
-    let destination_file_path = AsyncPath::new(&destination_path).join(picked_file_name.clone());
-
-    println!("destination_file_path: {:?}", destination_file_path);
-
-    // TODO: rename all files to id of the file and store the original name of the file in the database
-
-    if destination_path != SyncPathBuf::from(picked_file_directory_path) {
-        if let Some(parent) = destination_file_path.parent() {
-            create_dir_all(parent)
-                .await
-                .map_err(|e| Error::IoError(format!("Failed to create directory: {}", e)))?;
-        }
-        // TODO: add flag to copy or move the file
-        println!("Copying file to destination.");
-        async_copy(picked_file_path, &destination_file_path)
-            .await
-            .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
-    }
-
     Ok(PickedFile {
         file_name: picked_file_name,
         is_zip,
         files: files_in_zip,
+        file_path: PathBuf::from(picked_file_path),
     })
+}
+
+pub async fn copy_file(
+    destination_directory: SyncPathBuf,
+    destination_filename: String,
+    picked_file: PickedFile,
+) -> Result<(String, PickedFile), Error> {
+    let destination_file_path =
+        AsyncPath::new(&destination_directory).join(destination_filename.clone());
+
+    println!("destination_file_path: {:?}", destination_file_path);
+
+    if let Some(parent) = destination_file_path.parent() {
+        create_dir_all(parent)
+            .await
+            .map_err(|e| Error::IoError(format!("Failed to create directory: {}", e)))?;
+    }
+    // TODO: add flag to copy or move the file
+    println!("Copying file to destination.");
+    async_copy(picked_file.file_path.clone(), &destination_file_path)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
+
+    Ok((destination_filename, picked_file))
 }
 
 /*pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Result<i32, Error> {
@@ -190,13 +188,18 @@ pub fn extract_zip_files(
     source: &SyncPathBuf,
     destination: &SyncPathBuf,
 ) -> Result<(), Error> {
+    println!(
+        "Extracting zip files from source: {:?}, to destination: {:?}",
+        source, destination
+    );
     // TODO: no need to extract all files, just the selected one
     // TODO: Or should it be possible for user to select multiple files?
     //       User could add multiple files of the same release and most probably wants to select just one version for running with emulator.
     //       Then again the one version of the same release could consist of multiple files.
     //       But in any case, no need to extract all the files, only the selected ones.
     for file in files {
-        let file_path = source.join(&file.file_name);
+        let file_path = source.join(&file.id);
+        println!("file_path: {:?}", file_path);
         let res = match is_zip_file_sync(file_path.as_path()) {
             Ok(true) => extract_zip_file(&file_path, &destination),
             Ok(false) => {
@@ -222,7 +225,7 @@ pub fn copy_files(
 ) -> Result<(), Error> {
     // TODO: no need to copy all files, just the selected one
     for file in files {
-        let file_path = source.join(&file.file_name);
+        let file_path = source.join(&file.id);
         let destination_file = destination.join(&file.file_name);
         copy(&file_path, &destination_file)
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
@@ -232,6 +235,10 @@ pub fn copy_files(
 
 /// Extracts the files from the zip file to the destination.
 pub fn extract_zip_file(file_path: &SyncPathBuf, destination: &SyncPathBuf) -> Result<(), Error> {
+    println!(
+        "Extracting zip file from path: {:?}, to path {:?}",
+        file_path, destination
+    );
     let file = File::open(&file_path)
         .map_err(|e| Error::IoError(format!("Failed to open file: {}", e)))?;
     let mut buffer = Vec::new();

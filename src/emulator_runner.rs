@@ -60,7 +60,9 @@ pub async fn run_with_emulator_async(
 }
 
 pub fn process_files_for_emulator(options: &EmulatorRunOptions) -> Result<(), Error> {
-    let source_path = PathBuf::from(&options.source_path); // .join(&options.selected_file.file_name);
+    println!("Processing files for emulator");
+    let source_path = PathBuf::from(&options.source_path);
+    println!("Source path: {:?}", source_path);
     if options.emulator.extract_files {
         // TODO: extract all files or only selected_file?
         extract_zip_files(&options.files, &source_path, &options.target_path)

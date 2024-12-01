@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, vec};
 
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
-use crate::files::{pick_file, PickedFile};
+use crate::files::{copy_file, pick_file, PickedFile};
 use crate::model::{
     CollectionFile, CollectionFileType, Emulator, Game, GetFileExtensions, Release, Settings,
     System,
@@ -36,13 +36,14 @@ pub enum Message {
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
-    FileAdded(Result<PickedFile, Error>),
+    FilePicked(Result<PickedFile, Error>),
     Submit,
     Clear,
     FileSelected(String, String),
     RunWithEmulator(Emulator, String, CollectionFileType),
     CollectionFileTypeSelected(CollectionFileType),
     ViewImage(PathBuf),
+    FileCopied(Result<(String, PickedFile), Error>),
 }
 
 pub enum Action {
@@ -92,33 +93,44 @@ impl AddReleaseMainScreen {
             Message::GameSelected(game) => Action::GameSelected(game),
             Message::NameChanged(name) => Action::NameChanged(name),
             Message::SystemSelected(system) => Action::SystemSelected(system),
-            Message::SelectFile => {
+            Message::SelectFile => Action::Run(Task::perform(pick_file(), Message::FilePicked)),
+            Message::FilePicked(result) => {
+                let file_id = Uuid::new_v4().to_string();
                 let selected_system = self
                     .systems
                     .iter()
                     .find(|system| system.id == self.release.system_id);
+
                 if let (Some(system), Some(selected_file_type)) =
                     (selected_system, self.selected_file_type.clone())
                 {
-                    Action::Run(Task::perform(
-                        pick_file(
-                            self.file_path_builder
-                                .build_target_directory(system, &selected_file_type),
-                        ),
-                        Message::FileAdded,
-                    ))
+                    match result {
+                        Ok(picked_file) => Action::Run(Task::perform(
+                            copy_file(
+                                self.file_path_builder
+                                    .build_target_directory(system, &selected_file_type),
+                                file_id,
+                                picked_file,
+                            ),
+                            Message::FileCopied,
+                        )),
+                        Err(_) => Action::None,
+                    }
                 } else {
                     Action::None
                 }
             }
-            Message::FileAdded(result) => match result {
-                Ok(picked_file) => Action::AddFile(CollectionFile {
-                    id: Uuid::new_v4().to_string(),
-                    file_name: picked_file.file_name,
-                    collection_file_type: self.selected_file_type.clone().unwrap(),
-                    files: picked_file.files,
-                    is_zip: picked_file.is_zip,
-                }),
+            Message::FileCopied(result) => match result {
+                Ok((id, picked_file)) => {
+                    let collection_file = CollectionFile {
+                        id,
+                        file_name: picked_file.file_name,
+                        collection_file_type: self.selected_file_type.clone().unwrap(),
+                        files: picked_file.files,
+                        is_zip: picked_file.is_zip,
+                    };
+                    Action::AddFile(collection_file)
+                }
                 Err(_) => Action::None,
             },
             Message::Submit => Action::Submit(self.release.clone()),
