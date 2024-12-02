@@ -16,9 +16,9 @@ impl FilePathBuilder {
 
     pub fn build_file_path(&self, system: &System, collection_file: &CollectionFile) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(&system.directory);
+        path.push(&system.id);
         path.push(&collection_file.collection_file_type.directory());
-        path.push(&collection_file.file_name);
+        path.push(&collection_file.id);
         path
     }
 
@@ -28,7 +28,7 @@ impl FilePathBuilder {
         file_type: &CollectionFileType,
     ) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(&system.directory);
+        path.push(&system.id);
         path.push(&file_type.directory());
         path
     }
@@ -48,10 +48,9 @@ mod tests {
         let system = System {
             id: Uuid::new_v4().to_string(),
             name: "System".to_string(),
-            directory: "system".to_string(),
         };
 
-        let file_name = CollectionFile {
+        let collection_file = CollectionFile {
             id: Uuid::new_v4().to_string(),
             file_name: "file.zip".to_string(),
             is_zip: true,
@@ -62,10 +61,13 @@ mod tests {
             collection_file_type: CollectionFileType::DiskImage,
         };
 
-        let path = file_path_builder.build_file_path(&system, &file_name);
+        let path = file_path_builder.build_file_path(&system, &collection_file);
         assert_eq!(
             path,
-            PathBuf::from("/home/user/collection/system/disk_images/file.zip")
+            PathBuf::from(format!(
+                "/home/user/collection/{}/disk_images/{}",
+                system.id, collection_file.id
+            ))
         );
     }
 
@@ -77,7 +79,6 @@ mod tests {
         let system = System {
             id: Uuid::new_v4().to_string(),
             name: "System".to_string(),
-            directory: "system".to_string(),
         };
 
         let file_type = CollectionFileType::DiskImage;
@@ -85,7 +86,7 @@ mod tests {
         let path = file_path_builder.build_target_directory(&system, &file_type);
         assert_eq!(
             path,
-            PathBuf::from("/home/user/collection/system/disk_images")
+            PathBuf::from(format!("/home/user/collection/{}/disk_images", system.id))
         );
     }
 }

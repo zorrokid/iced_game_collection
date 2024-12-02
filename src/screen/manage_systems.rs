@@ -1,6 +1,5 @@
 use crate::database::Database;
 use crate::model::System;
-use crate::util::directory::create_directory_name;
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
@@ -54,7 +53,6 @@ impl ManageSystems {
             Message::Submit => match &mut self.system.name {
                 name if name.is_empty() => Action::None,
                 _ => {
-                    self.system.directory = create_directory_name(&self.system.name);
                     let db = Database::get_instance();
                     db.write()
                         .unwrap()

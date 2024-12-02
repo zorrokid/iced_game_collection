@@ -39,7 +39,6 @@ impl From<&Release> for ReleaseListModel {
 pub struct System {
     pub id: String,
     pub name: String,
-    pub directory: String,
 }
 
 impl Display for System {
@@ -297,7 +296,6 @@ impl Default for System {
         System {
             id: get_new_id(),
             name: "".to_string(),
-            directory: "".to_string(),
         }
     }
 }
