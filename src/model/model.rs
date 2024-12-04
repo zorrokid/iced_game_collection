@@ -3,6 +3,8 @@ use std::fmt::{self, Display, Formatter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::collection_file::CollectionFile;
+
 #[derive(Debug, Clone)]
 pub struct GameListModel {
     pub id: String,
@@ -170,108 +172,6 @@ pub enum FolderType {
     Destination,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum CollectionFileType {
-    Rom,
-    DiskImage,
-    TapeImage,
-    ScreenShot,
-    Manual,
-    CoverScan,
-}
-
-impl CollectionFileType {
-    pub fn directory(&self) -> &str {
-        match self {
-            CollectionFileType::Rom => "roms",
-            CollectionFileType::DiskImage => "disk_images",
-            CollectionFileType::TapeImage => "tape_images",
-            CollectionFileType::ScreenShot => "screenshots",
-            CollectionFileType::Manual => "manuals",
-            CollectionFileType::CoverScan => "cover_scans",
-        }
-    }
-}
-
-impl ToString for CollectionFileType {
-    fn to_string(&self) -> String {
-        match self {
-            CollectionFileType::Rom => "Rom".to_string(),
-            CollectionFileType::DiskImage => "Disk Image".to_string(),
-            CollectionFileType::TapeImage => "Tape Image".to_string(),
-            CollectionFileType::ScreenShot => "Screen Shot".to_string(),
-            CollectionFileType::Manual => "Manual".to_string(),
-            CollectionFileType::CoverScan => "Cover scan".to_string(),
-        }
-    }
-}
-
-pub trait GetFileExtensions {
-    fn get_file_extensions(&self) -> Vec<String>;
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct CollectionFile {
-    pub id: String,
-    pub file_name: String,
-    pub is_zip: bool,
-    pub files: Option<Vec<FileInfo>>,
-    pub collection_file_type: CollectionFileType,
-}
-
-impl GetFileExtensions for CollectionFile {
-    fn get_file_extensions(&self) -> Vec<String> {
-        match &self.files {
-            Some(files) => files
-                .iter()
-                .map(|file| {
-                    file.name
-                        .split('.')
-                        .last()
-                        .unwrap()
-                        .to_string()
-                        .to_lowercase()
-                })
-                .collect::<Vec<String>>(),
-            None => vec![],
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_file_extensions() {
-        let collection_file = CollectionFile {
-            id: get_new_id(),
-            file_name: "game.zip".to_string(),
-            is_zip: true,
-            files: Some(vec![FileInfo {
-                name: "game.rom".to_string(),
-                checksum: "checksum".to_string(),
-            }]),
-            collection_file_type: CollectionFileType::Rom,
-        };
-
-        let extensions = collection_file.get_file_extensions();
-        assert_eq!(extensions, vec!["rom".to_string()]);
-    }
-}
-
-impl Display for CollectionFile {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.file_name)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct FileInfo {
-    pub name: String,
-    pub checksum: String,
-}
-
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
     pub collection_root_dir: String,
@@ -321,6 +221,6 @@ impl Default for Release {
     }
 }
 
-fn get_new_id() -> String {
+pub fn get_new_id() -> String {
     Uuid::new_v4().to_string()
 }

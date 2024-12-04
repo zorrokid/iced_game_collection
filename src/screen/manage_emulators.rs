@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{Emulator, System};
+use crate::model::model::{Emulator, System};
 use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 

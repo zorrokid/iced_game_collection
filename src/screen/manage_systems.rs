@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::System;
+use crate::model::model::System;
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]

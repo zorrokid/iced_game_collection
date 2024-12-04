@@ -1,8 +1,11 @@
-use std::{collections::HashMap, env, ptr::read};
+use std::{collections::HashMap, env};
 
 use crate::{
     emulator_runner::EmulatorRunOptions,
-    model::{CollectionFile, Emulator, Game, Release, System},
+    model::{
+        collection_file::CollectionFile,
+        model::{Emulator, Game, Release, System},
+    },
     util::file_path_builder::FilePathBuilder,
 };
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
@@ -68,7 +71,7 @@ impl ViewGame {
                 Action::RunWithEmulator(EmulatorRunOptions {
                     emulator,
                     files,
-                    selected_file_name: file.file_name.clone(),
+                    selected_file_name: file.original_file_name.clone(),
                     source_path: self
                         .file_path_builder
                         .build_target_directory(system, &file.collection_file_type),

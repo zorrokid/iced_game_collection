@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{Game, GameListModel};
+use crate::model::model::{Game, GameListModel};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 

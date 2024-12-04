@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    model::{
+    model::model::{
         Collection, Emulator, Game, GameListModel, HasId, Release, ReleaseListModel, Settings,
         System,
     },
@@ -83,7 +83,7 @@ impl Database {
         get_cloned(&self.collection.releases, id)
     }
 
-    pub fn get_settings(&self) -> crate::model::Settings {
+    pub fn get_settings(&self) -> Settings {
         self.collection.settings.clone()
     }
 

@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::Settings;
+use crate::model::model::Settings;
 use crate::screen::settings_screen::settings_main_screen;
 
 use super::settings_screen::SettingsScreen;

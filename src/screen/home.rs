@@ -1,6 +1,6 @@
 use iced::widget::{button, column, text};
 
-use crate::{database::Database, model::Settings};
+use crate::{database::Database, model::model::Settings};
 
 pub struct Home {
     settings: Settings,

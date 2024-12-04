@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::model::{CollectionFile, FileInfo};
+use crate::model::collection_file::{CollectionFile, FileInfo, GetCollectionFileName};
 use async_std::fs::{copy as async_copy, create_dir_all, remove_file, File as AsyncFile};
 use async_std::path::{Path as AsyncPath, PathBuf};
 use async_std::prelude::*;
@@ -16,6 +16,7 @@ pub struct PickedFile {
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
     pub file_path: PathBuf,
+    pub extension: String,
 }
 
 pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
@@ -27,7 +28,7 @@ pub async fn pick_folder() -> Result<SyncPathBuf, Error> {
     Ok(file_handle.path().to_owned())
 }
 
-pub async fn pick_file(/*destination_path: SyncPathBuf*/) -> Result<PickedFile, Error> {
+pub async fn pick_file() -> Result<PickedFile, Error> {
     let picked_file_handle = rfd::AsyncFileDialog::new()
         .set_title("Choose a file")
         .pick_file()
@@ -48,7 +49,22 @@ pub async fn pick_file(/*destination_path: SyncPathBuf*/) -> Result<PickedFile, 
         None
     };
 
-    let picked_file_name = picked_file_path
+    let picked_file_name = get_file_name(picked_file_path)?;
+    let picked_file_extension = get_file_extension(picked_file_path)?;
+
+    println!("picked_file_name: {:?}", picked_file_name);
+
+    Ok(PickedFile {
+        file_name: picked_file_name,
+        is_zip,
+        files: files_in_zip,
+        file_path: PathBuf::from(picked_file_path),
+        extension: picked_file_extension,
+    })
+}
+
+pub fn get_file_name(path: &SyncPath) -> Result<String, Error> {
+    let file_name = path
         .file_name()
         .ok_or(Error::IoError("file name not available".to_string()))?
         .to_owned()
@@ -58,24 +74,31 @@ pub async fn pick_file(/*destination_path: SyncPathBuf*/) -> Result<PickedFile, 
                 "Failed to get file name (invalid unicode data in file name)"
             ))
         })?;
+    Ok(file_name)
+}
 
-    println!("picked_file_name: {:?}", picked_file_name);
-
-    Ok(PickedFile {
-        file_name: picked_file_name,
-        is_zip,
-        files: files_in_zip,
-        file_path: PathBuf::from(picked_file_path),
-    })
+pub fn get_file_extension(path: &SyncPath) -> Result<String, Error> {
+    let extension = path
+        .extension()
+        .ok_or(Error::IoError("file extension not available".to_string()))?
+        .to_owned()
+        .into_string()
+        .map_err(|_| {
+            Error::IoError(format!(
+                "Failed to get file extension (invalid unicode data in file extension)"
+            ))
+        })?;
+    Ok(extension)
 }
 
 pub async fn copy_file(
     destination_directory: SyncPathBuf,
-    destination_filename: String,
+    file_id: String,
     picked_file: PickedFile,
 ) -> Result<(String, PickedFile), Error> {
-    let destination_file_path =
-        AsyncPath::new(&destination_directory).join(destination_filename.clone());
+    let destination_file_path = AsyncPath::new(&destination_directory)
+        .join(&file_id)
+        .with_extension(&picked_file.extension);
 
     println!("destination_file_path: {:?}", destination_file_path);
 
@@ -90,7 +113,7 @@ pub async fn copy_file(
         .await
         .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
 
-    Ok((destination_filename, picked_file))
+    Ok((file_id, picked_file))
 }
 
 /*pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Result<i32, Error> {
@@ -203,7 +226,7 @@ pub fn extract_zip_files(
         let res = match is_zip_file_sync(file_path.as_path()) {
             Ok(true) => extract_zip_file(&file_path, &destination),
             Ok(false) => {
-                let destination_file = destination.join(&file.file_name);
+                let destination_file = destination.join(&file.original_file_name);
                 copy(&file_path, &destination_file)
                     .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
                 Ok(())
@@ -225,8 +248,8 @@ pub fn copy_files(
 ) -> Result<(), Error> {
     // TODO: no need to copy all files, just the selected one
     for file in files {
-        let file_path = source.join(&file.id);
-        let destination_file = destination.join(&file.file_name);
+        let file_path = source.join(&file.get_collection_file_name());
+        let destination_file = destination.join(&file.original_file_name);
         copy(&file_path, &destination_file)
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
     }

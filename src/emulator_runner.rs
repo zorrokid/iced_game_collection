@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     files::{copy_files, extract_zip_files},
-    model::{CollectionFile, Emulator},
+    model::{collection_file::CollectionFile, model::Emulator},
 };
 use async_process::Command;
 use async_std::path::Path as AsyncPath;
