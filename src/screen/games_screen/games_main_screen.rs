@@ -3,7 +3,7 @@ use iced::{
     Element,
 };
 
-use crate::model::GameListModel;
+use crate::model::model::GameListModel;
 
 #[derive(Debug, Clone)]
 pub struct GamesMainScreen {

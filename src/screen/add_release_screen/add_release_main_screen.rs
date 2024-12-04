@@ -5,8 +5,8 @@ use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::{copy_file, pick_file, PickedFile};
 use crate::model::{
-    CollectionFile, CollectionFileType, Emulator, Game, GetFileExtensions, Release, Settings,
-    System,
+    collection_file::{CollectionFile, CollectionFileType, GetFileExtensions},
+    model::{Emulator, Game, Release, Settings, System},
 };
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
@@ -109,6 +109,7 @@ impl AddReleaseMainScreen {
                             copy_file(
                                 self.file_path_builder
                                     .build_target_directory(system, &selected_file_type),
+                                // TODO: add extension to target file name:
                                 file_id,
                                 picked_file,
                             ),
@@ -123,11 +124,11 @@ impl AddReleaseMainScreen {
             Message::FileCopied(result) => match result {
                 Ok((id, picked_file)) => {
                     let collection_file = CollectionFile {
-                        id,
-                        file_name: picked_file.file_name,
+                        original_file_name: picked_file.file_name,
                         collection_file_type: self.selected_file_type.clone().unwrap(),
                         files: picked_file.files,
                         is_zip: picked_file.is_zip,
+                        id,
                     };
                     Action::AddFile(collection_file)
                 }
@@ -273,17 +274,20 @@ impl AddReleaseMainScreen {
             .files
             .iter()
             .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
-            .map(|file| {
-                let system = self
-                    .systems
-                    .iter()
-                    .find(|s| s.id == self.release.system_id)
-                    .unwrap();
-                let thumb_path = get_thumbnail_path(file, &self.settings, system).unwrap();
-                let file_path = self.file_path_builder.build_file_path(system, file);
-                let image = image(thumb_path);
-                let view_image_button = button(image).on_press(Message::ViewImage(file_path));
-                view_image_button.into()
+            .filter_map(|file| {
+                if let Some(system) = self.systems.iter().find(|s| s.id == self.release.system_id) {
+                    if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
+                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
+                        {
+                            let image = image(thumb_path);
+                            let view_image_button =
+                                button(image).on_press(Message::ViewImage(file_path));
+                            return Some(view_image_button.into());
+                        }
+                    }
+                }
+
+                None
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(scan_files_list).into()
@@ -333,8 +337,14 @@ impl AddReleaseMainScreen {
                     .iter()
                     .filter(|e| {
                         e.supported_file_type_extensions.is_empty()
-                            || e.supported_file_type_extensions
-                                .contains(&file.file_name.split('.').last().unwrap().to_string())
+                            || e.supported_file_type_extensions.contains(
+                                &file
+                                    .original_file_name
+                                    .split('.')
+                                    .last()
+                                    .unwrap()
+                                    .to_string(),
+                            )
                             || file.get_file_extensions().into_iter().any(|extension| {
                                 e.supported_file_type_extensions.contains(&extension)
                             })
@@ -351,7 +361,7 @@ impl AddReleaseMainScreen {
                                     )),
                                     (_, false) => Some(Message::RunWithEmulator(
                                         (*emulator).clone(),
-                                        file.clone().file_name,
+                                        file.clone().original_file_name,
                                         file.collection_file_type.clone(),
                                     )),
                                     (_, _) => None,

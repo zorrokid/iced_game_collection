@@ -1,5 +1,12 @@
-use crate::model::{CollectionFile, CollectionFileType, System};
-use std::path::PathBuf;
+use crate::{
+    error::Error,
+    files::get_file_extension,
+    model::{
+        collection_file::{CollectionFile, CollectionFileType},
+        model::System,
+    },
+};
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -14,12 +21,18 @@ impl FilePathBuilder {
         }
     }
 
-    pub fn build_file_path(&self, system: &System, collection_file: &CollectionFile) -> PathBuf {
+    pub fn build_file_path(
+        &self,
+        system: &System,
+        collection_file: &CollectionFile,
+    ) -> Result<PathBuf, Error> {
         let mut path = PathBuf::from(&self.collection_root_dir);
+
+        let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
         path.push(&system.id);
         path.push(&collection_file.collection_file_type.directory());
         path.push(&collection_file.id);
-        path
+        Ok(path.with_extension(extension))
     }
 
     pub fn build_target_directory(
@@ -37,7 +50,7 @@ impl FilePathBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{CollectionFileType, FileInfo};
+    use crate::model::collection_file::{CollectionFileType, FileInfo};
     use std::path::PathBuf;
 
     #[test]
@@ -50,9 +63,11 @@ mod tests {
             name: "System".to_string(),
         };
 
+        let id = Uuid::new_v4();
+
         let collection_file = CollectionFile {
-            id: Uuid::new_v4().to_string(),
-            file_name: "file.zip".to_string(),
+            id: id.to_string(),
+            original_file_name: "file.zip".to_string(),
             is_zip: true,
             files: Some(vec![FileInfo {
                 name: "file1".to_string(),
@@ -61,11 +76,13 @@ mod tests {
             collection_file_type: CollectionFileType::DiskImage,
         };
 
-        let path = file_path_builder.build_file_path(&system, &collection_file);
+        let result = file_path_builder.build_file_path(&system, &collection_file);
+        assert!(result.is_ok());
+        let path = result.unwrap();
         assert_eq!(
             path,
             PathBuf::from(format!(
-                "/home/user/collection/{}/disk_images/{}",
+                "/home/user/collection/{}/disk_images/{}.zip",
                 system.id, collection_file.id
             ))
         );
