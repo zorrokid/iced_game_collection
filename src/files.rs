@@ -221,7 +221,7 @@ pub fn extract_zip_files(
     //       Then again the one version of the same release could consist of multiple files.
     //       But in any case, no need to extract all the files, only the selected ones.
     for file in files {
-        let file_path = source.join(&file.id);
+        let file_path = source.join(&file.get_collection_file_name());
         println!("file_path: {:?}", file_path);
         let res = match is_zip_file_sync(file_path.as_path()) {
             Ok(true) => extract_zip_file(&file_path, &destination),
@@ -237,6 +237,7 @@ pub fn extract_zip_files(
             return res;
         }
     }
+    println!("Finished extracting zip files");
     Ok(())
 }
 
@@ -249,6 +250,7 @@ pub fn copy_files(
     // TODO: no need to copy all files, just the selected one
     for file in files {
         let file_path = source.join(&file.get_collection_file_name());
+        println!("file_path: {:?}", file_path);
         let destination_file = destination.join(&file.original_file_name);
         copy(&file_path, &destination_file)
             .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
