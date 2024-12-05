@@ -105,6 +105,7 @@ impl GamesMain {
                         }
 
                         add_release_main::Action::None => Action::None,
+                        add_release_main::Action::Error(error) => Action::None,
                     }
                 } else {
                     Action::None

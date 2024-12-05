@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, vec};
 
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
-use crate::files::{copy_file, pick_file, PickedFile};
+use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::{
     collection_file::{CollectionFile, CollectionFileType, GetFileExtensions},
     model::{Emulator, Game, Release, Settings, System},
@@ -44,6 +44,8 @@ pub enum Message {
     CollectionFileTypeSelected(CollectionFileType),
     ViewImage(PathBuf),
     FileCopied(Result<(String, PickedFile), Error>),
+    DeleteFile(String),
+    FileDeleted(Result<(), Error>, String),
 }
 
 pub enum Action {
@@ -56,10 +58,12 @@ pub enum Action {
     SystemSelected(System),
     Run(Task<Message>),
     AddFile(CollectionFile),
-    Submit(Release),
+    Submit(/*Release*/),
     RunWithEmulator(EmulatorRunOptions),
     Clear,
     ViewImage(PathBuf),
+    Error(String),
+    DeleteFile(CollectionFile),
 }
 
 impl AddReleaseMainScreen {
@@ -109,7 +113,6 @@ impl AddReleaseMainScreen {
                             copy_file(
                                 self.file_path_builder
                                     .build_target_directory(system, &selected_file_type),
-                                // TODO: add extension to target file name:
                                 file_id,
                                 picked_file,
                             ),
@@ -134,7 +137,7 @@ impl AddReleaseMainScreen {
                 }
                 Err(_) => Action::None,
             },
-            Message::Submit => Action::Submit(self.release.clone()),
+            Message::Submit => Action::Submit(/*self.release.clone()*/),
             Message::Clear => Action::Clear,
             Message::FileSelected(id, file) => {
                 self.selected_file.insert(id, file);
@@ -162,6 +165,29 @@ impl AddReleaseMainScreen {
                 Action::None
             }
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
+            Message::DeleteFile(id) => {
+                if let Some(system) = self.systems.iter().find(|s| s.id == self.release.system_id) {
+                    if let Some(file) = self.release.files.iter().find(|f| f.id == id) {
+                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
+                        {
+                            return Action::Run(Task::perform(
+                                delete_file(file_path.clone()),
+                                move |result| Message::FileDeleted(result, id.clone()),
+                            ));
+                        }
+                    }
+                }
+                Action::None
+            }
+            Message::FileDeleted(result, id) => match result {
+                Ok(_) => {
+                    if let Some(file) = self.release.files.iter().find(|f| f.id == id) {
+                        return Action::DeleteFile(file.clone());
+                    }
+                    Action::None
+                }
+                Err(_) => Action::Error("Failed deleting file".to_string()),
+            },
         }
     }
 
@@ -282,7 +308,9 @@ impl AddReleaseMainScreen {
                             let image = image(thumb_path);
                             let view_image_button =
                                 button(image).on_press(Message::ViewImage(file_path));
-                            return Some(view_image_button.into());
+                            let delete_button =
+                                button("Delete").on_press(Message::DeleteFile(file.id.clone()));
+                            return Some(row![view_image_button, delete_button].into());
                         }
                     }
                 }

@@ -208,6 +208,10 @@ impl IcedGameCollection {
                     run_with_emulator_async(options),
                     Message::FinishedRunningWithEmulator,
                 ),
+                add_release_main::Action::Error(error) => {
+                    self.screen = Screen::Error(screen::Error::new(error));
+                    Task::none()
+                }
             }
         } else {
             Task::none()

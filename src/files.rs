@@ -116,6 +116,13 @@ pub async fn copy_file(
     Ok((file_id, picked_file))
 }
 
+pub async fn delete_file(path: SyncPathBuf) -> Result<(), Error> {
+    remove_file(path)
+        .await
+        .map_err(|e| Error::IoError(format!("Failed to delete file: {}", e)))?;
+    Ok(())
+}
+
 /*pub async fn delete_files(file_names: Vec<String>, path: String, id: i32) -> Result<i32, Error> {
     for file_name in file_names {
         let file_path = Path::new(&path).join(file_name);

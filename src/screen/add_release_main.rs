@@ -31,12 +31,13 @@ pub enum Action {
     Run(Task<Message>),
     ReleaseSubmitted,
     RunWithEmulator(EmulatorRunOptions),
+    Error(String),
 }
 
 impl AddReleaseMain {
     pub fn new(edit_release_id: Option<String>) -> Self {
         let db = Database::get_instance();
-        let releases = db.read().unwrap().to_release_list_model();
+        /* let releases = db.read().unwrap().to_release_list_model();*/
         let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(&id));
         let release = match edit_release {
             Some(release) => release,
@@ -94,14 +95,13 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::Run(task) => {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
                         }
-                        add_release_main_screen::Action::Submit(release) => {
-                            let db = Database::get_instance();
-                            db.write().unwrap().add_or_update_release(release);
+                        add_release_main_screen::Action::Submit(/*release*/) => {
+                            self.update_release();
                             Action::ReleaseSubmitted
                         }
                         add_release_main_screen::Action::Clear => {
-                            let db = Database::get_instance();
-                            let releases = db.read().unwrap().to_release_list_model();
+                            //let db = Database::get_instance();
+                            //let releases = db.read().unwrap().to_release_list_model();
                             self.release = Release::default();
                             self.screen = create_main_screen(&self.release);
                             Action::None
@@ -113,6 +113,13 @@ impl AddReleaseMain {
                             self.screen =
                                 AddReleaseScreen::ViewImageScreen(view_image::ViewImage::new(file));
                             Action::None
+                        }
+                        add_release_main_screen::Action::Error(error) => Action::Error(error),
+                        add_release_main_screen::Action::DeleteFile(file) => {
+                            self.release.files.retain(|f| f.id != file.id);
+                            self.update_release();
+                            self.screen = create_main_screen(&self.release);
+                           Action::None
                         }
                     }
                 } else {
@@ -192,6 +199,12 @@ impl AddReleaseMain {
                 screen.view().map(Message::ViewImageScreen)
             }
         }
+    }
+    fn update_release(&mut self) {
+        let db = Database::get_instance();
+        db.write()
+            .unwrap()
+            .add_or_update_release(self.release.clone());
     }
 }
 
