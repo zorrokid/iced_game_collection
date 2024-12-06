@@ -7,6 +7,7 @@ use iced::widget::{button, column, row, text, text_input, Column};
 pub struct ManageSystems {
     pub system: System,
     pub systems: Vec<System>,
+    pub isEditing: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +40,7 @@ impl ManageSystems {
                 Some(system) => system.clone(),
                 None => System::default(),
             },
+            isEditing: edit_system.is_some(),
             systems,
         })
     }
@@ -57,9 +59,15 @@ impl ManageSystems {
                 name if name.is_empty() => Action::None,
                 _ => {
                     let db = DatabaseWithPolo::get_instance();
-                    match db.add_system(self.system.clone()) {
-                        Ok(_) => Action::SystemSubmitted,
-                        Err(e) => Action::Error(e.to_string()),
+                    match self.isEditing {
+                        true => match db.update_system(self.system.clone()) {
+                            Ok(_) => Action::SystemSubmitted,
+                            Err(e) => Action::Error(e.to_string()),
+                        },
+                        false => match db.add_system(self.system.clone()) {
+                            Ok(_) => Action::SystemSubmitted,
+                            Err(e) => Action::Error(e.to_string()),
+                        },
                     }
                 }
             },

@@ -23,9 +23,23 @@ impl DatabaseWithPolo {
     }
 
     pub fn add_system(&self, system: System) -> Result<String, Error> {
-        match self.db.collection("system").insert_one(system) {
+        match self.db.collection::<System>("system").insert_one(system) {
             Ok(result) => Ok((result.inserted_id.to_string())),
             Err(e) => Err(Error::DbError(format!("Error adding system: {}", e))),
+        }
+    }
+
+    pub fn update_system(&self, system: System) -> Result<(), Error> {
+        match self.db.collection::<System>("system").update_one(
+            doc! {"id": system.id.clone()},
+            doc! {
+                "$set": {
+                    "name": system.name,
+                }
+            },
+        ) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::DbError(format!("Error updating system: {}", e))),
         }
     }
 
