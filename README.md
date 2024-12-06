@@ -1,9 +1,10 @@
 # iced game collection
 
-A desktop app to manage your game collection written in Rust with iced.
+A desktop app to manage your game collection written in Rust with iced for GUI and polodb for data storage.
+
 Application structure inspired by icebreaker app.
 
-Currently saves collection to JSON-file on exit and loads the collection on start up.
+Currently saves collection to JSON-file on exit and loads the collection on start up => in progress to store data to PoloDB database.
 
 # Data model
 
