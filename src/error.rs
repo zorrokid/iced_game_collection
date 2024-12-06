@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter, Result};
 pub enum Error {
     DialogClosed,
     IoError(String),
+    DbError(String),
 }
 
 impl Display for Error {
@@ -11,6 +12,7 @@ impl Display for Error {
         match self {
             Error::DialogClosed => write!(f, "Dialog closed"),
             Error::IoError(message) => write!(f, "IO error: {}", message),
+            Error::DbError(message) => write!(f, "Database error: {}", message),
         }
     }
 }

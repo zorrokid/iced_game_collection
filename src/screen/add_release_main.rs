@@ -65,10 +65,7 @@ impl AddReleaseMain {
                             Action::None
                         }
                         add_release_main_screen::Action::ManageSystems => {
-                            self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(None),
-                            );
-                            Action::None
+                            self.handle_navigate_to_manage_systems(None)
                         }
                         add_release_main_screen::Action::Back => Action::Back,
                         add_release_main_screen::Action::GameSelected(game) => {
@@ -147,22 +144,17 @@ impl AddReleaseMain {
                             Action::None
                         }
                         manage_systems::Action::SystemDeleted => {
-                            self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(None),
-                            );
-                            Action::None
+                            self.handle_navigate_to_manage_systems(None)
                         }
                         manage_systems::Action::EditSystem(id) => {
-                            self.screen = AddReleaseScreen::ManageSystemsScreen(
-                                manage_systems::ManageSystems::new(Some(id)),
-                            );
-                            Action::None
+                            self.handle_navigate_to_manage_systems(Some(id))
                         }
                         manage_systems::Action::None => Action::None,
                         manage_systems::Action::SystemSubmitted => {
                             self.screen = create_main_screen(&self.release);
                             Action::None
                         }
+                        manage_systems::Action::Error(error) => Action::Error(error),
                     }
                 } else {
                     Action::None
@@ -181,6 +173,16 @@ impl AddReleaseMain {
                     Action::None
                 }
             }
+        }
+    }
+
+    fn handle_navigate_to_manage_systems(&mut self, id: Option<String>) -> Action {
+        match manage_systems::ManageSystems::new(id) {
+            Ok(screen) => {
+                self.screen = AddReleaseScreen::ManageSystemsScreen(screen);
+                Action::None
+            }
+            Err(e) => Action::Error(e.to_string()),
         }
     }
 

@@ -57,3 +57,6 @@ TODO: user should be able to selected whether the files are being copied or move
 
 When multiple files are added for release, user can select which one to use as a start up file.
 
+## PoloDB
+
+PoloDB requires libclang-dev to be installed.

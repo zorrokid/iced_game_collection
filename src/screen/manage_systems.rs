@@ -1,5 +1,6 @@
-use crate::database::Database;
+use crate::error::Error;
 use crate::model::model::System;
+use crate::{database::Database, database_with_polo::DatabaseWithPolo};
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
@@ -24,20 +25,22 @@ pub enum Action {
     EditSystem(String),
     SystemDeleted,
     SystemSubmitted,
+    Error(String),
 }
 
 impl ManageSystems {
-    pub fn new(edit_system_id: Option<String>) -> Self {
-        let db = Database::get_instance();
-        let systems = db.read().unwrap().get_systems();
-        let edit_system = edit_system_id.and_then(|id| db.read().unwrap().get_system(&id));
-        Self {
+    pub fn new(edit_system_id: Option<String>) -> Result<Self, Error> {
+        let db = DatabaseWithPolo::get_instance();
+        let systems = db.get_systems()?;
+        let edit_system =
+            edit_system_id.and_then(|id| systems.iter().find(|system| system.id == id));
+        Ok(Self {
             system: match edit_system {
-                Some(system) => system,
+                Some(system) => system.clone(),
                 None => System::default(),
             },
             systems,
-        }
+        })
     }
 
     pub fn title(&self) -> String {
@@ -53,11 +56,11 @@ impl ManageSystems {
             Message::Submit => match &mut self.system.name {
                 name if name.is_empty() => Action::None,
                 _ => {
-                    let db = Database::get_instance();
-                    db.write()
-                        .unwrap()
-                        .add_or_update_system(self.system.clone());
-                    Action::SystemSubmitted
+                    let db = DatabaseWithPolo::get_instance();
+                    match db.add_system(self.system.clone()) {
+                        Ok(_) => Action::SystemSubmitted,
+                        Err(e) => Action::Error(e.to_string()),
+                    }
                 }
             },
             Message::GoHome => Action::GoHome,

@@ -1,4 +1,5 @@
 mod database;
+mod database_with_polo;
 mod emulator_runner;
 mod error;
 mod files;
@@ -123,8 +124,7 @@ impl IcedGameCollection {
         if let Screen::ManageSystems(add_system) = &mut self.screen {
             match add_system.update(message) {
                 manage_systems::Action::SystemSubmitted | manage_systems::Action::SystemDeleted => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
-                    Task::none()
+                    self.handle_navigate_to_manage_systems(None)
                 }
                 manage_systems::Action::None => Task::none(),
                 manage_systems::Action::GoHome => {
@@ -132,7 +132,10 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 manage_systems::Action::EditSystem(id) => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(Some(id)));
+                    self.handle_navigate_to_manage_systems(Some(id))
+                }
+                manage_systems::Action::Error(error) => {
+                    self.screen = Screen::Error(screen::Error::new(error));
                     Task::none()
                 }
             }
@@ -155,6 +158,16 @@ impl IcedGameCollection {
         }
     }
 
+    fn handle_navigate_to_manage_systems(&mut self, id: Option<String>) -> Task<Message> {
+        match screen::ManageSystems::new(id) {
+            Ok(screen) => self.screen = Screen::ManageSystems(screen),
+            Err(e) => {
+                self.screen = Screen::Error(screen::Error::new(e.to_string()));
+            }
+        }
+        Task::none()
+    }
+
     fn update_home(&mut self, message: home::Message) -> Task<Message> {
         if let Screen::Home(home) = &mut self.screen {
             match home.update(message) {
@@ -162,10 +175,7 @@ impl IcedGameCollection {
                     self.screen = Screen::GamesMain(screen::GamesMain::new());
                     Task::none()
                 }
-                home::Action::ManageSystems => {
-                    self.screen = Screen::ManageSystems(screen::ManageSystems::new(None));
-                    Task::none()
-                }
+                home::Action::ManageSystems => self.handle_navigate_to_manage_systems(None),
                 home::Action::ManageGames => {
                     self.screen = Screen::ManageGames(screen::ManageGames::new(None));
                     Task::none()
