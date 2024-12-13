@@ -53,7 +53,7 @@ impl Database {
     }
 
     // get all items
-    pub fn get_systems(&self) -> Vec<System> {
+    /*pub fn get_systems(&self) -> Vec<System> {
         self.collection.systems.clone()
     }
 
@@ -63,11 +63,11 @@ impl Database {
 
     pub fn get_emulators(&self) -> Vec<Emulator> {
         self.collection.emulators.clone()
-    }
+    }*/
 
     // get single item
 
-    pub fn get_system(&self, id: &String) -> Option<System> {
+    /*pub fn get_system(&self, id: &String) -> Option<System> {
         get_cloned(&self.collection.systems, id)
     }
 
@@ -77,37 +77,37 @@ impl Database {
 
     pub fn get_game(&self, id: &String) -> Option<Game> {
         get_cloned(&self.collection.games, id)
-    }
+    }*/
 
     pub fn get_release(&self, id: &String) -> Option<Release> {
         get_cloned(&self.collection.releases, id)
     }
 
-    pub fn get_settings(&self) -> Settings {
+    /*pub fn get_settings(&self) -> Settings {
         self.collection.settings.clone()
-    }
+    }*/
 
     // add_or_update
 
-    pub fn add_or_update_system(&mut self, system: System) {
+    /*pub fn add_or_update_system(&mut self, system: System) {
         add_or_update(&mut self.collection.systems, system);
-    }
+    }*/
 
     pub fn add_or_update_release(&mut self, release: Release) {
         add_or_update(&mut self.collection.releases, release);
     }
 
-    pub fn add_or_update_game_new(&mut self, game: Game) {
+    /*pub fn add_or_update_game_new(&mut self, game: Game) {
         add_or_update(&mut self.collection.games, game);
     }
 
     pub fn add_or_update_emulator(&mut self, emulator: Emulator) {
         add_or_update(&mut self.collection.emulators, emulator);
-    }
+    }*/
 
-    pub fn add_or_update_settings(&mut self, settings: Settings) {
+    /*pub fn add_or_update_settings(&mut self, settings: Settings) {
         self.collection.settings = settings;
-    }
+    }*/
 
     // delete
 

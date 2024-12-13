@@ -67,16 +67,15 @@ pub enum Action {
 }
 
 impl AddReleaseMainScreen {
-    pub fn new(release: Release) -> Self {
-        let db = crate::database::Database::get_instance();
-        let read_handle = db.read().unwrap();
-        let games = read_handle.get_games();
-        let systems = read_handle.get_systems();
-        let emulators = read_handle.get_emulators();
-        let settings = read_handle.get_settings();
+    pub fn new(release: Release) -> Result<Self, Error> {
+        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let games = db.get_games()?;
+        let systems = db.get_systems()?;
+        let emulators = db.get_emulators()?;
+        let settings = db.get_settings()?;
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
 
-        Self {
+        Ok(Self {
             games,
             selected_game: None,
             release,
@@ -86,7 +85,7 @@ impl AddReleaseMainScreen {
             selected_file_type: None,
             settings,
             file_path_builder,
-        }
+        })
     }
 
     pub fn update(&mut self, message: Message) -> Action {

@@ -2,6 +2,7 @@ use std::{collections::HashMap, env};
 
 use crate::{
     emulator_runner::EmulatorRunOptions,
+    error::Error,
     model::{
         collection_file::CollectionFile,
         model::{Emulator, Game, Release, System},
@@ -37,24 +38,31 @@ pub enum Action {
 }
 
 impl ViewGame {
-    pub fn new(game_id: String) -> Self {
+    pub fn new(game_id: String) -> Result<Self, Error> {
         let db = crate::database::Database::get_instance();
         let read_handle = db.read().unwrap();
 
-        let game = read_handle.get_game(&game_id).unwrap();
-        let emulators = read_handle.get_emulators();
+        let db_new = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let emulators = db_new.get_emulators()?;
         let releases = read_handle.get_releases_with_game(&game_id);
-        let systems = read_handle.get_systems();
-        let settings = read_handle.get_settings();
+        let systems = db_new.get_systems()?;
+        let settings = db_new.get_settings()?;
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
 
-        Self {
-            game,
-            emulators,
-            releases,
-            systems,
-            selected_files: HashMap::new(),
-            file_path_builder,
+        let game = db_new.get_game(&game_id)?;
+        match game {
+            None => Err(Error::NotFound(format!(
+                "Game with id {} not found",
+                game_id
+            ))),
+            Some(game) => Ok(Self {
+                game,
+                emulators,
+                releases,
+                systems,
+                selected_files: HashMap::new(),
+                file_path_builder,
+            }),
         }
     }
 

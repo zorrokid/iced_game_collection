@@ -51,9 +51,14 @@ enum Message {
 
 impl IcedGameCollection {
     pub fn new() -> (Self, Task<Message>) {
+        let home_screen = match home::Home::new() {
+            Ok(screen) => Screen::Home(screen),
+            Err(e) => Screen::Error(error_screen::Error::new(e.to_string())),
+        };
+
         (
             Self {
-                screen: Screen::Home(home::Home::new()),
+                screen: home_screen,
             },
             Task::none(),
         )
@@ -108,10 +113,7 @@ impl IcedGameCollection {
     fn update_settings_main(&mut self, message: settings_main::Message) -> Task<Message> {
         if let Screen::SettingsMain(settings_main) = &mut self.screen {
             match settings_main.update(message) {
-                settings_main::Action::Back => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
+                settings_main::Action::Back => self.try_create_home_screen(),
                 settings_main::Action::None => Task::none(),
                 settings_main::Action::Run(task) => task.map(Message::SettingsMain),
             }
@@ -127,10 +129,7 @@ impl IcedGameCollection {
                     self.handle_navigate_to_manage_systems(None)
                 }
                 manage_systems::Action::None => Task::none(),
-                manage_systems::Action::GoHome => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
+                manage_systems::Action::GoHome => self.try_create_home_screen(),
                 manage_systems::Action::EditSystem(id) => {
                     self.handle_navigate_to_manage_systems(Some(id))
                 }
@@ -147,10 +146,7 @@ impl IcedGameCollection {
     fn update_manage_games(&mut self, message: manage_games::Message) -> Task<Message> {
         if let Screen::ManageGames(manage_games) = &mut self.screen {
             match manage_games.update(message) {
-                manage_games::Action::Back => {
-                    self.screen = Screen::Home(home::Home::new());
-                    Task::none()
-                }
+                manage_games::Action::Back => self.try_create_home_screen(),
                 _ => Task::none(),
             }
         } else {
@@ -181,7 +177,14 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::AddRelease => {
-                    self.screen = Screen::AddReleaseMain(screen::AddReleaseMain::new(None));
+                    match add_release_main::AddReleaseMain::new(None) {
+                        Ok(screen) => {
+                            self.screen = Screen::AddReleaseMain(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
                 home::Action::Exit => match Database::get_instance().read().unwrap().save() {
@@ -192,11 +195,27 @@ impl IcedGameCollection {
                     }
                 },
                 home::Action::ManageEmulators => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
+                    let screen = screen::ManageEmulators::new(None);
+                    match screen {
+                        Ok(screen) => {
+                            self.screen = Screen::ManageEmulators(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
                 home::Action::ManageSettings => {
-                    self.screen = Screen::SettingsMain(screen::SettingsMain::new());
+                    let screen = screen::SettingsMain::new();
+                    match screen {
+                        Ok(screen) => {
+                            self.screen = Screen::SettingsMain(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
             }
@@ -209,8 +228,7 @@ impl IcedGameCollection {
         if let Screen::AddReleaseMain(add_release_main) = &mut self.screen {
             match add_release_main.update(message) {
                 add_release_main::Action::Back | add_release_main::Action::ReleaseSubmitted => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
+                    self.try_create_home_screen()
                 }
                 add_release_main::Action::Run(task) => task.map(Message::AddReleaseMain),
                 add_release_main::Action::None => Task::none(),
@@ -231,10 +249,7 @@ impl IcedGameCollection {
     fn update_games_main(&mut self, message: games_main::Message) -> Task<Message> {
         if let Screen::GamesMain(games_main) = &mut self.screen {
             match games_main.update(message) {
-                games_main::Action::Back => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
+                games_main::Action::Back => self.try_create_home_screen(),
                 games_main::Action::RunWithEmulator(options) => {
                     match process_files_for_emulator(&options) {
                         Ok(_) => {}
@@ -250,6 +265,10 @@ impl IcedGameCollection {
                 }
                 games_main::Action::Run(task) => task.map(Message::GamesMain),
                 games_main::Action::None => Task::none(),
+                games_main::Action::Error(error) => {
+                    self.screen = Screen::Error(screen::Error::new(error.to_string()));
+                    Task::none()
+                }
             }
         } else {
             Task::none()
@@ -261,16 +280,29 @@ impl IcedGameCollection {
             match add_emulator.update(message) {
                 manage_emulators::Action::EmulatorSubmitted
                 | manage_emulators::Action::EmulatorDeleted => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(None));
+                    let screen = screen::ManageEmulators::new(None);
+                    match screen {
+                        Ok(screen) => {
+                            self.screen = Screen::ManageEmulators(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
                 manage_emulators::Action::None => Task::none(),
-                manage_emulators::Action::GoHome => {
-                    self.screen = Screen::Home(screen::Home::new());
-                    Task::none()
-                }
+                manage_emulators::Action::GoHome => self.try_create_home_screen(),
                 manage_emulators::Action::EditEmulator(id) => {
-                    self.screen = Screen::ManageEmulators(screen::ManageEmulators::new(Some(id)));
+                    let screen = screen::ManageEmulators::new(Some(id));
+                    match screen {
+                        Ok(screen) => {
+                            self.screen = Screen::ManageEmulators(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
             }
@@ -279,15 +311,26 @@ impl IcedGameCollection {
         }
     }
 
-    fn update_error(&mut self, message: error_screen::Message) -> Task<Message> {
-        if let Screen::Error(error) = &mut self.screen {
-            match error.update(message) {
-                error_screen::Action::GoHome => {
-                    self.screen = Screen::Home(screen::Home::new());
-                }
+    fn try_create_home_screen(&mut self) -> Task<Message> {
+        match home::Home::new() {
+            Ok(screen) => {
+                self.screen = Screen::Home(screen);
+            }
+            Err(e) => {
+                self.screen = Screen::Error(screen::Error::new(e.to_string()));
             }
         }
         Task::none()
+    }
+
+    fn update_error(&mut self, message: error_screen::Message) -> Task<Message> {
+        if let Screen::Error(error) = &mut self.screen {
+            match error.update(message) {
+                error_screen::Action::GoHome => self.try_create_home_screen(),
+            }
+        } else {
+            Task::none()
+        }
     }
 
     fn update_finished_running_emulator(&mut self, result: Result<(), Error>) -> Task<Message> {

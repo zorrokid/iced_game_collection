@@ -1,4 +1,6 @@
 use crate::database::Database;
+use crate::database_with_polo::DatabaseWithPolo;
+use crate::error::Error;
 use crate::model::model::{Game, GameListModel};
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
@@ -7,6 +9,7 @@ use iced::Element;
 pub struct ManageGames {
     games: Vec<GameListModel>,
     game: Game,
+    is_edit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -25,18 +28,21 @@ pub enum Action {
     None,
     GameSubmitted,
     GameDeleted,
+    Error(Error),
 }
 
 impl ManageGames {
     pub fn new(edit_game: Option<Game>) -> Self {
         let db = Database::get_instance();
         let games = db.read().unwrap().to_game_list_model();
+        let is_edit = edit_game.is_some();
         Self {
             game: match edit_game {
                 Some(game) => game,
                 None => Game::default(),
             },
             games,
+            is_edit,
         }
     }
 
@@ -53,12 +59,19 @@ impl ManageGames {
         match message {
             Message::Back => Action::Back,
             Message::SubmitGame => {
-                let db = Database::get_instance();
-                db.write()
-                    .unwrap()
-                    .add_or_update_game_new(self.game.clone());
-                self.update_games();
-                Action::GameSubmitted
+                let db = DatabaseWithPolo::get_instance();
+                let res = match self.is_edit {
+                    true => db.update_game(&self.game),
+                    false => db.add_game(&self.game),
+                };
+
+                match res {
+                    Ok(_) => {
+                        self.update_games();
+                        Action::GameSubmitted
+                    }
+                    Err(e) => Action::Error(e),
+                }
             }
             Message::DeleteGame(id) => {
                 let db = Database::get_instance();
@@ -67,9 +80,20 @@ impl ManageGames {
                 Action::GameDeleted
             }
             Message::EditGame(id) => {
-                let db = Database::get_instance();
-                self.game = db.read().unwrap().get_game(&id).unwrap();
-                Action::None
+                let db = DatabaseWithPolo::get_instance();
+                match db.get_game(&id) {
+                    Ok(game) => match game {
+                        Some(game) => {
+                            self.game = game;
+                            self.is_edit = true;
+                            Action::None
+                        }
+                        None => {
+                            Action::Error(Error::DbError(format!("Game with id {} not found", &id)))
+                        }
+                    },
+                    Err(e) => return Action::Error(e),
+                }
             }
             Message::NameChanged(name) => {
                 self.game.name = name;

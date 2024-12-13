@@ -1,4 +1,6 @@
 use crate::database::Database;
+use crate::database_with_polo::DatabaseWithPolo;
+use crate::error::Error;
 use crate::model::model::Settings;
 use crate::screen::settings_screen::settings_main_screen;
 
@@ -22,17 +24,18 @@ pub enum Action {
 }
 
 impl SettingsMain {
-    pub fn new() -> Self {
-        let db = crate::database::Database::get_instance();
+    pub fn new() -> Result<Self, Error> {
+        let db = DatabaseWithPolo::get_instance();
 
-        let settings = db.read().unwrap().get_settings();
+        let settings = db.get_settings()?;
+
         let collection_root_dir = settings.collection_root_dir.clone();
-        Self {
+        Ok(Self {
             settings,
             screen: SettingsScreen::SettingsMainScreen(
                 settings_main_screen::SettingsMainScreen::new(collection_root_dir),
             ),
-        }
+        })
     }
 
     pub fn title(&self) -> String {
@@ -46,10 +49,8 @@ impl SettingsMain {
                     match screen.update(message) {
                         settings_main_screen::Action::SetCollectionRootDir(dir) => {
                             self.settings.collection_root_dir = dir;
-                            let db = Database::get_instance();
-                            db.write()
-                                .unwrap()
-                                .add_or_update_settings(self.settings.clone());
+                            let db = DatabaseWithPolo::get_instance();
+                            db.add_or_update_settings(&self.settings);
 
                             Action::None
                         }

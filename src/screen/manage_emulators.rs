@@ -1,4 +1,6 @@
 use crate::database::Database;
+use crate::database_with_polo::DatabaseWithPolo;
+use crate::error::Error;
 use crate::model::model::{Emulator, System};
 use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
@@ -7,6 +9,7 @@ pub struct ManageEmulators {
     pub emulator: Emulator,
     pub emulators: Vec<Emulator>,
     pub systems: Vec<System>,
+    pub is_edit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -33,19 +36,27 @@ pub enum Action {
 }
 
 impl ManageEmulators {
-    pub fn new(edit_emulator_id: Option<String>) -> Self {
+    pub fn new(edit_emulator_id: Option<String>) -> Result<Self, Error> {
         let db = Database::get_instance();
-        let emulators = db.read().unwrap().get_emulators();
-        let systems = db.read().unwrap().get_systems();
-        let edit_emulator = edit_emulator_id.and_then(|id| db.read().unwrap().get_emulator(&id));
-        Self {
+        let db_new = DatabaseWithPolo::get_instance();
+        let emulators = db_new.get_emulators()?;
+        let systems = db_new.get_systems()?;
+        let is_edit = edit_emulator_id.is_some();
+
+        let edit_emulator = match edit_emulator_id {
+            Some(id) => db_new.get_emulator(&id),
+            None => Ok(None),
+        }?;
+
+        Ok(Self {
             emulator: match edit_emulator {
                 Some(emulator) => emulator,
                 None => Emulator::default(),
             },
             emulators,
             systems,
-        }
+            is_edit,
+        })
     }
 
     pub fn title(&self) -> String {
@@ -70,10 +81,12 @@ impl ManageEmulators {
                 if self.emulator.name.is_empty() || self.emulator.executable.is_empty() {
                     return Action::None;
                 }
-                let db = Database::get_instance();
-                db.write()
-                    .unwrap()
-                    .add_or_update_emulator(self.emulator.clone());
+
+                let db_new = DatabaseWithPolo::get_instance();
+                match self.is_edit {
+                    true => db_new.update_emulator(&self.emulator),
+                    false => db_new.add_emulator(&self.emulator),
+                };
                 Action::EmulatorSubmitted
             }
             Message::SystemSelected(system) => {

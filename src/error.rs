@@ -5,6 +5,7 @@ pub enum Error {
     DialogClosed,
     IoError(String),
     DbError(String),
+    NotFound(String),
 }
 
 impl Display for Error {
@@ -13,6 +14,7 @@ impl Display for Error {
             Error::DialogClosed => write!(f, "Dialog closed"),
             Error::IoError(message) => write!(f, "IO error: {}", message),
             Error::DbError(message) => write!(f, "Database error: {}", message),
+            Error::NotFound(message) => write!(f, "Not found: {}", message),
         }
     }
 }

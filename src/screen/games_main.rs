@@ -1,4 +1,5 @@
 use crate::emulator_runner::EmulatorRunOptions;
+use crate::error::Error;
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
 use crate::screen::games_screen::GamesScreen;
 use iced::{Element, Task};
@@ -24,6 +25,7 @@ pub enum Action {
     RunWithEmulator(EmulatorRunOptions),
     None,
     Run(Task<Message>),
+    Error(Error),
 }
 
 impl GamesMain {
@@ -45,8 +47,13 @@ impl GamesMain {
                     match screen.update(message) {
                         games_main_screen::Action::ViewGame(id) => {
                             self.selected_game_id = Some(id.clone());
-                            self.screen = GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
-                            Action::None
+                            match view_game::ViewGame::new(id) {
+                                Ok(view_game) => {
+                                    self.screen = GamesScreen::ViewGameScreen(view_game);
+                                    Action::None
+                                }
+                                Err(e) => Action::Error(e),
+                            }
                         }
                         games_main_screen::Action::GoHome => Action::Back,
                     }
@@ -65,10 +72,13 @@ impl GamesMain {
                             Action::RunWithEmulator(options)
                         }
                         view_game::Action::EditRelease(id) => {
-                            self.screen = GamesScreen::EditReleaseScreen(
-                                add_release_main::AddReleaseMain::new(Some(id)),
-                            );
-                            Action::None
+                            match add_release_main::AddReleaseMain::new(Some(id)) {
+                                Ok(add_release_main) => {
+                                    self.screen = GamesScreen::EditReleaseScreen(add_release_main);
+                                    Action::None
+                                }
+                                Err(e) => Action::Error(e),
+                            }
                         }
                         view_game::Action::None => Action::None,
                     }
@@ -81,21 +91,31 @@ impl GamesMain {
                     match screen.update(message) {
                         add_release_main::Action::Back => {
                             if let Some(id) = self.selected_game_id.clone() {
-                                self.screen =
-                                    GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
+                                match view_game::ViewGame::new(id) {
+                                    Ok(view_game) => {
+                                        self.screen = GamesScreen::ViewGameScreen(view_game);
+                                        Action::None
+                                    }
+                                    Err(e) => Action::Error(e),
+                                }
                             } else {
                                 self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
+                                Action::None
                             }
-                            Action::None
                         }
                         add_release_main::Action::ReleaseSubmitted => {
                             if let Some(id) = self.selected_game_id.clone() {
-                                self.screen =
-                                    GamesScreen::ViewGameScreen(view_game::ViewGame::new(id));
+                                match view_game::ViewGame::new(id) {
+                                    Ok(view_game) => {
+                                        self.screen = GamesScreen::ViewGameScreen(view_game);
+                                        Action::None
+                                    }
+                                    Err(e) => Action::Error(e),
+                                }
                             } else {
                                 self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
+                                Action::None
                             }
-                            Action::None
                         }
                         add_release_main::Action::Run(task) => {
                             Action::Run(task.map(Message::EditReleaseScreen))

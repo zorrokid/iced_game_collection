@@ -174,7 +174,14 @@ pub enum FolderType {
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
+    pub id: String,
     pub collection_root_dir: String,
+}
+
+impl HasId for Settings {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
 }
 
 impl Default for Emulator {

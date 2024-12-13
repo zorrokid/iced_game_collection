@@ -60,11 +60,11 @@ impl ManageSystems {
                 _ => {
                     let db = DatabaseWithPolo::get_instance();
                     match self.isEditing {
-                        true => match db.update_system(self.system.clone()) {
+                        true => match db.update_system(&self.system) {
                             Ok(_) => Action::SystemSubmitted,
                             Err(e) => Action::Error(e.to_string()),
                         },
-                        false => match db.add_system(self.system.clone()) {
+                        false => match db.add_system(&self.system) {
                             Ok(_) => Action::SystemSubmitted,
                             Err(e) => Action::Error(e.to_string()),
                         },

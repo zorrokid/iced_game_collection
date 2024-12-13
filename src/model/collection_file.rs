@@ -3,6 +3,8 @@ use std::{
     path::Path,
 };
 
+use bson::to_bson;
+use polodb_core::bson::Bson;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -98,6 +100,12 @@ impl GetCollectionFileName for CollectionFile {
 impl Display for CollectionFile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.original_file_name)
+    }
+}
+
+impl Into<Bson> for CollectionFile {
+    fn into(self) -> Bson {
+        to_bson(&self).unwrap_or(Bson::Null)
     }
 }
 

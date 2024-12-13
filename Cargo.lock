@@ -1873,6 +1873,7 @@ version = "0.1.0"
 dependencies = [
  "async-process",
  "async-std",
+ "bson",
  "iced",
  "image 0.25.5",
  "lazy_static",

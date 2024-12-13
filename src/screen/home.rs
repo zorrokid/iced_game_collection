@@ -1,6 +1,8 @@
 use iced::widget::{button, column, text};
 
-use crate::{database::Database, model::model::Settings};
+use crate::{
+    database::Database, database_with_polo::DatabaseWithPolo, error::Error, model::model::Settings,
+};
 
 pub struct Home {
     settings: Settings,
@@ -28,12 +30,10 @@ pub enum Action {
 }
 
 impl Home {
-    pub fn new() -> Self {
-        let db = Database::get_instance();
-        let read_handle = db.read().unwrap();
-        let settings = read_handle.get_settings();
-
-        Self { settings }
+    pub fn new() -> Result<Self, Error> {
+        let db = DatabaseWithPolo::get_instance();
+        let settings = db.get_settings()?;
+        Ok(Self { settings })
     }
 
     pub fn title(&self) -> String {

@@ -1,5 +1,6 @@
 use crate::database::Database;
 use crate::emulator_runner::EmulatorRunOptions;
+use crate::error::Error;
 use crate::manage_games;
 use crate::manage_systems;
 use crate::model::model::Release;
@@ -35,18 +36,19 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(edit_release_id: Option<String>) -> Self {
+    pub fn new(edit_release_id: Option<String>) -> Result<Self, Error> {
         let db = Database::get_instance();
-        /* let releases = db.read().unwrap().to_release_list_model();*/
         let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(&id));
         let release = match edit_release {
             Some(release) => release,
             None => Release::default(),
         };
-        Self {
-            screen: create_main_screen(&release),
+        let screen = add_release_main_screen::AddReleaseMainScreen::new(release.clone())?;
+
+        Ok(Self {
+            screen: AddReleaseScreen::AddReleaseMainScreen(screen),
             release,
-        }
+        })
     }
 
     pub fn title(&self) -> String {
@@ -70,24 +72,20 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::Back => Action::Back,
                         add_release_main_screen::Action::GameSelected(game) => {
                             self.release.games.push(game.id);
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen() 
                         }
                         add_release_main_screen::Action::None => Action::None,
                         add_release_main_screen::Action::NameChanged(name) => {
                             self.release.name = name;
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         add_release_main_screen::Action::SystemSelected(system) => {
                             self.release.system_id = system.id;
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         add_release_main_screen::Action::AddFile(file) => {
                             self.release.files.push(file);
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         add_release_main_screen::Action::Run(task) => {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
@@ -97,11 +95,8 @@ impl AddReleaseMain {
                             Action::ReleaseSubmitted
                         }
                         add_release_main_screen::Action::Clear => {
-                            //let db = Database::get_instance();
-                            //let releases = db.read().unwrap().to_release_list_model();
                             self.release = Release::default();
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         add_release_main_screen::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
@@ -115,8 +110,7 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::DeleteFile(file) => {
                             self.release.files.retain(|f| f.id != file.id);
                             self.update_release();
-                            self.screen = create_main_screen(&self.release);
-                           Action::None
+                            self.create_main_screen()
                         }
                     }
                 } else {
@@ -127,8 +121,7 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageGamesScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         manage_games::Action::GameSubmitted | manage_games::Action::Back => {
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         _ => Action::None,
                     }
@@ -140,8 +133,7 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageSystemsScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         manage_systems::Action::GoHome => {
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         manage_systems::Action::SystemDeleted => {
                             self.handle_navigate_to_manage_systems(None)
@@ -151,8 +143,7 @@ impl AddReleaseMain {
                         }
                         manage_systems::Action::None => Action::None,
                         manage_systems::Action::SystemSubmitted => {
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         manage_systems::Action::Error(error) => Action::Error(error),
                     }
@@ -164,8 +155,7 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ViewImageScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         view_image::Action::Back => {
-                            self.screen = create_main_screen(&self.release);
-                            Action::None
+                            self.create_main_screen()
                         }
                         _ => Action::None,
                     }
@@ -208,10 +198,15 @@ impl AddReleaseMain {
             .unwrap()
             .add_or_update_release(self.release.clone());
     }
-}
 
-fn create_main_screen(release: &Release) -> AddReleaseScreen {
-    AddReleaseScreen::AddReleaseMainScreen(add_release_main_screen::AddReleaseMainScreen::new(
-        release.clone(),
-    ))
+    fn create_main_screen(&mut self) -> Action {
+        if let Some(screen) =
+            add_release_main_screen::AddReleaseMainScreen::new(self.release.clone()).ok()
+        {
+            self.screen = AddReleaseScreen::AddReleaseMainScreen(screen);
+            Action::None
+        } else {
+            Action::Error("Error creating main screen".to_string())
+        }
+    }
 }
