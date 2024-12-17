@@ -1,4 +1,3 @@
-mod database;
 mod database_with_polo;
 mod emulator_runner;
 mod error;
@@ -7,7 +6,6 @@ mod model;
 mod screen;
 mod util;
 
-use database::Database;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
 use iced::{exit, Task};
@@ -168,12 +166,26 @@ impl IcedGameCollection {
         if let Screen::Home(home) = &mut self.screen {
             match home.update(message) {
                 home::Action::ViewGames => {
-                    self.screen = Screen::GamesMain(screen::GamesMain::new());
+                    match games_main::GamesMain::new() {
+                        Ok(screen) => {
+                            self.screen = Screen::GamesMain(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
                 home::Action::ManageSystems => self.handle_navigate_to_manage_systems(None),
                 home::Action::ManageGames => {
-                    self.screen = Screen::ManageGames(screen::ManageGames::new(None));
+                    match screen::manage_games::ManageGames::new(None) {
+                        Ok(screen) => {
+                            self.screen = Screen::ManageGames(screen);
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                        }
+                    }
                     Task::none()
                 }
                 home::Action::AddRelease => {
@@ -187,13 +199,7 @@ impl IcedGameCollection {
                     }
                     Task::none()
                 }
-                home::Action::Exit => match Database::get_instance().read().unwrap().save() {
-                    Ok(_) => exit(),
-                    Err(e) => {
-                        eprintln!("Failed to save collection: {}", e);
-                        Task::none()
-                    }
-                },
+                home::Action::Exit => exit(),
                 home::Action::ManageEmulators => {
                     let screen = screen::ManageEmulators::new(None);
                     match screen {
@@ -303,6 +309,10 @@ impl IcedGameCollection {
                             self.screen = Screen::Error(screen::Error::new(e.to_string()));
                         }
                     }
+                    Task::none()
+                }
+                manage_emulators::Action::Error(error) => {
+                    self.screen = Screen::Error(screen::Error::new(error.to_string()));
                     Task::none()
                 }
             }

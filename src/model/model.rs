@@ -231,3 +231,15 @@ impl Default for Release {
 pub fn get_new_id() -> String {
     Uuid::new_v4().to_string()
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ReleasesByGame {
+    pub id: String, // game id
+    pub release_ids: Vec<String>,
+}
+
+impl HasId for ReleasesByGame {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+}

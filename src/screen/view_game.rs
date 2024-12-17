@@ -39,17 +39,14 @@ pub enum Action {
 
 impl ViewGame {
     pub fn new(game_id: String) -> Result<Self, Error> {
-        let db = crate::database::Database::get_instance();
-        let read_handle = db.read().unwrap();
-
-        let db_new = crate::database_with_polo::DatabaseWithPolo::get_instance();
-        let emulators = db_new.get_emulators()?;
-        let releases = read_handle.get_releases_with_game(&game_id);
-        let systems = db_new.get_systems()?;
-        let settings = db_new.get_settings()?;
+        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let emulators = db.get_emulators()?;
+        let releases = db.get_releases_with_game(&game_id)?;
+        let systems = db.get_systems()?;
+        let settings = db.get_settings()?;
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
 
-        let game = db_new.get_game(&game_id)?;
+        let game = db.get_game(&game_id)?;
         match game {
             None => Err(Error::NotFound(format!(
                 "Game with id {} not found",

@@ -29,11 +29,12 @@ pub enum Action {
 }
 
 impl GamesMain {
-    pub fn new() -> Self {
-        Self {
-            screen: GamesScreen::GamesMainScreen(GamesMainScreen::new()),
+    pub fn new() -> Result<Self, Error> {
+        let screen = GamesMainScreen::new()?;
+        Ok(Self {
+            screen: GamesScreen::GamesMainScreen(screen),
             selected_game_id: None,
-        }
+        })
     }
 
     pub fn title(&self) -> String {
@@ -64,10 +65,7 @@ impl GamesMain {
             Message::ViewGameScreen(message) => {
                 if let GamesScreen::ViewGameScreen(screen) = &mut self.screen {
                     match screen.update(message) {
-                        view_game::Action::GoToGames => {
-                            self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
-                            Action::None
-                        }
+                        view_game::Action::GoToGames => self.create_main_screen(),
                         view_game::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
                         }
@@ -99,8 +97,7 @@ impl GamesMain {
                                     Err(e) => Action::Error(e),
                                 }
                             } else {
-                                self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
-                                Action::None
+                                self.create_main_screen()
                             }
                         }
                         add_release_main::Action::ReleaseSubmitted => {
@@ -113,8 +110,7 @@ impl GamesMain {
                                     Err(e) => Action::Error(e),
                                 }
                             } else {
-                                self.screen = GamesScreen::GamesMainScreen(GamesMainScreen::new());
-                                Action::None
+                                self.create_main_screen()
                             }
                         }
                         add_release_main::Action::Run(task) => {
@@ -131,6 +127,16 @@ impl GamesMain {
                     Action::None
                 }
             }
+        }
+    }
+
+    fn create_main_screen(&mut self) -> Action {
+        match GamesMainScreen::new() {
+            Ok(screen) => {
+                self.screen = GamesScreen::GamesMainScreen(screen);
+                Action::None
+            }
+            Err(e) => Action::Error(e),
         }
     }
 

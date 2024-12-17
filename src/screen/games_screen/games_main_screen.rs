@@ -3,7 +3,7 @@ use iced::{
     Element,
 };
 
-use crate::model::model::GameListModel;
+use crate::{database_with_polo::DatabaseWithPolo, error::Error, model::model::GameListModel};
 
 #[derive(Debug, Clone)]
 pub struct GamesMainScreen {
@@ -22,10 +22,10 @@ pub enum Action {
 }
 
 impl GamesMainScreen {
-    pub fn new() -> Self {
-        let db = crate::database::Database::get_instance();
-        let games = db.read().unwrap().to_game_list_model();
-        Self { games }
+    pub fn new() -> Result<Self, Error> {
+        let db = DatabaseWithPolo::get_instance();
+        let games = db.to_game_list_model()?;
+        Ok(Self { games })
     }
 
     pub fn update(&mut self, message: Message) -> Action {

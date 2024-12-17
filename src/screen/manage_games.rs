@@ -1,4 +1,3 @@
-use crate::database::Database;
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::{Game, GameListModel};
@@ -32,27 +31,29 @@ pub enum Action {
 }
 
 impl ManageGames {
-    pub fn new(edit_game: Option<Game>) -> Self {
-        let db = Database::get_instance();
-        let games = db.read().unwrap().to_game_list_model();
+    pub fn new(edit_game: Option<Game>) -> Result<Self, Error> {
+        let db = DatabaseWithPolo::get_instance();
+        let games = db.to_game_list_model()?;
         let is_edit = edit_game.is_some();
-        Self {
+        Ok(Self {
             game: match edit_game {
                 Some(game) => game,
                 None => Game::default(),
             },
             games,
             is_edit,
-        }
+        })
     }
 
     pub fn title(&self) -> String {
         "Manage Games".to_string()
     }
 
-    fn update_games(&mut self) {
-        let db = Database::get_instance();
-        self.games = db.read().unwrap().to_game_list_model();
+    fn update_games(&mut self) -> Result<(), Error> {
+        let db = DatabaseWithPolo::get_instance();
+        let games = db.to_game_list_model()?;
+        self.games = games;
+        Ok(())
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -74,10 +75,14 @@ impl ManageGames {
                 }
             }
             Message::DeleteGame(id) => {
-                let db = Database::get_instance();
-                db.write().unwrap().delete_game(&id);
-                self.update_games();
-                Action::GameDeleted
+                let db = DatabaseWithPolo::get_instance();
+                match db.delete_game(&id) {
+                    Ok(_) => {
+                        self.update_games();
+                        Action::GameDeleted
+                    }
+                    Err(e) => Action::Error(e),
+                }
             }
             Message::EditGame(id) => {
                 let db = DatabaseWithPolo::get_instance();

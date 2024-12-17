@@ -1,4 +1,3 @@
-use crate::database::Database;
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::Settings;

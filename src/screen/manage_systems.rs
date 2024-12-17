@@ -1,6 +1,6 @@
+use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::System;
-use crate::{database::Database, database_with_polo::DatabaseWithPolo};
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
@@ -74,9 +74,11 @@ impl ManageSystems {
             Message::GoHome => Action::GoHome,
             Message::EditSystem(id) => Action::EditSystem(id),
             Message::DeleteSystem(id) => {
-                let db = Database::get_instance();
-                db.write().unwrap().delete_system(&id);
-                Action::SystemDeleted
+                let db = DatabaseWithPolo::get_instance();
+                match db.delete_system(&id) {
+                    Ok(_) => Action::SystemDeleted,
+                    Err(e) => Action::Error(e.to_string()),
+                }
             }
             Message::Clear => {
                 self.system = System::default();

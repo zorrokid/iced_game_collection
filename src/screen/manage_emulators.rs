@@ -1,4 +1,3 @@
-use crate::database::Database;
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::{Emulator, System};
@@ -33,18 +32,18 @@ pub enum Action {
     EditEmulator(String),
     EmulatorSubmitted,
     EmulatorDeleted,
+    Error(Error),
 }
 
 impl ManageEmulators {
     pub fn new(edit_emulator_id: Option<String>) -> Result<Self, Error> {
-        let db = Database::get_instance();
-        let db_new = DatabaseWithPolo::get_instance();
-        let emulators = db_new.get_emulators()?;
-        let systems = db_new.get_systems()?;
+        let db = DatabaseWithPolo::get_instance();
+        let emulators = db.get_emulators()?;
+        let systems = db.get_systems()?;
         let is_edit = edit_emulator_id.is_some();
 
         let edit_emulator = match edit_emulator_id {
-            Some(id) => db_new.get_emulator(&id),
+            Some(id) => db.get_emulator(&id),
             None => Ok(None),
         }?;
 
@@ -96,9 +95,11 @@ impl ManageEmulators {
             Message::GoHome => Action::GoHome,
             Message::EditEmulator(id) => Action::EditEmulator(id),
             Message::DeleteEmulator(id) => {
-                let db = Database::get_instance();
-                db.write().unwrap().delete_emulator(&id);
-                Action::EmulatorDeleted
+                let db = DatabaseWithPolo::get_instance();
+                match db.delete_emulator(&id) {
+                    Ok(_) => Action::EmulatorDeleted,
+                    Err(e) => Action::Error(e),
+                }
             }
             Message::Clear => {
                 self.emulator = Emulator::default();

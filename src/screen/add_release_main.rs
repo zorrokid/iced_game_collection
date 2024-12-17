@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database_with_polo::DatabaseWithPolo;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::manage_games;
@@ -16,6 +16,7 @@ pub struct AddReleaseMain {
     screen: AddReleaseScreen,
     // release to be added or edited, sub screens will submit events to update this
     release: Release,
+    is_edit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -37,8 +38,15 @@ pub enum Action {
 
 impl AddReleaseMain {
     pub fn new(edit_release_id: Option<String>) -> Result<Self, Error> {
-        let db = Database::get_instance();
-        let edit_release = edit_release_id.and_then(|id| db.read().unwrap().get_release(&id));
+        let db = DatabaseWithPolo::get_instance();
+
+        let edit_release = match edit_release_id {
+            Some(id) => db.get_release(&id)?,
+            None => None,
+        };
+
+        let is_edit = edit_release.is_some();
+
         let release = match edit_release {
             Some(release) => release,
             None => Release::default(),
@@ -48,6 +56,7 @@ impl AddReleaseMain {
         Ok(Self {
             screen: AddReleaseScreen::AddReleaseMainScreen(screen),
             release,
+            is_edit,
         })
     }
 
@@ -61,11 +70,14 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::AddReleaseMainScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         add_release_main_screen::Action::ManageGames => {
-                            self.screen = AddReleaseScreen::ManageGamesScreen(
-                                manage_games::ManageGames::new(None),
-                            );
-                            Action::None
-                        }
+                            match manage_games::ManageGames::new(None) {
+                                Ok(screen) => {
+                                    self.screen = AddReleaseScreen::ManageGamesScreen(screen);
+                                    Action::None
+                                }
+                                Err(e) => Action::Error(e.to_string()),
+                            }
+                       }
                         add_release_main_screen::Action::ManageSystems => {
                             self.handle_navigate_to_manage_systems(None)
                         }
@@ -91,8 +103,10 @@ impl AddReleaseMain {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
                         }
                         add_release_main_screen::Action::Submit(/*release*/) => {
-                            self.update_release();
-                            Action::ReleaseSubmitted
+                            match self.update_release() {
+                                Ok(_) => Action::ReleaseSubmitted, 
+                                Err(e) => Action::Error(e.to_string()),
+                            }
                         }
                         add_release_main_screen::Action::Clear => {
                             self.release = Release::default();
@@ -109,8 +123,10 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::Error(error) => Action::Error(error),
                         add_release_main_screen::Action::DeleteFile(file) => {
                             self.release.files.retain(|f| f.id != file.id);
-                            self.update_release();
-                            self.create_main_screen()
+                            match self.update_release() {
+                                Ok(_) => self.create_main_screen(),
+                                Err(e) => Action::Error(e.to_string()),
+                            }
                         }
                     }
                 } else {
@@ -192,11 +208,15 @@ impl AddReleaseMain {
             }
         }
     }
-    fn update_release(&mut self) {
-        let db = Database::get_instance();
-        db.write()
-            .unwrap()
-            .add_or_update_release(self.release.clone());
+    fn update_release(&mut self) -> Result<String, Error> {
+        let db = DatabaseWithPolo::get_instance();
+        match self.is_edit {
+            true => db.update_release(&self.release),
+            false => {
+                self.release.id = Uuid::new_v4().to_string();
+                db.add_release(&self.release)
+            }
+        }
     }
 
     fn create_main_screen(&mut self) -> Action {
