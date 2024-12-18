@@ -46,6 +46,7 @@ pub enum Message {
     FileCopied(Result<(String, PickedFile), Error>),
     DeleteFile(String),
     FileDeleted(Result<(), Error>, String),
+    Save,
 }
 
 pub enum Action {
@@ -58,12 +59,13 @@ pub enum Action {
     SystemSelected(System),
     Run(Task<Message>),
     AddFile(CollectionFile),
-    Submit(/*Release*/),
+    Submit,
     RunWithEmulator(EmulatorRunOptions),
     Clear,
     ViewImage(PathBuf),
     Error(String),
     DeleteFile(CollectionFile),
+    Save,
 }
 
 impl AddReleaseMainScreen {
@@ -136,7 +138,7 @@ impl AddReleaseMainScreen {
                 }
                 Err(_) => Action::None,
             },
-            Message::Submit => Action::Submit(/*self.release.clone()*/),
+            Message::Submit => Action::Submit,
             Message::Clear => Action::Clear,
             Message::FileSelected(id, file) => {
                 self.selected_file.insert(id, file);
@@ -187,6 +189,7 @@ impl AddReleaseMainScreen {
                 }
                 Err(_) => Action::Error("Failed deleting file".to_string()),
             },
+            Message::Save => Action::Save,
         }
     }
 
@@ -218,6 +221,7 @@ impl AddReleaseMainScreen {
         let scan_files_list = self.create_scan_files_list();
 
         let main_buttons = row![
+            button("Save").on_press(Message::Save),
             button("Submit").on_press(Message::Submit),
             button("Clear").on_press(Message::Clear)
         ];

@@ -77,40 +77,42 @@ impl AddReleaseMain {
                                 }
                                 Err(e) => Action::Error(e.to_string()),
                             }
-                       }
+                        }
                         add_release_main_screen::Action::ManageSystems => {
                             self.handle_navigate_to_manage_systems(None)
                         }
                         add_release_main_screen::Action::Back => Action::Back,
                         add_release_main_screen::Action::GameSelected(game) => {
                             self.release.games.push(game.id);
-                            self.create_main_screen() 
+                            self.switch_main_screen()
                         }
                         add_release_main_screen::Action::None => Action::None,
                         add_release_main_screen::Action::NameChanged(name) => {
                             self.release.name = name;
-                            self.create_main_screen()
+                            self.switch_main_screen()
                         }
                         add_release_main_screen::Action::SystemSelected(system) => {
                             self.release.system_id = system.id;
-                            self.create_main_screen()
+                            self.switch_main_screen()
                         }
                         add_release_main_screen::Action::AddFile(file) => {
                             self.release.files.push(file);
-                            self.create_main_screen()
+                            self.switch_main_screen()
                         }
                         add_release_main_screen::Action::Run(task) => {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
                         }
-                        add_release_main_screen::Action::Submit(/*release*/) => {
-                            match self.update_release() {
-                                Ok(_) => Action::ReleaseSubmitted, 
-                                Err(e) => Action::Error(e.to_string()),
-                            }
-                        }
+                        add_release_main_screen::Action::Submit => match self.update_release() {
+                            Ok(_) => Action::ReleaseSubmitted,
+                            Err(e) => Action::Error(e.to_string()),
+                        },
+                        add_release_main_screen::Action::Save => match self.update_release() {
+                            Ok(_) => self.switch_main_screen(),
+                            Err(e) => Action::Error(e.to_string()),
+                        },
                         add_release_main_screen::Action::Clear => {
                             self.release = Release::default();
-                            self.create_main_screen()
+                            self.switch_main_screen()
                         }
                         add_release_main_screen::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
@@ -124,7 +126,7 @@ impl AddReleaseMain {
                         add_release_main_screen::Action::DeleteFile(file) => {
                             self.release.files.retain(|f| f.id != file.id);
                             match self.update_release() {
-                                Ok(_) => self.create_main_screen(),
+                                Ok(_) => self.switch_main_screen(),
                                 Err(e) => Action::Error(e.to_string()),
                             }
                         }
@@ -137,7 +139,7 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageGamesScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         manage_games::Action::GameSubmitted | manage_games::Action::Back => {
-                            self.create_main_screen()
+                            self.switch_main_screen()
                         }
                         _ => Action::None,
                     }
@@ -148,9 +150,7 @@ impl AddReleaseMain {
             Message::ManageSystemsScreen(sub_screen_message) => {
                 if let AddReleaseScreen::ManageSystemsScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
-                        manage_systems::Action::GoHome => {
-                            self.create_main_screen()
-                        }
+                        manage_systems::Action::GoHome => self.switch_main_screen(),
                         manage_systems::Action::SystemDeleted => {
                             self.handle_navigate_to_manage_systems(None)
                         }
@@ -158,9 +158,7 @@ impl AddReleaseMain {
                             self.handle_navigate_to_manage_systems(Some(id))
                         }
                         manage_systems::Action::None => Action::None,
-                        manage_systems::Action::SystemSubmitted => {
-                            self.create_main_screen()
-                        }
+                        manage_systems::Action::SystemSubmitted => self.switch_main_screen(),
                         manage_systems::Action::Error(error) => Action::Error(error),
                     }
                 } else {
@@ -170,9 +168,7 @@ impl AddReleaseMain {
             Message::ViewImageScreen(sub_screen_message) => {
                 if let AddReleaseScreen::ViewImageScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
-                        view_image::Action::Back => {
-                            self.create_main_screen()
-                        }
+                        view_image::Action::Back => self.switch_main_screen(),
                         _ => Action::None,
                     }
                 } else {
@@ -219,7 +215,7 @@ impl AddReleaseMain {
         }
     }
 
-    fn create_main_screen(&mut self) -> Action {
+    fn switch_main_screen(&mut self) -> Action {
         if let Some(screen) =
             add_release_main_screen::AddReleaseMainScreen::new(self.release.clone()).ok()
         {
