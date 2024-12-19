@@ -1,8 +1,9 @@
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
-use crate::model::model::{Emulator, System};
+use crate::model::model::{Emulator, HasOid, System};
 use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
+use polodb_core::bson::oid::ObjectId;
 
 pub struct ManageEmulators {
     pub emulator: Emulator,
@@ -19,8 +20,8 @@ pub enum Message {
     ArgumentsChanged(String),
     Submit,
     GoHome,
-    EditEmulator(String),
-    DeleteEmulator(String),
+    EditEmulator(ObjectId),
+    DeleteEmulator(ObjectId),
     Clear,
     ExtractFilesChanged(bool),
     SupportedFileTypeExtensionsChanged(String),
@@ -29,14 +30,14 @@ pub enum Message {
 pub enum Action {
     GoHome,
     None,
-    EditEmulator(String),
+    EditEmulator(ObjectId),
     EmulatorSubmitted,
     EmulatorDeleted,
     Error(Error),
 }
 
 impl ManageEmulators {
-    pub fn new(edit_emulator_id: Option<String>) -> Result<Self, Error> {
+    pub fn new(edit_emulator_id: Option<ObjectId>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
         let emulators = db.get_emulators()?;
         let systems = db.get_systems()?;
@@ -152,8 +153,8 @@ impl ManageEmulators {
             .map(|emulator| {
                 row![
                     text(emulator.name.to_string()).width(iced::Length::Fixed(300.0)),
-                    button("Edit").on_press(Message::EditEmulator(emulator.id.clone())),
-                    button("Delete").on_press(Message::DeleteEmulator(emulator.id.clone())),
+                    button("Edit").on_press(Message::EditEmulator(emulator.id())),
+                    button("Delete").on_press(Message::DeleteEmulator(emulator.id())),
                 ]
                 .into()
             })

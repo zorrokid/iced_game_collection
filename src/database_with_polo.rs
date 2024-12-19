@@ -1,3 +1,4 @@
+use bson::oid::ObjectId;
 use lazy_static::lazy_static;
 use polodb_core::{
     bson::{doc, Document},
@@ -8,7 +9,7 @@ use polodb_core::{
 use crate::{
     error::Error,
     model::model::{
-        Emulator, Game, GameListModel, HasId, Release, ReleasesByGame, Settings, System,
+        Emulator, Game, GameListModel, HasId, HasOid, Release, ReleasesByGame, Settings, System,
     },
 };
 
@@ -46,8 +47,8 @@ impl DatabaseWithPolo {
         self.add_item(GAME_COLLECTION, game)
     }
 
-    pub fn add_emulator(&self, emulator: &Emulator) -> Result<String, Error> {
-        self.add_item(EMULATOR_COLLECTION, emulator)
+    pub fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
+        self.add_item_new(EMULATOR_COLLECTION, emulator)
     }
 
     pub fn add_release(&self, release: &Release) -> Result<String, Error> {
@@ -141,7 +142,7 @@ impl DatabaseWithPolo {
         self.update_item(GAME_COLLECTION, game, update_doc)
     }
 
-    pub fn update_emulator(&self, emulator: &Emulator) -> Result<String, Error> {
+    pub fn update_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
         let update_doc = doc! {
             "$set": {
                 "name": &emulator.name,
@@ -153,7 +154,7 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item(EMULATOR_COLLECTION, emulator, update_doc)
+        self.update_item_new(EMULATOR_COLLECTION, emulator, update_doc)
     }
 
     pub fn update_release(&self, release: &Release) -> Result<String, Error> {
@@ -187,8 +188,8 @@ impl DatabaseWithPolo {
         self.get_item(GAME_COLLECTION, id)
     }
 
-    pub fn get_emulator(&self, id: &str) -> Result<Option<Emulator>, Error> {
-        self.get_item(EMULATOR_COLLECTION, id)
+    pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
+        self.get_item_new(EMULATOR_COLLECTION, id)
     }
 
     pub fn get_release(&self, id: &str) -> Result<Option<Release>, Error> {
@@ -217,7 +218,27 @@ impl DatabaseWithPolo {
         T: serde::Serialize,
     {
         match self.db.collection::<T>(collection_name).insert_one(item) {
-            Ok(result) => Ok(result.inserted_id.to_string()),
+            Ok(result) => {
+                // ObjectId("676337e2233281af03ebe19f")
+                println!("Got Inserted id: {:?}", result.inserted_id.as_str());
+                Ok(result.inserted_id.to_string())
+            }
+            Err(e) => Err(Error::DbError(format!("Error adding item: {}", e))),
+        }
+    }
+
+    fn add_item_new<T>(&self, collection_name: &str, item: &T) -> Result<ObjectId, Error>
+    where
+        T: serde::Serialize,
+    {
+        match self.db.collection::<T>(collection_name).insert_one(item) {
+            Ok(result) => {
+                if let Some(oid) = result.inserted_id.as_object_id() {
+                    Ok(oid)
+                } else {
+                    Err(Error::DbError("Error getting inserted id".to_string()))
+                }
+            }
             Err(e) => Err(Error::DbError(format!("Error adding item: {}", e))),
         }
     }
@@ -236,6 +257,26 @@ impl DatabaseWithPolo {
             .db
             .collection::<T>(collection_name)
             .update_one(doc! {"id": item.id()}, update_document)
+        {
+            Ok(_) => Ok(item.id()),
+            Err(e) => Err(Error::DbError(format!("Error updating system: {}", e))),
+        }
+    }
+
+    fn update_item_new<T>(
+        &self,
+        collection_name: &str,
+        item: &T,
+        update_document: Document,
+    ) -> Result<ObjectId, Error>
+    where
+        T: serde::Serialize,
+        T: HasOid,
+    {
+        match self
+            .db
+            .collection::<T>(collection_name)
+            .update_one(doc! {"_id": item.id()}, update_document)
         {
             Ok(_) => Ok(item.id()),
             Err(e) => Err(Error::DbError(format!("Error updating system: {}", e))),
@@ -309,6 +350,21 @@ impl DatabaseWithPolo {
         Ok(res)
     }
 
+    fn get_item_new<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
+    where
+        T: for<'a> serde::Deserialize<'a>
+            + serde::Serialize
+            + std::marker::Sync
+            + std::marker::Send,
+    {
+        let res = self
+            .db
+            .collection::<T>(collection_name)
+            .find_one(doc! {"_id": id})
+            .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
+        Ok(res)
+    }
+
     pub fn to_game_list_model(&self) -> Result<Vec<GameListModel>, Error> {
         let games = self.get_games()?;
         let mut list_models: Vec<GameListModel> = games.iter().map(GameListModel::from).collect();
@@ -320,8 +376,8 @@ impl DatabaseWithPolo {
         Ok(list_models)
     }
 
-    pub fn delete_emulator(&self, id: &str) -> Result<(), Error> {
-        self.delete_item::<Emulator>(EMULATOR_COLLECTION, id)
+    pub fn delete_emulator(&self, id: &ObjectId) -> Result<(), Error> {
+        self.delete_item_new::<Emulator>(EMULATOR_COLLECTION, id)
     }
 
     pub fn delete_game(&self, id: &str) -> Result<(), Error> {
@@ -342,6 +398,20 @@ impl DatabaseWithPolo {
             .db
             .collection::<T>(collection_name)
             .delete_one(doc! {"id": id})
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::DbError(format!("Error deleting item: {}", e))),
+        }
+    }
+
+    fn delete_item_new<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>
+    where
+        T: serde::Serialize,
+    {
+        match self
+            .db
+            .collection::<T>(collection_name)
+            .delete_one(doc! {"_id": id})
         {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::DbError(format!("Error deleting item: {}", e))),

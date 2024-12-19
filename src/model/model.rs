@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::collection_file::CollectionFile;
+use polodb_core::bson::oid::ObjectId;
 
 #[derive(Debug, Clone)]
 pub struct GameListModel {
@@ -84,7 +85,7 @@ impl Display for Release {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Emulator {
-    pub id: String,
+    pub _id: Option<ObjectId>,
     pub name: String,
     pub executable: String,
     pub arguments: String,
@@ -121,9 +122,13 @@ impl HasId for System {
     }
 }
 
-impl HasId for Emulator {
-    fn id(&self) -> String {
-        self.id.clone()
+pub trait HasOid {
+    fn id(&self) -> ObjectId;
+}
+
+impl HasOid for Emulator {
+    fn id(&self) -> ObjectId {
+        self._id.clone().expect("Object id not set")
     }
 }
 
@@ -187,7 +192,7 @@ impl HasId for Settings {
 impl Default for Emulator {
     fn default() -> Self {
         Emulator {
-            id: get_new_id(),
+            _id: None,
             name: "".to_string(),
             executable: "".to_string(),
             arguments: "".to_string(),
