@@ -4,6 +4,7 @@ use std::{collections::HashMap, env, vec};
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::files::{copy_file, delete_file, pick_file, PickedFile};
+use crate::model::model::HasOid;
 use crate::model::{
     collection_file::{CollectionFile, CollectionFileType, GetFileExtensions},
     model::{Emulator, Game, Release, Settings, System},
@@ -101,10 +102,11 @@ impl AddReleaseMainScreen {
             Message::SelectFile => Action::Run(Task::perform(pick_file(), Message::FilePicked)),
             Message::FilePicked(result) => {
                 let file_id = Uuid::new_v4().to_string();
-                let selected_system = self
-                    .systems
-                    .iter()
-                    .find(|system| system.id == self.release.system_id);
+                let selected_system = self.systems.iter().find(|system| {
+                    self.release
+                        .system_id
+                        .map_or(false, |system_id| system.id() == system_id)
+                });
 
                 if let (Some(system), Some(selected_file_type)) =
                     (selected_system, self.selected_file_type.clone())
@@ -148,7 +150,11 @@ impl AddReleaseMainScreen {
                 let system = self
                     .systems
                     .iter()
-                    .find(|s| s.id == self.release.system_id)
+                    .find(|s| {
+                        self.release
+                            .system_id
+                            .map_or(false, |system_id| s.id() == system_id)
+                    })
                     .unwrap();
                 let options = EmulatorRunOptions {
                     emulator,
@@ -167,7 +173,7 @@ impl AddReleaseMainScreen {
             }
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
             Message::DeleteFile(id) => {
-                if let Some(system) = self.systems.iter().find(|s| s.id == self.release.system_id) {
+                if let Some(system) = self.get_release_system() {
                     if let Some(file) = self.release.files.iter().find(|f| f.id == id) {
                         if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
                         {
@@ -202,10 +208,7 @@ impl AddReleaseMainScreen {
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageGames);
 
-        let selected_system = self
-            .systems
-            .iter()
-            .find(|system| system.id == self.release.system_id);
+        let selected_system = self.get_release_system();
 
         let systems_select = pick_list(
             self.systems.as_slice(),
@@ -239,6 +242,14 @@ impl AddReleaseMainScreen {
             main_buttons
         ]
         .into()
+    }
+
+    fn get_release_system(&self) -> Option<&System> {
+        self.systems.iter().find(|system| {
+            self.release
+                .system_id
+                .map_or(false, |system_id| system.id() == system_id)
+        })
     }
 
     fn create_selected_games_list(&self) -> Element<Message> {
@@ -288,7 +299,7 @@ impl AddReleaseMainScreen {
             Message::CollectionFileTypeSelected,
         );
         let add_file_button = button("Add File").on_press_maybe(
-            if !self.release.system_id.is_empty() && self.selected_file_type.is_some() {
+            if self.release.system_id.is_some() && self.selected_file_type.is_some() {
                 Some(Message::SelectFile)
             } else {
                 None
@@ -304,7 +315,7 @@ impl AddReleaseMainScreen {
             .iter()
             .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
             .filter_map(|file| {
-                if let Some(system) = self.systems.iter().find(|s| s.id == self.release.system_id) {
+                if let Some(system) = self.get_release_system() {
                     if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
                         if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
                         {
@@ -328,7 +339,11 @@ impl AddReleaseMainScreen {
         let emulators_for_system = if let Some(selected_system) = selected_system {
             self.emulators
                 .iter()
-                .filter(|emulator| emulator.system_id == selected_system.id)
+                .filter(|emulator| {
+                    emulator
+                        .system_id
+                        .map_or(false, |system_id| system_id == selected_system.id())
+                })
                 .collect::<Vec<&Emulator>>()
         } else {
             vec![]

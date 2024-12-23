@@ -6,6 +6,7 @@ mod model;
 mod screen;
 mod util;
 
+use bson::oid::ObjectId;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
 use iced::{exit, Task};
@@ -152,7 +153,7 @@ impl IcedGameCollection {
         }
     }
 
-    fn handle_navigate_to_manage_systems(&mut self, id: Option<String>) -> Task<Message> {
+    fn handle_navigate_to_manage_systems(&mut self, id: Option<ObjectId>) -> Task<Message> {
         match screen::ManageSystems::new(id) {
             Ok(screen) => self.screen = Screen::ManageSystems(screen),
             Err(e) => {

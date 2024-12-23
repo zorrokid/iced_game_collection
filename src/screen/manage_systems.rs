@@ -1,6 +1,7 @@
-use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::System;
+use crate::{database_with_polo::DatabaseWithPolo, model::model::HasOid};
+use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
@@ -15,26 +16,26 @@ pub enum Message {
     NameChanged(String),
     GoHome,
     Submit,
-    EditSystem(String),
-    DeleteSystem(String),
+    EditSystem(ObjectId),
+    DeleteSystem(ObjectId),
     Clear,
 }
 
 pub enum Action {
     GoHome,
     None,
-    EditSystem(String),
+    EditSystem(ObjectId),
     SystemDeleted,
     SystemSubmitted,
     Error(String),
 }
 
 impl ManageSystems {
-    pub fn new(edit_system_id: Option<String>) -> Result<Self, Error> {
+    pub fn new(edit_system_id: Option<ObjectId>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
         let systems = db.get_systems()?;
         let edit_system =
-            edit_system_id.and_then(|id| systems.iter().find(|system| system.id == id));
+            edit_system_id.and_then(|id| systems.iter().find(|system| system.id() == id));
         Ok(Self {
             system: match edit_system {
                 Some(system) => system.clone(),
@@ -100,8 +101,8 @@ impl ManageSystems {
             .map(|system| {
                 row![
                     text(system.to_string()).width(iced::Length::Fixed(300.0)),
-                    button("Edit").on_press(Message::EditSystem(system.id.clone())),
-                    button("Delete").on_press(Message::DeleteSystem(system.id.clone())),
+                    button("Edit").on_press(Message::EditSystem(system.id())),
+                    button("Delete").on_press(Message::DeleteSystem(system.id())),
                 ]
                 .into()
             })

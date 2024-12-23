@@ -90,7 +90,7 @@ impl ManageEmulators {
                 Action::EmulatorSubmitted
             }
             Message::SystemSelected(system) => {
-                self.emulator.system_id = system.id;
+                self.emulator.system_id = Some(system.id());
                 Action::None
             }
             Message::GoHome => Action::GoHome,
@@ -129,7 +129,7 @@ impl ManageEmulators {
             self.systems.as_slice(),
             self.systems
                 .iter()
-                .find(|s| s.id == self.emulator.system_id),
+                .find(|s| self.emulator.system_id.map_or(false, |id| s.id() == id)),
             Message::SystemSelected,
         );
         let arguments_input_field = text_input("Enter arguments", &self.emulator.arguments)

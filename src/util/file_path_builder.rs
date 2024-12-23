@@ -3,9 +3,10 @@ use crate::{
     files::get_file_extension,
     model::{
         collection_file::{CollectionFile, CollectionFileType},
-        model::System,
+        model::{HasOid, System},
     },
 };
+use bson::serde_helpers::serialize_object_id_as_hex_string;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -29,7 +30,7 @@ impl FilePathBuilder {
         let mut path = PathBuf::from(&self.collection_root_dir);
 
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
-        path.push(&system.id);
+        path.push(&system.id().to_string());
         path.push(&collection_file.collection_file_type.directory());
         path.push(&collection_file.id);
         Ok(path.with_extension(extension))
@@ -41,7 +42,7 @@ impl FilePathBuilder {
         file_type: &CollectionFileType,
     ) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(&system.id);
+        path.push(&system.id().to_hex());
         path.push(&file_type.directory());
         path
     }
@@ -49,6 +50,8 @@ impl FilePathBuilder {
 
 #[cfg(test)]
 mod tests {
+    use bson::oid::ObjectId;
+
     use super::*;
     use crate::model::collection_file::{CollectionFileType, FileInfo};
     use std::path::PathBuf;
@@ -59,7 +62,7 @@ mod tests {
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
         let system = System {
-            id: Uuid::new_v4().to_string(),
+            _id: Some(ObjectId::new()),
             name: "System".to_string(),
         };
 
@@ -83,7 +86,8 @@ mod tests {
             path,
             PathBuf::from(format!(
                 "/home/user/collection/{}/disk_images/{}.zip",
-                system.id, collection_file.id
+                system.id().to_hex(),
+                collection_file.id
             ))
         );
     }
@@ -94,7 +98,7 @@ mod tests {
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
         let system = System {
-            id: Uuid::new_v4().to_string(),
+            _id: Some(ObjectId::new()),
             name: "System".to_string(),
         };
 
@@ -103,7 +107,10 @@ mod tests {
         let path = file_path_builder.build_target_directory(&system, &file_type);
         assert_eq!(
             path,
-            PathBuf::from(format!("/home/user/collection/{}/disk_images", system.id))
+            PathBuf::from(format!(
+                "/home/user/collection/{}/disk_images",
+                system.id().to_hex()
+            ))
         );
     }
 }

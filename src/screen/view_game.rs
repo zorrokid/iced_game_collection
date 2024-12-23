@@ -5,7 +5,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Emulator, Game, Release, System},
+        model::{Emulator, Game, HasOid, Release, System},
     },
     util::file_path_builder::FilePathBuilder,
 };
@@ -70,7 +70,11 @@ impl ViewGame {
                 let system = self
                     .systems
                     .iter()
-                    .find(|system| system.id == emulator.system_id)
+                    .find(|system| {
+                        emulator
+                            .system_id
+                            .map_or(false, |system_id| system.id() == system_id)
+                    })
                     .unwrap();
 
                 Action::RunWithEmulator(EmulatorRunOptions {
@@ -101,7 +105,11 @@ impl ViewGame {
                 let system = self
                     .systems
                     .iter()
-                    .find(|s| s.id == release.system_id)
+                    .find(|s| {
+                        release
+                            .system_id
+                            .map_or(false, |system_id| s.id() == system_id)
+                    })
                     .unwrap();
 
                 let emulators_for_system = self

@@ -3,9 +3,11 @@ use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::manage_games;
 use crate::manage_systems;
+use crate::model::model::HasOid;
 use crate::model::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
+use bson::oid::ObjectId;
 use iced::{Element, Task};
 use uuid::Uuid;
 
@@ -92,7 +94,7 @@ impl AddReleaseMain {
                             self.switch_main_screen()
                         }
                         add_release_main_screen::Action::SystemSelected(system) => {
-                            self.release.system_id = system.id;
+                            self.release.system_id = Some(system.id());
                             self.switch_main_screen()
                         }
                         add_release_main_screen::Action::AddFile(file) => {
@@ -178,7 +180,7 @@ impl AddReleaseMain {
         }
     }
 
-    fn handle_navigate_to_manage_systems(&mut self, id: Option<String>) -> Action {
+    fn handle_navigate_to_manage_systems(&mut self, id: Option<ObjectId>) -> Action {
         match manage_systems::ManageSystems::new(id) {
             Ok(screen) => {
                 self.screen = AddReleaseScreen::ManageSystemsScreen(screen);

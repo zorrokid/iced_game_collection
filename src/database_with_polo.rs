@@ -122,14 +122,14 @@ impl DatabaseWithPolo {
         }
     }
 
-    pub fn update_system(&self, system: &System) -> Result<String, Error> {
+    pub fn update_system(&self, system: &System) -> Result<ObjectId, Error> {
         let update_doc = doc! {
             "$set": {
                 "name": &system.name,
             }
         };
 
-        self.update_item(SYSTEM_COLLECTION, system, update_doc)
+        self.update_item_new(SYSTEM_COLLECTION, system, update_doc)
     }
 
     pub fn update_game(&self, game: &Game) -> Result<String, Error> {
@@ -385,9 +385,9 @@ impl DatabaseWithPolo {
         self.delete_item::<Game>(GAME_COLLECTION, id)
     }
 
-    pub fn delete_system(&self, id: &str) -> Result<(), Error> {
+    pub fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
         // TODO: system cannot be deleted if used in a realase or emulator
-        self.delete_item::<System>(SYSTEM_COLLECTION, id)
+        self.delete_item_new::<System>(SYSTEM_COLLECTION, id)
     }
 
     fn delete_item<T>(&self, collection_name: &str, id: &str) -> Result<(), Error>

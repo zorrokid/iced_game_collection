@@ -40,7 +40,7 @@ impl From<&Release> for ReleaseListModel {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
-    pub id: String,
+    pub _id: Option<ObjectId>,
     pub name: String,
 }
 
@@ -52,7 +52,7 @@ impl Display for System {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemListModel {
-    pub id: String,
+    pub id: ObjectId,
     pub name: String,
     pub can_delete: bool,
 }
@@ -60,7 +60,7 @@ pub struct SystemListModel {
 impl From<&System> for SystemListModel {
     fn from(system: &System) -> Self {
         SystemListModel {
-            id: system.id.clone(),
+            id: system.id().clone(),
             name: system.name.clone(),
             can_delete: false,
         }
@@ -71,7 +71,7 @@ impl From<&System> for SystemListModel {
 pub struct Release {
     pub id: String,
     pub name: String,
-    pub system_id: String,
+    pub system_id: Option<ObjectId>,
     pub files: Vec<CollectionFile>,
     // Release can be a single game or compilation of games
     pub games: Vec<String>,
@@ -89,7 +89,7 @@ pub struct Emulator {
     pub name: String,
     pub executable: String,
     pub arguments: String,
-    pub system_id: String,
+    pub system_id: Option<ObjectId>,
     pub extract_files: bool,
     pub supported_file_type_extensions: Vec<String>,
 }
@@ -116,9 +116,9 @@ impl HasId for Game {
     }
 }
 
-impl HasId for System {
-    fn id(&self) -> String {
-        self.id.clone()
+impl HasOid for System {
+    fn id(&self) -> ObjectId {
+        self._id.clone().expect("Object id not set")
     }
 }
 
@@ -138,8 +138,8 @@ impl HasId for Release {
     }
 }
 
-impl HasId for SystemListModel {
-    fn id(&self) -> String {
+impl HasOid for SystemListModel {
+    fn id(&self) -> ObjectId {
         self.id.clone()
     }
 }
@@ -196,7 +196,7 @@ impl Default for Emulator {
             name: "".to_string(),
             executable: "".to_string(),
             arguments: "".to_string(),
-            system_id: "".to_string(),
+            system_id: None,
             extract_files: false,
             supported_file_type_extensions: vec![],
         }
@@ -206,7 +206,7 @@ impl Default for Emulator {
 impl Default for System {
     fn default() -> Self {
         System {
-            id: get_new_id(),
+            _id: None,
             name: "".to_string(),
         }
     }
@@ -226,7 +226,7 @@ impl Default for Release {
         Release {
             id: get_new_id(),
             name: "".to_string(),
-            system_id: "".to_string(),
+            system_id: None,
             files: vec![],
             games: vec![],
         }
