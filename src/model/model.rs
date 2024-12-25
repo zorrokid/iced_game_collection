@@ -8,7 +8,7 @@ use polodb_core::bson::oid::ObjectId;
 
 #[derive(Debug, Clone)]
 pub struct GameListModel {
-    pub id: String,
+    pub _id: ObjectId,
     pub name: String,
     pub can_delete: bool,
 }
@@ -16,7 +16,7 @@ pub struct GameListModel {
 impl From<&Game> for GameListModel {
     fn from(game: &Game) -> Self {
         GameListModel {
-            id: game.id.clone(),
+            _id: game.id(),
             name: game.name.clone(),
             can_delete: false,
         }
@@ -74,7 +74,7 @@ pub struct Release {
     pub system_id: Option<ObjectId>,
     pub files: Vec<CollectionFile>,
     // Release can be a single game or compilation of games
-    pub games: Vec<String>,
+    pub games: Vec<ObjectId>,
 }
 
 impl Display for Release {
@@ -104,15 +104,15 @@ impl HasId for ReleaseListModel {
     }
 }
 
-impl HasId for GameListModel {
-    fn id(&self) -> String {
-        self.id.clone()
+impl HasOid for GameListModel {
+    fn id(&self) -> ObjectId {
+        self._id.clone()
     }
 }
 
-impl HasId for Game {
-    fn id(&self) -> String {
-        self.id.clone()
+impl HasOid for Game {
+    fn id(&self) -> ObjectId {
+        self._id.clone().expect("Object id not set")
     }
 }
 
@@ -152,7 +152,7 @@ impl Display for SystemListModel {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
-    pub id: String,
+    pub _id: Option<ObjectId>,
     pub name: String,
 }
 
@@ -215,7 +215,7 @@ impl Default for System {
 impl Default for Game {
     fn default() -> Self {
         Game {
-            id: get_new_id(),
+            _id: None,
             name: "".to_string(),
         }
     }
@@ -239,12 +239,12 @@ pub fn get_new_id() -> String {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReleasesByGame {
-    pub id: String, // game id
+    pub _id: ObjectId, // game id
     pub release_ids: Vec<String>,
 }
 
-impl HasId for ReleasesByGame {
-    fn id(&self) -> String {
-        self.id.clone()
+impl HasOid for ReleasesByGame {
+    fn id(&self) -> ObjectId {
+        self._id.clone()
     }
 }

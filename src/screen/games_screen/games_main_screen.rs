@@ -1,9 +1,14 @@
+use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, row, text, Column},
     Element,
 };
 
-use crate::{database_with_polo::DatabaseWithPolo, error::Error, model::model::GameListModel};
+use crate::{
+    database_with_polo::DatabaseWithPolo,
+    error::Error,
+    model::model::{GameListModel, HasOid},
+};
 
 #[derive(Debug, Clone)]
 pub struct GamesMainScreen {
@@ -12,13 +17,13 @@ pub struct GamesMainScreen {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ViewGame(String),
+    ViewGame(ObjectId),
     GoHome,
 }
 
 pub enum Action {
     GoHome,
-    ViewGame(String),
+    ViewGame(ObjectId),
 }
 
 impl GamesMainScreen {
@@ -39,7 +44,7 @@ impl GamesMainScreen {
         let games = self.games.iter().map(|game| {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
-                button("View").on_press(Message::ViewGame(game.id.clone())),
+                button("View").on_press(Message::ViewGame(game.id())),
             ]
             .into()
         });

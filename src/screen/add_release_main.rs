@@ -85,7 +85,7 @@ impl AddReleaseMain {
                         }
                         add_release_main_screen::Action::Back => Action::Back,
                         add_release_main_screen::Action::GameSelected(game) => {
-                            self.release.games.push(game.id);
+                            self.release.games.push(game.id());
                             self.switch_main_screen()
                         }
                         add_release_main_screen::Action::None => Action::None,

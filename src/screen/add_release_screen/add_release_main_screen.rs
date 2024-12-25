@@ -260,7 +260,11 @@ impl AddReleaseMainScreen {
             .games
             .iter()
             .map(|game_id| {
-                let game = self.games.iter().find(|game| game.id == *game_id).unwrap();
+                let game = self
+                    .games
+                    .iter()
+                    .find(|game| game.id() == *game_id)
+                    .unwrap();
                 text(&game.name).into()
             })
             .collect::<Vec<Element<Message>>>();
@@ -268,7 +272,7 @@ impl AddReleaseMainScreen {
         let available_games: Vec<Game> = self
             .games
             .iter()
-            .filter(|g| !self.release.games.contains(&g.id))
+            .filter(|g| !self.release.games.contains(&g.id()))
             .cloned()
             .collect();
 

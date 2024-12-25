@@ -2,6 +2,7 @@ use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
 use crate::screen::games_screen::GamesScreen;
+use bson::oid::ObjectId;
 use iced::{Element, Task};
 
 use super::add_release_main;
@@ -10,7 +11,7 @@ use super::view_game;
 
 pub struct GamesMain {
     screen: GamesScreen,
-    selected_game_id: Option<String>,
+    selected_game_id: Option<ObjectId>,
 }
 
 #[derive(Debug, Clone)]

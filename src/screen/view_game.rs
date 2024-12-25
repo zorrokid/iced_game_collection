@@ -9,6 +9,7 @@ use crate::{
     },
     util::file_path_builder::FilePathBuilder,
 };
+use bson::oid::ObjectId;
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
 #[derive(Debug, Clone)]
@@ -38,7 +39,7 @@ pub enum Action {
 }
 
 impl ViewGame {
-    pub fn new(game_id: String) -> Result<Self, Error> {
+    pub fn new(game_id: ObjectId) -> Result<Self, Error> {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
         let emulators = db.get_emulators()?;
         let releases = db.get_releases_with_game(&game_id)?;

@@ -1,6 +1,7 @@
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
-use crate::model::model::{Game, GameListModel};
+use crate::model::model::{Game, GameListModel, HasOid};
+use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
@@ -15,8 +16,8 @@ pub struct ManageGames {
 pub enum Message {
     Back,
     SubmitGame,
-    DeleteGame(String),
-    EditGame(String),
+    DeleteGame(ObjectId),
+    EditGame(ObjectId),
     NameChanged(String),
     Clear,
 }
@@ -127,11 +128,11 @@ impl ManageGames {
                 row![
                     text(&game.name).width(iced::Length::Fixed(300.0)),
                     button("Edit")
-                        .on_press(Message::EditGame(game.id.clone()))
+                        .on_press(Message::EditGame(game.id()))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
                         .on_press_maybe(if game.can_delete {
-                            Some(Message::DeleteGame(game.id.clone()))
+                            Some(Message::DeleteGame(game.id()))
                         } else {
                             None
                         })

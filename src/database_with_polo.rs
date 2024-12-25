@@ -43,8 +43,8 @@ impl DatabaseWithPolo {
         self.add_item(SYSTEM_COLLECTION, system)
     }
 
-    pub fn add_game(&self, game: &Game) -> Result<String, Error> {
-        self.add_item(GAME_COLLECTION, game)
+    pub fn add_game(&self, game: &Game) -> Result<ObjectId, Error> {
+        self.add_item_new(GAME_COLLECTION, game)
     }
 
     pub fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
@@ -57,14 +57,14 @@ impl DatabaseWithPolo {
 
         game_ids.iter().for_each(|game_id| {
             let current_values =
-                self.get_item::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+                self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
 
             println!("current_values: {:?}", current_values);
 
             match current_values {
                 Ok(Some(mut releases_by_game)) => {
                     releases_by_game.release_ids.push(release.id.clone());
-                    match self.update_item(
+                    match self.update_item_new(
                         RELEASES_BY_GAMES_COLLECTION,
                         &releases_by_game,
                         doc! {
@@ -82,11 +82,13 @@ impl DatabaseWithPolo {
                 }
                 Ok(None) => {
                     let releases_by_game = ReleasesByGame {
-                        id: game_id.clone(),
+                        _id: game_id.clone(),
                         release_ids: vec![release.id.clone()],
                     };
-                    match self.add_item(RELEASES_BY_GAMES_COLLECTION, &releases_by_game) {
-                        Ok(_) => {}
+                    match self.add_item_new(RELEASES_BY_GAMES_COLLECTION, &releases_by_game) {
+                        Ok(id) => {
+                            println!("Added releases_by_game: {:?}", id);
+                        }
                         Err(e) => {
                             // TODO handle error
                             println!("Error: {}", e);
@@ -132,14 +134,14 @@ impl DatabaseWithPolo {
         self.update_item_new(SYSTEM_COLLECTION, system, update_doc)
     }
 
-    pub fn update_game(&self, game: &Game) -> Result<String, Error> {
+    pub fn update_game(&self, game: &Game) -> Result<ObjectId, Error> {
         let update_doc = doc! {
             "$set": {
                 "name": &game.name,
             }
         };
 
-        self.update_item(GAME_COLLECTION, game, update_doc)
+        self.update_item_new(GAME_COLLECTION, game, update_doc)
     }
 
     pub fn update_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
@@ -184,8 +186,8 @@ impl DatabaseWithPolo {
         self.get_items(EMULATOR_COLLECTION)
     }
 
-    pub fn get_game(&self, id: &str) -> Result<Option<Game>, Error> {
-        self.get_item(GAME_COLLECTION, id)
+    pub fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
+        self.get_item_new(GAME_COLLECTION, id)
     }
 
     pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
@@ -307,8 +309,9 @@ impl DatabaseWithPolo {
         }
     }
 
-    pub fn get_releases_with_game(&self, id: &String) -> Result<Vec<Release>, Error> {
-        let releases_by_game = self.get_item::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
+    pub fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
+        let releases_by_game =
+            self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
 
         println!("releases_by_game: {:?}", releases_by_game);
 
@@ -370,7 +373,7 @@ impl DatabaseWithPolo {
         let mut list_models: Vec<GameListModel> = games.iter().map(GameListModel::from).collect();
 
         for game in &mut list_models {
-            let releases_with_game = self.get_releases_with_game(&game.id)?;
+            let releases_with_game = self.get_releases_with_game(&game.id())?;
             game.can_delete = releases_with_game.is_empty();
         }
         Ok(list_models)
@@ -380,9 +383,9 @@ impl DatabaseWithPolo {
         self.delete_item_new::<Emulator>(EMULATOR_COLLECTION, id)
     }
 
-    pub fn delete_game(&self, id: &str) -> Result<(), Error> {
+    pub fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
         // TODO: game cannot be deleted if used in a release
-        self.delete_item::<Game>(GAME_COLLECTION, id)
+        self.delete_item_new::<Game>(GAME_COLLECTION, id)
     }
 
     pub fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
