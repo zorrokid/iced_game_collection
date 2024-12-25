@@ -51,9 +51,10 @@ impl DatabaseWithPolo {
         self.add_item_new(EMULATOR_COLLECTION, emulator)
     }
 
-    pub fn add_release(&self, release: &Release) -> Result<String, Error> {
+    pub fn add_release(&self, release: &Release) -> Result<ObjectId, Error> {
         println!("Adding release: {:?}", release);
         let game_ids = &release.games;
+        let release_id = self.add_item_new(RELEASE_COLLECTION, release)?;
 
         game_ids.iter().for_each(|game_id| {
             let current_values =
@@ -63,7 +64,7 @@ impl DatabaseWithPolo {
 
             match current_values {
                 Ok(Some(mut releases_by_game)) => {
-                    releases_by_game.release_ids.push(release.id.clone());
+                    releases_by_game.release_ids.push(release_id);
                     match self.update_item_new(
                         RELEASES_BY_GAMES_COLLECTION,
                         &releases_by_game,
@@ -83,7 +84,7 @@ impl DatabaseWithPolo {
                 Ok(None) => {
                     let releases_by_game = ReleasesByGame {
                         _id: game_id.clone(),
-                        release_ids: vec![release.id.clone()],
+                        release_ids: vec![release_id],
                     };
                     match self.add_item_new(RELEASES_BY_GAMES_COLLECTION, &releases_by_game) {
                         Ok(id) => {
@@ -101,7 +102,7 @@ impl DatabaseWithPolo {
                 }
             }
         });
-        self.add_item(RELEASE_COLLECTION, release)
+        Ok(release_id)
     }
 
     pub fn add_or_update_settings(&self, settings: &Settings) -> Result<String, Error> {
@@ -159,7 +160,8 @@ impl DatabaseWithPolo {
         self.update_item_new(EMULATOR_COLLECTION, emulator, update_doc)
     }
 
-    pub fn update_release(&self, release: &Release) -> Result<String, Error> {
+    pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
+        println!("Updating release: {:?}", release);
         let update_doc = doc! {
                     "$set": {
                         "name": &release.name,
@@ -171,7 +173,7 @@ impl DatabaseWithPolo {
                     }
                 };
 
-        self.update_item(RELEASE_COLLECTION, release, update_doc)
+        self.update_item_new(RELEASE_COLLECTION, release, update_doc)
     }
 
     pub fn get_systems(&self) -> Result<Vec<System>, Error> {
@@ -194,8 +196,8 @@ impl DatabaseWithPolo {
         self.get_item_new(EMULATOR_COLLECTION, id)
     }
 
-    pub fn get_release(&self, id: &str) -> Result<Option<Release>, Error> {
-        self.get_item(RELEASE_COLLECTION, id)
+    pub fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
+        self.get_item_new(RELEASE_COLLECTION, id)
     }
 
     pub fn get_settings(&self) -> Result<Settings, Error> {
@@ -323,7 +325,7 @@ impl DatabaseWithPolo {
         if let Ok(cursor) = self
             .db
             .collection(RELEASE_COLLECTION)
-            .find(doc! {"id": {"$in": relese_ids}})
+            .find(doc! {"_id": {"$in": relese_ids}})
             .run()
             .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
         {
@@ -331,8 +333,10 @@ impl DatabaseWithPolo {
                 .collect::<Result<Vec<Release>, _>>()
                 .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
                 .unwrap_or(vec![]);
+            println!("collected {:?}", releases_with_game);
             Ok(releases_with_game)
         } else {
+            println!("Didn't find any releases");
             Ok(vec![])
         }
     }

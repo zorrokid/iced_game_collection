@@ -39,7 +39,7 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(edit_release_id: Option<String>) -> Result<Self, Error> {
+    pub fn new(edit_release_id: Option<ObjectId>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
 
         let edit_release = match edit_release_id {
@@ -206,14 +206,11 @@ impl AddReleaseMain {
             }
         }
     }
-    fn update_release(&mut self) -> Result<String, Error> {
+    fn update_release(&mut self) -> Result<ObjectId, Error> {
         let db = DatabaseWithPolo::get_instance();
         match self.is_edit {
             true => db.update_release(&self.release),
-            false => {
-                self.release.id = Uuid::new_v4().to_string();
-                db.add_release(&self.release)
-            }
+            false => db.add_release(&self.release),
         }
     }
 

@@ -25,14 +25,14 @@ impl From<&Game> for GameListModel {
 
 #[derive(Debug, Clone)]
 pub struct ReleaseListModel {
-    pub id: String,
+    pub id: ObjectId,
     pub name: String,
 }
 
 impl From<&Release> for ReleaseListModel {
     fn from(release: &Release) -> Self {
         ReleaseListModel {
-            id: release.id.clone(),
+            id: release.id().clone(),
             name: release.name.clone(),
         }
     }
@@ -69,7 +69,7 @@ impl From<&System> for SystemListModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Release {
-    pub id: String,
+    pub _id: Option<ObjectId>,
     pub name: String,
     pub system_id: Option<ObjectId>,
     pub files: Vec<CollectionFile>,
@@ -98,8 +98,8 @@ pub trait HasId {
     fn id(&self) -> String;
 }
 
-impl HasId for ReleaseListModel {
-    fn id(&self) -> String {
+impl HasOid for ReleaseListModel {
+    fn id(&self) -> ObjectId {
         self.id.clone()
     }
 }
@@ -132,9 +132,9 @@ impl HasOid for Emulator {
     }
 }
 
-impl HasId for Release {
-    fn id(&self) -> String {
-        self.id.clone()
+impl HasOid for Release {
+    fn id(&self) -> ObjectId {
+        self._id.clone().expect("Object id not set")
     }
 }
 
@@ -224,7 +224,7 @@ impl Default for Game {
 impl Default for Release {
     fn default() -> Self {
         Release {
-            id: get_new_id(),
+            _id: None,
             name: "".to_string(),
             system_id: None,
             files: vec![],
@@ -240,7 +240,7 @@ pub fn get_new_id() -> String {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReleasesByGame {
     pub _id: ObjectId, // game id
-    pub release_ids: Vec<String>,
+    pub release_ids: Vec<ObjectId>,
 }
 
 impl HasOid for ReleasesByGame {
