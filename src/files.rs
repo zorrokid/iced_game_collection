@@ -3,6 +3,7 @@ use crate::model::collection_file::{CollectionFile, FileInfo, GetCollectionFileN
 use async_std::fs::{copy as async_copy, create_dir_all, remove_file, File as AsyncFile};
 use async_std::path::{Path as AsyncPath, PathBuf};
 use async_std::prelude::*;
+use bson::oid::ObjectId;
 use sha1::{Digest, Sha1};
 use std::fs::{copy, File};
 use std::io::Write;
@@ -93,11 +94,11 @@ pub fn get_file_extension(path: &SyncPath) -> Result<String, Error> {
 
 pub async fn copy_file(
     destination_directory: SyncPathBuf,
-    file_id: String,
+    file_id: ObjectId,
     picked_file: PickedFile,
-) -> Result<(String, PickedFile), Error> {
+) -> Result<ObjectId, Error> {
     let destination_file_path = AsyncPath::new(&destination_directory)
-        .join(&file_id)
+        .join(&file_id.to_hex())
         .with_extension(&picked_file.extension);
 
     println!("destination_file_path: {:?}", destination_file_path);
@@ -113,7 +114,7 @@ pub async fn copy_file(
         .await
         .map_err(|e| Error::IoError(format!("Failed to copy file: {}", e)))?;
 
-    Ok((file_id, picked_file))
+    Ok(file_id)
 }
 
 pub async fn delete_file(path: SyncPathBuf) -> Result<(), Error> {

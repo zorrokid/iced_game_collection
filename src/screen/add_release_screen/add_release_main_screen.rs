@@ -1,19 +1,20 @@
 use std::path::PathBuf;
-use std::{collections::HashMap, env, vec};
+use std::{collections::HashMap, vec};
 
-use crate::emulator_runner::EmulatorRunOptions;
+use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
 use crate::model::{
-    collection_file::{CollectionFile, CollectionFileType, GetFileExtensions},
+    collection_file::{CollectionFile, CollectionFileType},
     model::{Emulator, Game, Release, Settings, System},
 };
+use crate::repository::repository::CollectionFilesReadRepository;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
+use bson::oid::ObjectId;
 use iced::widget::{button, column, image, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMainScreen {
@@ -21,11 +22,12 @@ pub struct AddReleaseMainScreen {
     selected_game: Option<Game>,
     release: Release,
     systems: Vec<System>,
-    selected_file: HashMap<String, String>,
+    selected_file: HashMap<ObjectId, String>,
     emulators: Vec<Emulator>,
     selected_file_type: Option<CollectionFileType>,
     settings: Settings,
     file_path_builder: FilePathBuilder,
+    files: Vec<CollectionFile>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,13 +42,12 @@ pub enum Message {
     FilePicked(Result<PickedFile, Error>),
     Submit,
     Clear,
-    FileSelected(String, String),
-    RunWithEmulator(Emulator, String, CollectionFileType),
+    FileSelected(ObjectId, String),
     CollectionFileTypeSelected(CollectionFileType),
     ViewImage(PathBuf),
-    FileCopied(Result<(String, PickedFile), Error>),
-    DeleteFile(String),
-    FileDeleted(Result<(), Error>, String),
+    FileCopied(Result<ObjectId, Error>),
+    DeleteFile(ObjectId),
+    FileDeleted(Result<(), Error>, ObjectId),
     Save,
 }
 
@@ -59,24 +60,27 @@ pub enum Action {
     None,
     SystemSelected(System),
     Run(Task<Message>),
-    AddFile(CollectionFile),
+    AddFile(ObjectId),
     Submit,
-    RunWithEmulator(EmulatorRunOptions),
     Clear,
     ViewImage(PathBuf),
-    Error(String),
-    DeleteFile(CollectionFile),
+    Error(Error),
+    DeleteFile(ObjectId),
     Save,
 }
 
+// TODO: add ViewReleaseScreen just for viewing release and using the view model
+// Cannot use view model here because when adding a release, it doesn't have id yet
+// TODO: split files management to another sub screen
 impl AddReleaseMainScreen {
     pub fn new(release: Release) -> Result<Self, Error> {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
-        let games = db.get_games()?;
+        let games = db.get_all_games()?;
         let systems = db.get_systems()?;
         let emulators = db.get_emulators()?;
         let settings = db.get_settings()?;
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
+        let files = db.get_collection_files(&release.files)?;
 
         Ok(Self {
             games,
@@ -88,6 +92,7 @@ impl AddReleaseMainScreen {
             selected_file_type: None,
             settings,
             file_path_builder,
+            files,
         })
     }
 
@@ -101,7 +106,6 @@ impl AddReleaseMainScreen {
             Message::SystemSelected(system) => Action::SystemSelected(system),
             Message::SelectFile => Action::Run(Task::perform(pick_file(), Message::FilePicked)),
             Message::FilePicked(result) => {
-                let file_id = Uuid::new_v4().to_string();
                 let selected_system = self.systems.iter().find(|system| {
                     self.release
                         .system_id
@@ -112,15 +116,28 @@ impl AddReleaseMainScreen {
                     (selected_system, self.selected_file_type.clone())
                 {
                     match result {
-                        Ok(picked_file) => Action::Run(Task::perform(
-                            copy_file(
-                                self.file_path_builder
-                                    .build_target_directory(system, &selected_file_type),
-                                file_id,
-                                picked_file,
-                            ),
-                            Message::FileCopied,
-                        )),
+                        Ok(picked_file) => {
+                            let collection_file = CollectionFile {
+                                _id: None,
+                                original_file_name: picked_file.file_name.clone(),
+                                collection_file_type: self.selected_file_type.clone().unwrap(),
+                                files: picked_file.files.clone(),
+                                is_zip: picked_file.is_zip,
+                            };
+                            let db = DatabaseWithPolo::get_instance();
+                            match db.add_collection_file(&collection_file) {
+                                Ok(id) => Action::Run(Task::perform(
+                                    copy_file(
+                                        self.file_path_builder
+                                            .build_target_directory(system, &selected_file_type),
+                                        id,
+                                        picked_file,
+                                    ),
+                                    Message::FileCopied,
+                                )),
+                                Err(err) => Action::Error(err),
+                            }
+                        }
                         Err(_) => Action::None,
                     }
                 } else {
@@ -128,44 +145,15 @@ impl AddReleaseMainScreen {
                 }
             }
             Message::FileCopied(result) => match result {
-                Ok((id, picked_file)) => {
-                    let collection_file = CollectionFile {
-                        original_file_name: picked_file.file_name,
-                        collection_file_type: self.selected_file_type.clone().unwrap(),
-                        files: picked_file.files,
-                        is_zip: picked_file.is_zip,
-                        id,
-                    };
-                    Action::AddFile(collection_file)
-                }
-                Err(_) => Action::None,
+                Ok(id) => Action::AddFile(id),
+                // TODO: if copy fails, remove the file from the database
+                Err(err) => Action::Error(err),
             },
             Message::Submit => Action::Submit,
             Message::Clear => Action::Clear,
             Message::FileSelected(id, file) => {
                 self.selected_file.insert(id, file);
                 Action::None
-            }
-            Message::RunWithEmulator(emulator, selected_file_name, collection_file_type) => {
-                let system = self
-                    .systems
-                    .iter()
-                    .find(|s| {
-                        self.release
-                            .system_id
-                            .map_or(false, |system_id| s.id() == system_id)
-                    })
-                    .unwrap();
-                let options = EmulatorRunOptions {
-                    emulator,
-                    files: self.release.files.clone(),
-                    selected_file_name: selected_file_name,
-                    source_path: self
-                        .file_path_builder
-                        .build_target_directory(system, &collection_file_type),
-                    target_path: env::temp_dir(),
-                };
-                Action::RunWithEmulator(options)
             }
             Message::CollectionFileTypeSelected(file_type) => {
                 self.selected_file_type = Some(file_type);
@@ -174,7 +162,7 @@ impl AddReleaseMainScreen {
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
             Message::DeleteFile(id) => {
                 if let Some(system) = self.get_release_system() {
-                    if let Some(file) = self.release.files.iter().find(|f| f.id == id) {
+                    if let Some(file) = self.files.iter().find(|f| f.id() == id) {
                         if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
                         {
                             return Action::Run(Task::perform(
@@ -188,12 +176,12 @@ impl AddReleaseMainScreen {
             }
             Message::FileDeleted(result, id) => match result {
                 Ok(_) => {
-                    if let Some(file) = self.release.files.iter().find(|f| f.id == id) {
-                        return Action::DeleteFile(file.clone());
+                    if let Some(file_id) = self.release.files.iter().find(|f| **f == id) {
+                        return Action::DeleteFile(file_id.clone());
                     }
                     Action::None
                 }
-                Err(_) => Action::Error("Failed deleting file".to_string()),
+                Err(err) => Action::Error(err),
             },
             Message::Save => Action::Save,
         }
@@ -314,7 +302,6 @@ impl AddReleaseMainScreen {
 
     fn create_scan_files_list(&self) -> Element<Message> {
         let scan_files_list = self
-            .release
             .files
             .iter()
             .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
@@ -327,7 +314,7 @@ impl AddReleaseMainScreen {
                             let view_image_button =
                                 button(image).on_press(Message::ViewImage(file_path));
                             let delete_button =
-                                button("Delete").on_press(Message::DeleteFile(file.id.clone()));
+                                button("Delete").on_press(Message::DeleteFile(file.id()));
                             return Some(row![view_image_button, delete_button].into());
                         }
                     }
@@ -356,7 +343,6 @@ impl AddReleaseMainScreen {
         // TODO: get file types supported by emulators for the selected system
 
         let files_list = self
-            .release
             .files
             .iter()
             .filter(|f| {
@@ -374,58 +360,14 @@ impl AddReleaseMainScreen {
                 };
                 let file_picker = pick_list(
                     content_files,
-                    if self.selected_file.contains_key(file.id.as_str()) {
-                        Some(self.selected_file.get(file.id.as_str()).unwrap())
+                    if self.selected_file.contains_key(&file.id()) {
+                        Some(self.selected_file.get(&file.id()).unwrap())
                     } else {
                         None
                     },
-                    move |selected_file_name| {
-                        Message::FileSelected(file.id.clone(), selected_file_name)
-                    },
+                    move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
                 );
-                let emulator_buttons = emulators_for_system
-                    .iter()
-                    .filter(|e| {
-                        e.supported_file_type_extensions.is_empty()
-                            || e.supported_file_type_extensions.contains(
-                                &file
-                                    .original_file_name
-                                    .split('.')
-                                    .last()
-                                    .unwrap()
-                                    .to_string(),
-                            )
-                            || file.get_file_extensions().into_iter().any(|extension| {
-                                e.supported_file_type_extensions.contains(&extension)
-                            })
-                    })
-                    .map(|emulator| {
-                        button(emulator.name.as_str())
-                            .on_press_maybe({
-                                let selected_file = self.selected_file.get(file.id.as_str());
-                                match (selected_file, emulator.extract_files) {
-                                    (Some(file_name), true) => Some(Message::RunWithEmulator(
-                                        (*emulator).clone(),
-                                        file_name.clone(),
-                                        file.collection_file_type.clone(),
-                                    )),
-                                    (_, false) => Some(Message::RunWithEmulator(
-                                        (*emulator).clone(),
-                                        file.clone().original_file_name,
-                                        file.collection_file_type.clone(),
-                                    )),
-                                    (_, _) => None,
-                                }
-                            })
-                            .into()
-                    })
-                    .collect::<Vec<iced::Element<Message>>>();
-                row![
-                    container_filename,
-                    file_picker,
-                    Column::with_children(emulator_buttons)
-                ]
-                .into()
+                row![container_filename, file_picker,].into()
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(files_list).into()

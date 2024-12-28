@@ -1,7 +1,8 @@
+use crate::error::Error as ErrorMessage;
 use iced::widget::{button, column, text};
 
 pub struct Error {
-    pub message: String,
+    pub message: ErrorMessage,
 }
 
 #[derive(Debug, Clone)]
@@ -14,7 +15,7 @@ pub enum Action {
 }
 
 impl Error {
-    pub fn new(message: String) -> Self {
+    pub fn new(message: ErrorMessage) -> Self {
         Self { message }
     }
 

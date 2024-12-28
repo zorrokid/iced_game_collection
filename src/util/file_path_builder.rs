@@ -3,12 +3,10 @@ use crate::{
     files::get_file_extension,
     model::{
         collection_file::{CollectionFile, CollectionFileType},
-        model::{HasOid, System},
+        model::{GetIdString, HasOid, System},
     },
 };
-use bson::serde_helpers::serialize_object_id_as_hex_string;
 use std::path::{Path, PathBuf};
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct FilePathBuilder {
@@ -32,7 +30,7 @@ impl FilePathBuilder {
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
         path.push(&system.id().to_string());
         path.push(&collection_file.collection_file_type.directory());
-        path.push(&collection_file.id);
+        path.push(&collection_file.get_id_string());
         Ok(path.with_extension(extension))
     }
 
@@ -53,7 +51,10 @@ mod tests {
     use bson::oid::ObjectId;
 
     use super::*;
-    use crate::model::collection_file::{CollectionFileType, FileInfo};
+    use crate::model::{
+        collection_file::{CollectionFileType, FileInfo},
+        model::GetIdString,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -66,10 +67,8 @@ mod tests {
             name: "System".to_string(),
         };
 
-        let id = Uuid::new_v4();
-
         let collection_file = CollectionFile {
-            id: id.to_string(),
+            _id: Some(ObjectId::new()),
             original_file_name: "file.zip".to_string(),
             is_zip: true,
             files: Some(vec![FileInfo {
@@ -86,8 +85,8 @@ mod tests {
             path,
             PathBuf::from(format!(
                 "/home/user/collection/{}/disk_images/{}.zip",
-                system.id().to_hex(),
-                collection_file.id
+                system.get_id_string(),
+                collection_file.get_id_string()
             ))
         );
     }

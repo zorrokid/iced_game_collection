@@ -20,6 +20,10 @@ impl ViewImage {
         Self { image_path }
     }
 
+    pub fn title(&self) -> String {
+        "Image".to_string()
+    }
+
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Back => Action::Back,

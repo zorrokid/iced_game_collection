@@ -3,8 +3,11 @@ use std::fmt::{self, Display, Formatter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::collection_file::CollectionFile;
 use polodb_core::bson::oid::ObjectId;
+
+pub trait GetIdString {
+    fn get_id_string(&self) -> String;
+}
 
 #[derive(Debug, Clone)]
 pub struct GameListModel {
@@ -50,6 +53,12 @@ impl Display for System {
     }
 }
 
+impl GetIdString for System {
+    fn get_id_string(&self) -> String {
+        self.id().to_hex()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemListModel {
     pub id: ObjectId,
@@ -72,7 +81,7 @@ pub struct Release {
     pub _id: Option<ObjectId>,
     pub name: String,
     pub system_id: Option<ObjectId>,
-    pub files: Vec<CollectionFile>,
+    pub files: Vec<ObjectId>,
     // Release can be a single game or compilation of games
     pub games: Vec<ObjectId>,
 }

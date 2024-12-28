@@ -4,7 +4,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Settings, System},
+        model::{GetIdString, Settings, System},
     },
 };
 
@@ -21,7 +21,7 @@ pub fn get_thumbnail_path(
     let file_path = file_path_builder.build_file_path(system, collection_file)?;
 
     let thumbnail_path = thumbnail_directory
-        .join(collection_file.id.clone())
+        .join(collection_file.get_id_string())
         .with_extension("png");
 
     if thumbnail_path.exists() {

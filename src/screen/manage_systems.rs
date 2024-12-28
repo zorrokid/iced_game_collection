@@ -27,7 +27,7 @@ pub enum Action {
     EditSystem(ObjectId),
     SystemDeleted,
     SystemSubmitted,
-    Error(String),
+    Error(Error),
 }
 
 impl ManageSystems {
@@ -63,11 +63,11 @@ impl ManageSystems {
                     match self.isEditing {
                         true => match db.update_system(&self.system) {
                             Ok(_) => Action::SystemSubmitted,
-                            Err(e) => Action::Error(e.to_string()),
+                            Err(e) => Action::Error(e),
                         },
                         false => match db.add_system(&self.system) {
                             Ok(_) => Action::SystemSubmitted,
-                            Err(e) => Action::Error(e.to_string()),
+                            Err(e) => Action::Error(e),
                         },
                     }
                 }
@@ -78,7 +78,7 @@ impl ManageSystems {
                 let db = DatabaseWithPolo::get_instance();
                 match db.delete_system(&id) {
                     Ok(_) => Action::SystemDeleted,
-                    Err(e) => Action::Error(e.to_string()),
+                    Err(e) => Action::Error(e),
                 }
             }
             Message::Clear => {

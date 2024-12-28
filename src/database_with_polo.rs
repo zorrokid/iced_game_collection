@@ -8,8 +8,15 @@ use polodb_core::{
 
 use crate::{
     error::Error,
-    model::model::{
-        Emulator, Game, GameListModel, HasId, HasOid, Release, ReleasesByGame, Settings, System,
+    model::{
+        collection_file::CollectionFile,
+        model::{
+            Emulator, Game, GameListModel, HasId, HasOid, Release, ReleasesByGame, Settings, System,
+        },
+    },
+    repository::repository::{
+        CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
+        SystemReadRepository,
     },
 };
 
@@ -21,6 +28,7 @@ const SETTINGS_COLLECTION: &str = "settings";
 const RELEASE_COLLECTION: &str = "release";
 const SETTINGS_ID: &str = "settings";
 const RELEASES_BY_GAMES_COLLECTION: &str = "releases_by_games";
+const COLLECTION_FILE_COLLECTION: &str = "collection_file_collection";
 
 pub struct DatabaseWithPolo {
     db: Database,
@@ -49,6 +57,10 @@ impl DatabaseWithPolo {
 
     pub fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
         self.add_item_new(EMULATOR_COLLECTION, emulator)
+    }
+
+    pub fn add_collection_file(&self, collection_file: &CollectionFile) -> Result<ObjectId, Error> {
+        self.add_item_new(COLLECTION_FILE_COLLECTION, collection_file)
     }
 
     pub fn add_release(&self, release: &Release) -> Result<ObjectId, Error> {
@@ -163,15 +175,13 @@ impl DatabaseWithPolo {
     pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
         println!("Updating release: {:?}", release);
         let update_doc = doc! {
-                    "$set": {
-                        "name": &release.name,
-                        "system_id": &release.system_id,
-                        "games": &release.games,
-        // TODO: should collection files be stored in another collection?
-        // and how about files in collection file?
-                        "files": &release.files,
-                    }
-                };
+            "$set": {
+                "name": &release.name,
+                "system_id": &release.system_id,
+                "games": &release.games,
+                "files": &release.files,
+            }
+        };
 
         self.update_item_new(RELEASE_COLLECTION, release, update_doc)
     }
@@ -180,7 +190,7 @@ impl DatabaseWithPolo {
         self.get_items(SYSTEM_COLLECTION)
     }
 
-    pub fn get_games(&self) -> Result<Vec<Game>, Error> {
+    pub fn get_all_games(&self) -> Result<Vec<Game>, Error> {
         self.get_items(GAME_COLLECTION)
     }
 
@@ -196,8 +206,8 @@ impl DatabaseWithPolo {
         self.get_item_new(EMULATOR_COLLECTION, id)
     }
 
-    pub fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
-        self.get_item_new(RELEASE_COLLECTION, id)
+    pub fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
+        self.get_item_new(SYSTEM_COLLECTION, id)
     }
 
     pub fn get_settings(&self) -> Result<Settings, Error> {
@@ -295,10 +305,25 @@ impl DatabaseWithPolo {
             + std::marker::Send
             + std::marker::Unpin,
     {
+        self.get_items_with_filter(collection_name, doc! {})
+    }
+
+    fn get_items_with_filter<T>(
+        &self,
+        collection_name: &str,
+        filter: Document,
+    ) -> Result<Vec<T>, Error>
+    where
+        T: for<'a> serde::Deserialize<'a>
+            + serde::Serialize
+            + std::marker::Sync
+            + std::marker::Send
+            + std::marker::Unpin,
+    {
         if let Ok(cursor) = self
             .db
             .collection(collection_name)
-            .find(doc! {})
+            .find(filter)
             .run()
             .map_err(|e| Error::DbError(format!("Error getting items: {}", e)))
         {
@@ -373,7 +398,7 @@ impl DatabaseWithPolo {
     }
 
     pub fn to_game_list_model(&self) -> Result<Vec<GameListModel>, Error> {
-        let games = self.get_games()?;
+        let games = self.get_all_games()?;
         let mut list_models: Vec<GameListModel> = games.iter().map(GameListModel::from).collect();
 
         for game in &mut list_models {
@@ -423,5 +448,29 @@ impl DatabaseWithPolo {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::DbError(format!("Error deleting item: {}", e))),
         }
+    }
+}
+
+impl ReleaseReadRepository for DatabaseWithPolo {
+    fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
+        self.get_item_new(RELEASE_COLLECTION, id)
+    }
+}
+
+impl GamesReadRepository for DatabaseWithPolo {
+    fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error> {
+        self.get_items_with_filter(GAME_COLLECTION, doc! {"_id": {"$in": ids}})
+    }
+}
+
+impl CollectionFilesReadRepository for DatabaseWithPolo {
+    fn get_collection_files(&self, ids: &Vec<ObjectId>) -> Result<Vec<CollectionFile>, Error> {
+        self.get_items_with_filter(COLLECTION_FILE_COLLECTION, doc! {"_id": {"$in": ids}})
+    }
+}
+
+impl SystemReadRepository for DatabaseWithPolo {
+    fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
+        self.get_item_new(SYSTEM_COLLECTION, id)
     }
 }
