@@ -10,9 +10,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{
-            Emulator, Game, GameListModel, HasId, HasOid, Release, ReleasesByGame, Settings, System,
-        },
+        model::{Emulator, Game, GameListModel, HasOid, Release, ReleasesByGame, Settings, System},
     },
     repository::repository::{
         CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
@@ -70,7 +68,7 @@ impl DatabaseWithPolo {
 
         game_ids.iter().for_each(|game_id| {
             let current_values =
-                self.get_by_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
 
             println!("current_values: {:?}", current_values);
 
@@ -187,31 +185,31 @@ impl DatabaseWithPolo {
     }
 
     pub fn get_systems(&self) -> Result<Vec<System>, Error> {
-        self.get_items(SYSTEM_COLLECTION)
+        self.get_all_items(SYSTEM_COLLECTION)
     }
 
     pub fn get_all_games(&self) -> Result<Vec<Game>, Error> {
-        self.get_items(GAME_COLLECTION)
+        self.get_all_items(GAME_COLLECTION)
     }
 
     pub fn get_emulators(&self) -> Result<Vec<Emulator>, Error> {
-        self.get_items(EMULATOR_COLLECTION)
+        self.get_all_items(EMULATOR_COLLECTION)
     }
 
     pub fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
-        self.get_by_id(GAME_COLLECTION, id)
+        self.get_with_id(GAME_COLLECTION, id)
     }
 
     pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
-        self.get_by_id(EMULATOR_COLLECTION, id)
+        self.get_with_id(EMULATOR_COLLECTION, id)
     }
 
     pub fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_by_id(SYSTEM_COLLECTION, id)
+        self.get_with_id(SYSTEM_COLLECTION, id)
     }
 
     pub fn get_settings(&self) -> Result<Settings, Error> {
-        let settings = self.get_by_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
+        let settings = self.get_with_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
 
         // if settings does not exist, create default settings
         match settings {
@@ -263,7 +261,7 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn get_items<T>(&self, collection_name: &str) -> Result<Vec<T>, Error>
+    fn get_all_items<T>(&self, collection_name: &str) -> Result<Vec<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
@@ -304,7 +302,7 @@ impl DatabaseWithPolo {
 
     pub fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
         let releases_by_game =
-            self.get_by_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
+            self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
 
         println!("releases_by_game: {:?}", releases_by_game);
 
@@ -332,17 +330,21 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn get_by_id<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
+    fn get_with_id<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
             + std::marker::Sync
             + std::marker::Send,
     {
-        self.get_by_filter(collection_name, doc! {"_id": id})
+        self.get_with_filter(collection_name, doc! {"_id": id})
     }
 
-    fn get_by_filter<T>(&self, collection_name: &str, filter: Document) -> Result<Option<T>, Error>
+    fn get_with_filter<T>(
+        &self,
+        collection_name: &str,
+        filter: Document,
+    ) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
@@ -399,7 +401,7 @@ impl DatabaseWithPolo {
 
 impl ReleaseReadRepository for DatabaseWithPolo {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
-        self.get_by_id(RELEASE_COLLECTION, id)
+        self.get_with_id(RELEASE_COLLECTION, id)
     }
 }
 
@@ -417,6 +419,6 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
 
 impl SystemReadRepository for DatabaseWithPolo {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_by_id(SYSTEM_COLLECTION, id)
+        self.get_with_id(SYSTEM_COLLECTION, id)
     }
 }
