@@ -70,7 +70,7 @@ impl DatabaseWithPolo {
 
         game_ids.iter().for_each(|game_id| {
             let current_values =
-                self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+                self.get_by_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
 
             println!("current_values: {:?}", current_values);
 
@@ -199,19 +199,19 @@ impl DatabaseWithPolo {
     }
 
     pub fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
-        self.get_item_new(GAME_COLLECTION, id)
+        self.get_by_id(GAME_COLLECTION, id)
     }
 
     pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
-        self.get_item_new(EMULATOR_COLLECTION, id)
+        self.get_by_id(EMULATOR_COLLECTION, id)
     }
 
     pub fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_item_new(SYSTEM_COLLECTION, id)
+        self.get_by_id(SYSTEM_COLLECTION, id)
     }
 
     pub fn get_settings(&self) -> Result<Settings, Error> {
-        let settings = self.get_item(SETTINGS_COLLECTION, SETTINGS_ID)?;
+        let settings = self.get_by_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
 
         // if settings does not exist, create default settings
         match settings {
@@ -304,7 +304,7 @@ impl DatabaseWithPolo {
 
     pub fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
         let releases_by_game =
-            self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
+            self.get_by_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
 
         println!("releases_by_game: {:?}", releases_by_game);
 
@@ -332,23 +332,17 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn get_item<T>(&self, collection_name: &str, id: &str) -> Result<Option<T>, Error>
+    fn get_by_id<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
             + std::marker::Sync
-            + HasId
             + std::marker::Send,
     {
-        let res = self
-            .db
-            .collection::<T>(collection_name)
-            .find_one(doc! {"id": id})
-            .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
-        Ok(res)
+        self.get_by_filter(collection_name, doc! {"_id": id})
     }
 
-    fn get_item_new<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
+    fn get_by_filter<T>(&self, collection_name: &str, filter: Document) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
@@ -358,7 +352,7 @@ impl DatabaseWithPolo {
         let res = self
             .db
             .collection::<T>(collection_name)
-            .find_one(doc! {"_id": id})
+            .find_one(filter)
             .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
         Ok(res)
     }
@@ -405,7 +399,7 @@ impl DatabaseWithPolo {
 
 impl ReleaseReadRepository for DatabaseWithPolo {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
-        self.get_item_new(RELEASE_COLLECTION, id)
+        self.get_by_id(RELEASE_COLLECTION, id)
     }
 }
 
@@ -423,6 +417,6 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
 
 impl SystemReadRepository for DatabaseWithPolo {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_item_new(SYSTEM_COLLECTION, id)
+        self.get_by_id(SYSTEM_COLLECTION, id)
     }
 }
