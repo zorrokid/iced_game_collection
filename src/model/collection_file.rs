@@ -3,9 +3,11 @@ use std::{
     path::Path,
 };
 
-use bson::to_bson;
+use bson::{oid::ObjectId, to_bson};
 use polodb_core::bson::Bson;
 use serde::{Deserialize, Serialize};
+
+use super::model::{GetIdString, HasOid};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CollectionFileType {
@@ -43,6 +45,12 @@ impl ToString for CollectionFileType {
     }
 }
 
+impl HasOid for CollectionFile {
+    fn id(&self) -> ObjectId {
+        self._id.clone().expect("Object id not set")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileInfo {
     pub name: String,
@@ -57,9 +65,15 @@ pub trait GetCollectionFileName {
     fn get_collection_file_name(&self) -> String;
 }
 
+impl GetIdString for CollectionFile {
+    fn get_id_string(&self) -> String {
+        self.id().to_hex()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
-    pub id: String,
+    pub _id: Option<ObjectId>,
     pub original_file_name: String,
     pub is_zip: bool,
     pub files: Option<Vec<FileInfo>>,
@@ -90,10 +104,14 @@ impl GetCollectionFileName for CollectionFile {
         let extension = Path::new(&self.original_file_name).extension();
         if let Some(extension) = extension {
             if let Some(extension) = extension.to_str() {
-                return format!("{}.{}", self.id, extension.to_string().to_lowercase());
+                return format!(
+                    "{}.{}",
+                    self.get_id_string(),
+                    extension.to_string().to_lowercase()
+                );
             }
         }
-        self.id.clone()
+        self.get_id_string()
     }
 }
 
@@ -111,16 +129,14 @@ impl Into<Bson> for CollectionFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::model::get_new_id;
 
     use super::*;
 
     #[test]
     fn test_get_file_extensions() {
-        let id = get_new_id();
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            id,
+            _id: Some(ObjectId::new()),
             is_zip: true,
             files: Some(vec![FileInfo {
                 name: "game.rom".to_string(),
@@ -135,16 +151,18 @@ mod tests {
 
     #[test]
     fn test_get_collection_file_name() {
-        let id = get_new_id();
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            id: id.clone(),
+            _id: Some(ObjectId::new()),
             is_zip: true,
             files: None,
             collection_file_type: CollectionFileType::Rom,
         };
 
         let file_name = collection_file.get_collection_file_name();
-        assert_eq!(file_name, format!("{}.zip", &id));
+        assert_eq!(
+            file_name,
+            format!("{}.zip", &collection_file.get_id_string())
+        );
     }
 }

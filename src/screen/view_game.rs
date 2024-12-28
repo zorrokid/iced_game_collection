@@ -25,16 +25,18 @@ pub struct ViewGame {
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    RunWithEmulator(Emulator, Vec<CollectionFile>, CollectionFile),
+    //RunWithEmulator(Emulator, Vec<CollectionFile>, CollectionFile),
     EditRelease(ObjectId),
+    ViewRelease(ObjectId),
     FileSelected(ObjectId, CollectionFile),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     GoToGames,
-    RunWithEmulator(EmulatorRunOptions),
+    //RunWithEmulator(EmulatorRunOptions),
     EditRelease(ObjectId),
+    ViewRelease(ObjectId),
     None,
 }
 
@@ -67,7 +69,7 @@ impl ViewGame {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GoToGames => Action::GoToGames,
-            Message::RunWithEmulator(emulator, files, file) => {
+            /*Message::RunWithEmulator(emulator, files, file) => {
                 let system = self
                     .systems
                     .iter()
@@ -87,8 +89,9 @@ impl ViewGame {
                         .build_target_directory(system, &file.collection_file_type),
                     target_path: env::temp_dir(),
                 })
-            }
+            }*/
             Message::EditRelease(id) => Action::EditRelease(id),
+            Message::ViewRelease(id) => Action::ViewRelease(id),
             Message::FileSelected(id, file_name) => {
                 self.selected_files.insert(id, file_name);
                 Action::None
@@ -113,33 +116,37 @@ impl ViewGame {
                     })
                     .unwrap();
 
-                let emulators_for_system = self
-                    .emulators
-                    .iter()
-                    .filter(|emulator| emulator.system_id == release.system_id)
-                    .collect::<Vec<&Emulator>>();
+                /*let emulators_for_system = self
+                .emulators
+                .iter()
+                .filter(|emulator| emulator.system_id == release.system_id)
+                .collect::<Vec<&Emulator>>();*/
 
                 let edit_release_button =
                     button("Edit").on_press(Message::EditRelease(release.id()));
-                let emulator_buttons = emulators_for_system
-                    .iter()
-                    .map(|emulator| {
-                        button(emulator.name.as_str())
-                            .on_press_maybe({
-                                match self.selected_files.get(&release.id()) {
-                                    Some(file) => Some(Message::RunWithEmulator(
-                                        (*emulator).clone(),
-                                        release.files.clone(),
-                                        file.clone(),
-                                    )),
-                                    None => None,
-                                }
-                            })
-                            .into()
-                    })
-                    .collect::<Vec<iced::Element<Message>>>();
 
-                let files_pick_list = pick_list(
+                let view_release_button =
+                    button("View").on_press(Message::ViewRelease(release.id()));
+
+                /*let emulator_buttons = emulators_for_system
+                .iter()
+                .map(|emulator| {
+                    button(emulator.name.as_str())
+                        .on_press_maybe({
+                            match self.selected_files.get(&release.id()) {
+                                Some(file) => Some(Message::RunWithEmulator(
+                                    (*emulator).clone(),
+                                    release.files.clone(),
+                                    file.clone(),
+                                )),
+                                None => None,
+                            }
+                        })
+                        .into()
+                })
+                .collect::<Vec<iced::Element<Message>>>();*/
+
+                /*let files_pick_list = pick_list(
                     release.files.as_slice(),
                     if self.selected_files.contains_key(&release.id()) {
                         Some(self.selected_files.get(&release.id()).unwrap())
@@ -147,14 +154,15 @@ impl ViewGame {
                         None
                     },
                     |file| Message::FileSelected(release.id(), file.clone()),
-                );
+                );*/
 
                 let release_row = row![
                     text(release.to_string()),
                     text(system.name.clone()),
+                    view_release_button,
                     edit_release_button,
-                    files_pick_list,
-                    Row::with_children(emulator_buttons)
+                    //files_pick_list,
+                    //Row::with_children(emulator_buttons)
                 ];
 
                 release_row.into()

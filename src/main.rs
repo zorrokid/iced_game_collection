@@ -3,8 +3,10 @@ mod emulator_runner;
 mod error;
 mod files;
 mod model;
+mod repository;
 mod screen;
 mod util;
+mod view_model;
 
 use bson::oid::ObjectId;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
@@ -19,6 +21,8 @@ use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
 use screen::view_game;
+use screen::view_image;
+use screen::view_release;
 
 use crate::screen::Screen;
 
@@ -46,13 +50,15 @@ enum Message {
     FinishedRunningWithEmulator(Result<(), Error>),
     Error(error_screen::Message),
     SettingsMain(settings_main::Message),
+    ViewRelease(view_release::Message),
+    ViewImage(view_image::Message),
 }
 
 impl IcedGameCollection {
     pub fn new() -> (Self, Task<Message>) {
         let home_screen = match home::Home::new() {
             Ok(screen) => Screen::Home(screen),
-            Err(e) => Screen::Error(error_screen::Error::new(e.to_string())),
+            Err(e) => Screen::Error(error_screen::Error::new(e)),
         };
 
         (
@@ -73,6 +79,8 @@ impl IcedGameCollection {
             Screen::ManageEmulators(add_emulator) => add_emulator.title(),
             Screen::Error(error) => error.title(),
             Screen::SettingsMain(settings_main) => settings_main.title(),
+            Screen::ViewRelease(view_release) => view_release.title(),
+            Screen::ViewImage(view_image) => view_image.title(),
         }
     }
 
@@ -89,6 +97,8 @@ impl IcedGameCollection {
             }
             Message::Error(message) => self.update_error(message),
             Message::SettingsMain(message) => self.update_settings_main(message),
+            Message::ViewRelease(message) => self.update_view_release(message),
+            Message::ViewImage(message) => self.update_view_image(message),
         }
     }
 
@@ -106,6 +116,42 @@ impl IcedGameCollection {
             }
             Screen::Error(error) => error.view().map(Message::Error),
             Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
+            Screen::ViewRelease(view_release) => view_release.view().map(Message::ViewRelease),
+            Screen::ViewImage(view_image) => view_image.view().map(Message::ViewImage),
+        }
+    }
+
+    fn update_view_image(&mut self, message: view_image::Message) -> Task<Message> {
+        if let Screen::ViewImage(view_image) = &mut self.screen {
+            match view_image.update(message) {
+                view_image::Action::Back => self.try_create_home_screen(),
+            }
+        } else {
+            Task::none()
+        }
+    }
+
+    fn update_view_release(&mut self, message: view_release::Message) -> Task<Message> {
+        if let Screen::ViewRelease(view_release) = &mut self.screen {
+            match view_release.update(message) {
+                view_release::Action::Back => self.try_create_home_screen(),
+                view_release::Action::Run(task) => task.map(Message::ViewRelease),
+                view_release::Action::None => Task::none(),
+                view_release::Action::RunWithEmulator(options) => Task::perform(
+                    run_with_emulator_async(options),
+                    Message::FinishedRunningWithEmulator,
+                ),
+                view_release::Action::Error(error) => {
+                    self.screen = Screen::Error(screen::Error::new(error));
+                    Task::none()
+                }
+                view_release::Action::ViewImage(file_path) => {
+                    self.screen = Screen::ViewImage(screen::ViewImage::new(file_path));
+                    Task::none()
+                }
+            }
+        } else {
+            Task::none()
         }
     }
 
@@ -157,7 +203,7 @@ impl IcedGameCollection {
         match screen::ManageSystems::new(id) {
             Ok(screen) => self.screen = Screen::ManageSystems(screen),
             Err(e) => {
-                self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                self.screen = Screen::Error(screen::Error::new(e));
             }
         }
         Task::none()
@@ -172,7 +218,7 @@ impl IcedGameCollection {
                             self.screen = Screen::GamesMain(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -184,7 +230,7 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageGames(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -195,7 +241,7 @@ impl IcedGameCollection {
                             self.screen = Screen::AddReleaseMain(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -208,7 +254,7 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageEmulators(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -220,7 +266,7 @@ impl IcedGameCollection {
                             self.screen = Screen::SettingsMain(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -239,10 +285,10 @@ impl IcedGameCollection {
                 }
                 add_release_main::Action::Run(task) => task.map(Message::AddReleaseMain),
                 add_release_main::Action::None => Task::none(),
-                add_release_main::Action::RunWithEmulator(options) => Task::perform(
+                /*add_release_main::Action::RunWithEmulator(options) => Task::perform(
                     run_with_emulator_async(options),
                     Message::FinishedRunningWithEmulator,
-                ),
+                ),*/
                 add_release_main::Action::Error(error) => {
                     self.screen = Screen::Error(screen::Error::new(error));
                     Task::none()
@@ -261,7 +307,7 @@ impl IcedGameCollection {
                     match process_files_for_emulator(&options) {
                         Ok(_) => {}
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                             return Task::none();
                         }
                     }
@@ -273,7 +319,7 @@ impl IcedGameCollection {
                 games_main::Action::Run(task) => task.map(Message::GamesMain),
                 games_main::Action::None => Task::none(),
                 games_main::Action::Error(error) => {
-                    self.screen = Screen::Error(screen::Error::new(error.to_string()));
+                    self.screen = Screen::Error(screen::Error::new(error));
                     Task::none()
                 }
             }
@@ -293,7 +339,7 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageEmulators(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
@@ -307,13 +353,13 @@ impl IcedGameCollection {
                             self.screen = Screen::ManageEmulators(screen);
                         }
                         Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                            self.screen = Screen::Error(screen::Error::new(e));
                         }
                     }
                     Task::none()
                 }
                 manage_emulators::Action::Error(error) => {
-                    self.screen = Screen::Error(screen::Error::new(error.to_string()));
+                    self.screen = Screen::Error(screen::Error::new(error));
                     Task::none()
                 }
             }
@@ -328,7 +374,7 @@ impl IcedGameCollection {
                 self.screen = Screen::Home(screen);
             }
             Err(e) => {
-                self.screen = Screen::Error(screen::Error::new(e.to_string()));
+                self.screen = Screen::Error(screen::Error::new(e));
             }
         }
         Task::none()

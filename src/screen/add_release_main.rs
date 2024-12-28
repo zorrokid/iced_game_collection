@@ -1,15 +1,14 @@
 use crate::database_with_polo::DatabaseWithPolo;
-use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::manage_games;
 use crate::manage_systems;
 use crate::model::model::HasOid;
 use crate::model::model::Release;
+use crate::repository::repository::ReleaseReadRepository;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
 use bson::oid::ObjectId;
 use iced::{Element, Task};
-use uuid::Uuid;
 
 use super::view_image;
 
@@ -18,7 +17,6 @@ pub struct AddReleaseMain {
     screen: AddReleaseScreen,
     // release to be added or edited, sub screens will submit events to update this
     release: Release,
-    is_edit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -34,8 +32,8 @@ pub enum Action {
     None,
     Run(Task<Message>),
     ReleaseSubmitted,
-    RunWithEmulator(EmulatorRunOptions),
-    Error(String),
+    //RunWithEmulator(EmulatorRunOptions),
+    Error(Error),
 }
 
 impl AddReleaseMain {
@@ -47,8 +45,6 @@ impl AddReleaseMain {
             None => None,
         };
 
-        let is_edit = edit_release.is_some();
-
         let release = match edit_release {
             Some(release) => release,
             None => Release::default(),
@@ -58,7 +54,6 @@ impl AddReleaseMain {
         Ok(Self {
             screen: AddReleaseScreen::AddReleaseMainScreen(screen),
             release,
-            is_edit,
         })
     }
 
@@ -77,7 +72,7 @@ impl AddReleaseMain {
                                     self.screen = AddReleaseScreen::ManageGamesScreen(screen);
                                     Action::None
                                 }
-                                Err(e) => Action::Error(e.to_string()),
+                                Err(e) => Action::Error(e),
                             }
                         }
                         add_release_main_screen::Action::ManageSystems => {
@@ -99,37 +94,41 @@ impl AddReleaseMain {
                         }
                         add_release_main_screen::Action::AddFile(file) => {
                             self.release.files.push(file);
-                            self.switch_main_screen()
+
+                            match self.update_release() {
+                                Ok(_) => self.switch_main_screen(),
+                                Err(e) => Action::Error(e),
+                            }
                         }
                         add_release_main_screen::Action::Run(task) => {
                             Action::Run(task.map(Message::AddReleaseMainScreen))
                         }
                         add_release_main_screen::Action::Submit => match self.update_release() {
                             Ok(_) => Action::ReleaseSubmitted,
-                            Err(e) => Action::Error(e.to_string()),
+                            Err(e) => Action::Error(e),
                         },
                         add_release_main_screen::Action::Save => match self.update_release() {
                             Ok(_) => self.switch_main_screen(),
-                            Err(e) => Action::Error(e.to_string()),
+                            Err(e) => Action::Error(e),
                         },
                         add_release_main_screen::Action::Clear => {
                             self.release = Release::default();
                             self.switch_main_screen()
                         }
-                        add_release_main_screen::Action::RunWithEmulator(options) => {
+                        /*add_release_main_screen::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
-                        }
+                        }*/
                         add_release_main_screen::Action::ViewImage(file) => {
                             self.screen =
                                 AddReleaseScreen::ViewImageScreen(view_image::ViewImage::new(file));
                             Action::None
                         }
                         add_release_main_screen::Action::Error(error) => Action::Error(error),
-                        add_release_main_screen::Action::DeleteFile(file) => {
-                            self.release.files.retain(|f| f.id != file.id);
+                        add_release_main_screen::Action::DeleteFile(file_id) => {
+                            self.release.files.retain(|f| *f != file_id);
                             match self.update_release() {
                                 Ok(_) => self.switch_main_screen(),
-                                Err(e) => Action::Error(e.to_string()),
+                                Err(e) => Action::Error(e),
                             }
                         }
                     }
@@ -186,7 +185,7 @@ impl AddReleaseMain {
                 self.screen = AddReleaseScreen::ManageSystemsScreen(screen);
                 Action::None
             }
-            Err(e) => Action::Error(e.to_string()),
+            Err(e) => Action::Error(e),
         }
     }
 
@@ -208,20 +207,30 @@ impl AddReleaseMain {
     }
     fn update_release(&mut self) -> Result<ObjectId, Error> {
         let db = DatabaseWithPolo::get_instance();
-        match self.is_edit {
+        match self.release._id.is_some() {
             true => db.update_release(&self.release),
-            false => db.add_release(&self.release),
+            false => {
+                let id = db.add_release(&self.release)?;
+                // TODO: is id set on release?
+                println!("Release id: {:?}", self.release.id());
+
+                // TODO: if not get release from db
+                if let Some(release) = db.get_release(&id)? {
+                    self.release = release;
+                }
+                Ok(id)
+            }
         }
     }
 
     fn switch_main_screen(&mut self) -> Action {
-        if let Some(screen) =
-            add_release_main_screen::AddReleaseMainScreen::new(self.release.clone()).ok()
-        {
-            self.screen = AddReleaseScreen::AddReleaseMainScreen(screen);
-            Action::None
-        } else {
-            Action::Error("Error creating main screen".to_string())
+        let screen = add_release_main_screen::AddReleaseMainScreen::new(self.release.clone());
+        match screen {
+            Ok(screen) => {
+                self.screen = AddReleaseScreen::AddReleaseMainScreen(screen);
+                Action::None
+            }
+            Err(err) => Action::Error(err),
         }
     }
 }
