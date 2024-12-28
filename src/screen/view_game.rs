@@ -1,12 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{
     error::Error,
-    model::{
-        collection_file::CollectionFile,
-        model::{Emulator, Game, HasOid, Release, System},
-    },
-    util::file_path_builder::FilePathBuilder,
+    model::model::{Game, HasOid, Release, System},
 };
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, Column};
@@ -32,10 +26,9 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    GoToGames,
+    Back,
     EditRelease(ObjectId),
     ViewRelease(ObjectId),
-    None,
 }
 
 impl ViewGame {
@@ -58,9 +51,13 @@ impl ViewGame {
         }
     }
 
+    pub fn title(&self) -> String {
+        format!("{} releases", self.game.name)
+    }
+
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::GoToGames => Action::GoToGames,
+            Message::GoToGames => Action::Back,
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::ViewRelease(id) => Action::ViewRelease(id),
         }
