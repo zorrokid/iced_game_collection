@@ -43,7 +43,6 @@ pub enum Message {
     Submit,
     Clear,
     FileSelected(ObjectId, String),
-    //RunWithEmulator(Emulator, String, CollectionFileType),
     CollectionFileTypeSelected(CollectionFileType),
     ViewImage(PathBuf),
     FileCopied(Result<ObjectId, Error>),
@@ -63,7 +62,6 @@ pub enum Action {
     Run(Task<Message>),
     AddFile(ObjectId),
     Submit,
-    //RunWithEmulator(EmulatorRunOptions),
     Clear,
     ViewImage(PathBuf),
     Error(Error),
@@ -157,45 +155,20 @@ impl AddReleaseMainScreen {
                 self.selected_file.insert(id, file);
                 Action::None
             }
-            /*Message::RunWithEmulator(emulator, selected_file_name, collection_file_type) => {
-                let system = self
-                    .systems
-                    .iter()
-                    .find(|s| {
-                        self.release
-                            .system_id
-                            .map_or(false, |system_id| s.id() == system_id)
-                    })
-                    .unwrap();
-                let options = EmulatorRunOptions {
-                    emulator,
-                    files: self.release.files.clone(),
-                    selected_file_name: selected_file_name,
-                    source_path: self
-                        .file_path_builder
-                        .build_target_directory(system, &collection_file_type),
-                    target_path: env::temp_dir(),
-                };
-                Action::RunWithEmulator(options)
-            }*/
             Message::CollectionFileTypeSelected(file_type) => {
                 self.selected_file_type = Some(file_type);
                 Action::None
             }
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
             Message::DeleteFile(id) => {
-                // TODO: Refactor
                 if let Some(system) = self.get_release_system() {
-                    if let Some(file_id) = self.release.files.iter().find(|f| **f == id) {
-                        if let Some(file) = self.files.iter().find(|f| f.id() == id) {
-                            if let Ok(file_path) =
-                                self.file_path_builder.build_file_path(system, file)
-                            {
-                                return Action::Run(Task::perform(
-                                    delete_file(file_path.clone()),
-                                    move |result| Message::FileDeleted(result, id.clone()),
-                                ));
-                            }
+                    if let Some(file) = self.files.iter().find(|f| f.id() == id) {
+                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
+                        {
+                            return Action::Run(Task::perform(
+                                delete_file(file_path.clone()),
+                                move |result| Message::FileDeleted(result, id.clone()),
+                            ));
                         }
                     }
                 }
@@ -394,49 +367,7 @@ impl AddReleaseMainScreen {
                     },
                     move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
                 );
-                /*let emulator_buttons = emulators_for_system
-                .iter()
-                .filter(|e| {
-                    e.supported_file_type_extensions.is_empty()
-                        || e.supported_file_type_extensions.contains(
-                            &file
-                                .original_file_name
-                                .split('.')
-                                .last()
-                                .unwrap()
-                                .to_string(),
-                        )
-                        || file.get_file_extensions().into_iter().any(|extension| {
-                            e.supported_file_type_extensions.contains(&extension)
-                        })
-                })
-                .map(|emulator| {
-                    button(emulator.name.as_str())
-                        .on_press_maybe({
-                            let selected_file = self.selected_file.get(&file.id());
-                            match (selected_file, emulator.extract_files) {
-                                (Some(file_name), true) => Some(Message::RunWithEmulator(
-                                    (*emulator).clone(),
-                                    file_name.clone(),
-                                    file.collection_file_type.clone(),
-                                )),
-                                (_, false) => Some(Message::RunWithEmulator(
-                                    (*emulator).clone(),
-                                    file.clone().original_file_name,
-                                    file.collection_file_type.clone(),
-                                )),
-                                (_, _) => None,
-                            }
-                        })
-                        .into()
-                })
-                .collect::<Vec<iced::Element<Message>>>();*/
-                row![
-                    container_filename,
-                    file_picker,
-                    //Column::with_children(emulator_buttons)
-                ]
-                .into()
+                row![container_filename, file_picker,].into()
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(files_list).into()

@@ -32,7 +32,6 @@ pub enum Action {
     None,
     Run(Task<Message>),
     ReleaseSubmitted,
-    //RunWithEmulator(EmulatorRunOptions),
     Error(Error),
 }
 
@@ -115,9 +114,6 @@ impl AddReleaseMain {
                             self.release = Release::default();
                             self.switch_main_screen()
                         }
-                        /*add_release_main_screen::Action::RunWithEmulator(options) => {
-                            Action::RunWithEmulator(options)
-                        }*/
                         add_release_main_screen::Action::ViewImage(file) => {
                             self.screen =
                                 AddReleaseScreen::ViewImageScreen(view_image::ViewImage::new(file));
@@ -211,10 +207,6 @@ impl AddReleaseMain {
             true => db.update_release(&self.release),
             false => {
                 let id = db.add_release(&self.release)?;
-                // TODO: is id set on release?
-                println!("Release id: {:?}", self.release.id());
-
-                // TODO: if not get release from db
                 if let Some(release) = db.get_release(&id)? {
                     self.release = release;
                 }
