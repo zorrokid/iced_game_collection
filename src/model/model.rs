@@ -1,7 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use polodb_core::bson::oid::ObjectId;
 
@@ -103,10 +102,6 @@ pub struct Emulator {
     pub supported_file_type_extensions: Vec<String>,
 }
 
-pub trait HasId {
-    fn id(&self) -> String;
-}
-
 impl HasOid for ReleaseListModel {
     fn id(&self) -> ObjectId {
         self.id.clone()
@@ -192,12 +187,6 @@ pub struct Settings {
     pub collection_root_dir: String,
 }
 
-impl HasId for Settings {
-    fn id(&self) -> String {
-        self.id.clone()
-    }
-}
-
 impl Default for Emulator {
     fn default() -> Self {
         Emulator {
@@ -240,10 +229,6 @@ impl Default for Release {
             games: vec![],
         }
     }
-}
-
-pub fn get_new_id() -> String {
-    Uuid::new_v4().to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug)]

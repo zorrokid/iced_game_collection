@@ -10,9 +10,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{
-            Emulator, Game, GameListModel, HasId, HasOid, Release, ReleasesByGame, Settings, System,
-        },
+        model::{Emulator, Game, GameListModel, HasOid, Release, ReleasesByGame, Settings, System},
     },
     repository::repository::{
         CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
@@ -47,37 +45,37 @@ impl DatabaseWithPolo {
         &INSTANCE
     }
 
-    pub fn add_system(&self, system: &System) -> Result<String, Error> {
+    pub fn add_system(&self, system: &System) -> Result<ObjectId, Error> {
         self.add_item(SYSTEM_COLLECTION, system)
     }
 
     pub fn add_game(&self, game: &Game) -> Result<ObjectId, Error> {
-        self.add_item_new(GAME_COLLECTION, game)
+        self.add_item(GAME_COLLECTION, game)
     }
 
     pub fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
-        self.add_item_new(EMULATOR_COLLECTION, emulator)
+        self.add_item(EMULATOR_COLLECTION, emulator)
     }
 
     pub fn add_collection_file(&self, collection_file: &CollectionFile) -> Result<ObjectId, Error> {
-        self.add_item_new(COLLECTION_FILE_COLLECTION, collection_file)
+        self.add_item(COLLECTION_FILE_COLLECTION, collection_file)
     }
 
     pub fn add_release(&self, release: &Release) -> Result<ObjectId, Error> {
         println!("Adding release: {:?}", release);
         let game_ids = &release.games;
-        let release_id = self.add_item_new(RELEASE_COLLECTION, release)?;
+        let release_id = self.add_item(RELEASE_COLLECTION, release)?;
 
         game_ids.iter().for_each(|game_id| {
             let current_values =
-                self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
 
             println!("current_values: {:?}", current_values);
 
             match current_values {
                 Ok(Some(mut releases_by_game)) => {
                     releases_by_game.release_ids.push(release_id);
-                    match self.update_item_new(
+                    match self.update_item(
                         RELEASES_BY_GAMES_COLLECTION,
                         &releases_by_game,
                         doc! {
@@ -98,7 +96,7 @@ impl DatabaseWithPolo {
                         _id: game_id.clone(),
                         release_ids: vec![release_id],
                     };
-                    match self.add_item_new(RELEASES_BY_GAMES_COLLECTION, &releases_by_game) {
+                    match self.add_item(RELEASES_BY_GAMES_COLLECTION, &releases_by_game) {
                         Ok(id) => {
                             println!("Added releases_by_game: {:?}", id);
                         }
@@ -144,7 +142,7 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item_new(SYSTEM_COLLECTION, system, update_doc)
+        self.update_item(SYSTEM_COLLECTION, system, update_doc)
     }
 
     pub fn update_game(&self, game: &Game) -> Result<ObjectId, Error> {
@@ -154,7 +152,7 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item_new(GAME_COLLECTION, game, update_doc)
+        self.update_item(GAME_COLLECTION, game, update_doc)
     }
 
     pub fn update_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
@@ -169,7 +167,7 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item_new(EMULATOR_COLLECTION, emulator, update_doc)
+        self.update_item(EMULATOR_COLLECTION, emulator, update_doc)
     }
 
     pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
@@ -183,35 +181,35 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item_new(RELEASE_COLLECTION, release, update_doc)
+        self.update_item(RELEASE_COLLECTION, release, update_doc)
     }
 
     pub fn get_systems(&self) -> Result<Vec<System>, Error> {
-        self.get_items(SYSTEM_COLLECTION)
+        self.get_all_items(SYSTEM_COLLECTION)
     }
 
     pub fn get_all_games(&self) -> Result<Vec<Game>, Error> {
-        self.get_items(GAME_COLLECTION)
+        self.get_all_items(GAME_COLLECTION)
     }
 
     pub fn get_emulators(&self) -> Result<Vec<Emulator>, Error> {
-        self.get_items(EMULATOR_COLLECTION)
+        self.get_all_items(EMULATOR_COLLECTION)
     }
 
     pub fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
-        self.get_item_new(GAME_COLLECTION, id)
+        self.get_with_id(GAME_COLLECTION, id)
     }
 
     pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
-        self.get_item_new(EMULATOR_COLLECTION, id)
+        self.get_with_id(EMULATOR_COLLECTION, id)
     }
 
     pub fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_item_new(SYSTEM_COLLECTION, id)
+        self.get_with_id(SYSTEM_COLLECTION, id)
     }
 
     pub fn get_settings(&self) -> Result<Settings, Error> {
-        let settings = self.get_item(SETTINGS_COLLECTION, SETTINGS_ID)?;
+        let settings = self.get_with_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
 
         // if settings does not exist, create default settings
         match settings {
@@ -227,21 +225,7 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn add_item<T>(&self, collection_name: &str, item: &T) -> Result<String, Error>
-    where
-        T: serde::Serialize,
-    {
-        match self.db.collection::<T>(collection_name).insert_one(item) {
-            Ok(result) => {
-                // ObjectId("676337e2233281af03ebe19f")
-                println!("Got Inserted id: {:?}", result.inserted_id.as_str());
-                Ok(result.inserted_id.to_string())
-            }
-            Err(e) => Err(Error::DbError(format!("Error adding item: {}", e))),
-        }
-    }
-
-    fn add_item_new<T>(&self, collection_name: &str, item: &T) -> Result<ObjectId, Error>
+    fn add_item<T>(&self, collection_name: &str, item: &T) -> Result<ObjectId, Error>
     where
         T: serde::Serialize,
     {
@@ -262,26 +246,6 @@ impl DatabaseWithPolo {
         collection_name: &str,
         item: &T,
         update_document: Document,
-    ) -> Result<String, Error>
-    where
-        T: serde::Serialize,
-        T: HasId,
-    {
-        match self
-            .db
-            .collection::<T>(collection_name)
-            .update_one(doc! {"id": item.id()}, update_document)
-        {
-            Ok(_) => Ok(item.id()),
-            Err(e) => Err(Error::DbError(format!("Error updating system: {}", e))),
-        }
-    }
-
-    fn update_item_new<T>(
-        &self,
-        collection_name: &str,
-        item: &T,
-        update_document: Document,
     ) -> Result<ObjectId, Error>
     where
         T: serde::Serialize,
@@ -297,7 +261,7 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn get_items<T>(&self, collection_name: &str) -> Result<Vec<T>, Error>
+    fn get_all_items<T>(&self, collection_name: &str) -> Result<Vec<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
@@ -338,7 +302,7 @@ impl DatabaseWithPolo {
 
     pub fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
         let releases_by_game =
-            self.get_item_new::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
+            self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
 
         println!("releases_by_game: {:?}", releases_by_game);
 
@@ -366,23 +330,21 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn get_item<T>(&self, collection_name: &str, id: &str) -> Result<Option<T>, Error>
+    fn get_with_id<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
             + std::marker::Sync
-            + HasId
             + std::marker::Send,
     {
-        let res = self
-            .db
-            .collection::<T>(collection_name)
-            .find_one(doc! {"id": id})
-            .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
-        Ok(res)
+        self.get_with_filter(collection_name, doc! {"_id": id})
     }
 
-    fn get_item_new<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
+    fn get_with_filter<T>(
+        &self,
+        collection_name: &str,
+        filter: Document,
+    ) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
             + serde::Serialize
@@ -392,7 +354,7 @@ impl DatabaseWithPolo {
         let res = self
             .db
             .collection::<T>(collection_name)
-            .find_one(doc! {"_id": id})
+            .find_one(filter)
             .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
         Ok(res)
     }
@@ -409,34 +371,20 @@ impl DatabaseWithPolo {
     }
 
     pub fn delete_emulator(&self, id: &ObjectId) -> Result<(), Error> {
-        self.delete_item_new::<Emulator>(EMULATOR_COLLECTION, id)
+        self.delete_item::<Emulator>(EMULATOR_COLLECTION, id)
     }
 
     pub fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
         // TODO: game cannot be deleted if used in a release
-        self.delete_item_new::<Game>(GAME_COLLECTION, id)
+        self.delete_item::<Game>(GAME_COLLECTION, id)
     }
 
     pub fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
         // TODO: system cannot be deleted if used in a realase or emulator
-        self.delete_item_new::<System>(SYSTEM_COLLECTION, id)
+        self.delete_item::<System>(SYSTEM_COLLECTION, id)
     }
 
-    fn delete_item<T>(&self, collection_name: &str, id: &str) -> Result<(), Error>
-    where
-        T: HasId + serde::Serialize,
-    {
-        match self
-            .db
-            .collection::<T>(collection_name)
-            .delete_one(doc! {"id": id})
-        {
-            Ok(_) => Ok(()),
-            Err(e) => Err(Error::DbError(format!("Error deleting item: {}", e))),
-        }
-    }
-
-    fn delete_item_new<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>
+    fn delete_item<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>
     where
         T: serde::Serialize,
     {
@@ -453,7 +401,7 @@ impl DatabaseWithPolo {
 
 impl ReleaseReadRepository for DatabaseWithPolo {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
-        self.get_item_new(RELEASE_COLLECTION, id)
+        self.get_with_id(RELEASE_COLLECTION, id)
     }
 }
 
@@ -471,6 +419,6 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
 
 impl SystemReadRepository for DatabaseWithPolo {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_item_new(SYSTEM_COLLECTION, id)
+        self.get_with_id(SYSTEM_COLLECTION, id)
     }
 }
