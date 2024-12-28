@@ -83,11 +83,14 @@ impl ManageEmulators {
                 }
 
                 let db_new = DatabaseWithPolo::get_instance();
-                match self.is_edit {
+                let result = match self.is_edit {
                     true => db_new.update_emulator(&self.emulator),
                     false => db_new.add_emulator(&self.emulator),
                 };
-                Action::EmulatorSubmitted
+                match result {
+                    Ok(_) => Action::EmulatorSubmitted,
+                    Err(e) => Action::Error(e),
+                }
             }
             Message::SystemSelected(system) => {
                 self.emulator.system_id = Some(system.id());

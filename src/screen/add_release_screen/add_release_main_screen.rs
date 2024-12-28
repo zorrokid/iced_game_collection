@@ -7,7 +7,7 @@ use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
 use crate::model::{
     collection_file::{CollectionFile, CollectionFileType},
-    model::{Emulator, Game, Release, Settings, System},
+    model::{Game, Release, Settings, System},
 };
 use crate::repository::repository::CollectionFilesReadRepository;
 use crate::util::file_path_builder::FilePathBuilder;
@@ -23,7 +23,6 @@ pub struct AddReleaseMainScreen {
     release: Release,
     systems: Vec<System>,
     selected_file: HashMap<ObjectId, String>,
-    emulators: Vec<Emulator>,
     selected_file_type: Option<CollectionFileType>,
     settings: Settings,
     file_path_builder: FilePathBuilder,
@@ -77,7 +76,6 @@ impl AddReleaseMainScreen {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
         let games = db.get_all_games()?;
         let systems = db.get_systems()?;
-        let emulators = db.get_emulators()?;
         let settings = db.get_settings()?;
         let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
         let files = db.get_collection_files(&release.files)?;
@@ -88,7 +86,6 @@ impl AddReleaseMainScreen {
             release,
             systems,
             selected_file: HashMap::new(),
-            emulators,
             selected_file_type: None,
             settings,
             file_path_builder,
@@ -208,7 +205,7 @@ impl AddReleaseMainScreen {
             .on_press(Message::ManageSystems);
 
         let file_picker_row = self.create_file_picker();
-        let emulator_files_list = self.create_emulator_files_list(&selected_system);
+        let emulator_files_list = self.create_emulator_files_list();
         let scan_files_list = self.create_scan_files_list();
 
         let main_buttons = row![
@@ -326,27 +323,11 @@ impl AddReleaseMainScreen {
         Column::with_children(scan_files_list).into()
     }
 
-    fn create_emulator_files_list(&self, selected_system: &Option<&System>) -> Element<Message> {
-        let emulators_for_system = if let Some(selected_system) = selected_system {
-            self.emulators
-                .iter()
-                .filter(|emulator| {
-                    emulator
-                        .system_id
-                        .map_or(false, |system_id| system_id == selected_system.id())
-                })
-                .collect::<Vec<&Emulator>>()
-        } else {
-            vec![]
-        };
-
-        // TODO: get file types supported by emulators for the selected system
-
+    fn create_emulator_files_list(&self) -> Element<Message> {
         let files_list = self
             .files
             .iter()
             .filter(|f| {
-                // TODO: emulator should know it's supported file types and we would filter by the file types supported by emulator
                 f.collection_file_type == CollectionFileType::Rom
                     || f.collection_file_type == CollectionFileType::DiskImage
                     || f.collection_file_type == CollectionFileType::TapeImage

@@ -1,6 +1,6 @@
 use crate::error::Error;
 use iced::{
-    widget::{button, column, row, text, text_input},
+    widget::{button, column, row, text},
     Task,
 };
 use std::path::PathBuf;
