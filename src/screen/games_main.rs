@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
@@ -28,6 +30,7 @@ pub enum Action {
     None,
     Run(Task<Message>),
     Error(Error),
+    ViewImage(PathBuf),
 }
 
 impl GamesMain {
@@ -144,7 +147,7 @@ impl GamesMain {
                         view_release::Action::RunWithEmulator(options) => {
                             Action::RunWithEmulator(options)
                         }
-                        view_release::Action::ViewImage(file_path) => Action::None,
+                        view_release::Action::ViewImage(file_path) => Action::ViewImage(file_path),
                         view_release::Action::None => Action::None,
                         view_release::Action::Run(task) => {
                             Action::Run(task.map(Message::ViewReleaseScreen))

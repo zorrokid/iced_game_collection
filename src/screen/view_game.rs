@@ -12,6 +12,11 @@ use crate::{
 use bson::oid::ObjectId;
 use iced::widget::{button, column, pick_list, row, text, Column, Row};
 
+// TODO: ViewGame needs to be a main screen with subscreens:
+// - view game main screen with list of releases
+// - view release screen
+// - edit release screen
+// - view image screen
 #[derive(Debug, Clone)]
 pub struct ViewGame {
     game: Game,

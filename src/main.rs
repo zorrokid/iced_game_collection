@@ -322,6 +322,10 @@ impl IcedGameCollection {
                     self.screen = Screen::Error(screen::Error::new(error));
                     Task::none()
                 }
+                games_main::Action::ViewImage(file_path) => {
+                    self.screen = Screen::ViewImage(screen::ViewImage::new(file_path));
+                    Task::none()
+                }
             }
         } else {
             Task::none()
