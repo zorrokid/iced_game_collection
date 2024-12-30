@@ -20,7 +20,6 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
-use screen::view_release;
 
 use crate::screen::Screen;
 
@@ -126,7 +125,7 @@ impl IcedGameCollection {
     fn update_manage_systems(&mut self, message: manage_systems::Message) -> Task<Message> {
         if let Screen::ManageSystems(add_system) = &mut self.screen {
             match add_system.update(message) {
-                manage_systems::Action::SystemSubmitted | manage_systems::Action::SystemDeleted => {
+                manage_systems::Action::SystemSubmitted => {
                     self.handle_navigate_to_manage_systems(None)
                 }
                 manage_systems::Action::None => Task::none(),

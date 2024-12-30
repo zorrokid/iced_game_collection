@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::model::model::System;
+use crate::view_model::list_models::{get_systems_in_list_model, SystemListModel};
 use crate::{database_with_polo::DatabaseWithPolo, model::model::HasOid};
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
@@ -7,7 +8,7 @@ use iced::widget::{button, column, row, text, text_input, Column};
 #[derive(Debug, Clone)]
 pub struct ManageSystems {
     pub system: System,
-    pub systems: Vec<System>,
+    pub systems: Vec<SystemListModel>,
     pub isEditing: bool,
 }
 
@@ -25,7 +26,6 @@ pub enum Action {
     GoHome,
     None,
     EditSystem(ObjectId),
-    SystemDeleted,
     SystemSubmitted,
     Error(Error),
 }
@@ -33,15 +33,17 @@ pub enum Action {
 impl ManageSystems {
     pub fn new(edit_system_id: Option<ObjectId>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
-        let systems = db.get_systems()?;
-        let edit_system =
-            edit_system_id.and_then(|id| systems.iter().find(|system| system.id() == id));
+        let systems = get_systems_in_list_model(db)?;
+        let edit_system = match edit_system_id {
+            Some(id) => db.get_system(&id)?,
+            None => None,
+        };
         Ok(Self {
+            isEditing: edit_system.is_some(),
             system: match edit_system {
                 Some(system) => system.clone(),
                 None => System::default(),
             },
-            isEditing: edit_system.is_some(),
             systems,
         })
     }
@@ -77,7 +79,10 @@ impl ManageSystems {
             Message::DeleteSystem(id) => {
                 let db = DatabaseWithPolo::get_instance();
                 match db.delete_system(&id) {
-                    Ok(_) => Action::SystemDeleted,
+                    Ok(_) => {
+                        self.systems.retain(|system| system.id != id);
+                        Action::None
+                    }
                     Err(e) => Action::Error(e),
                 }
             }
@@ -102,7 +107,11 @@ impl ManageSystems {
                 row![
                     text(system.to_string()).width(iced::Length::Fixed(300.0)),
                     button("Edit").on_press(Message::EditSystem(system.id())),
-                    button("Delete").on_press(Message::DeleteSystem(system.id())),
+                    button("Delete").on_press_maybe(
+                        system
+                            .can_delete
+                            .then(|| Message::DeleteSystem(system.id()))
+                    ),
                 ]
                 .into()
             })

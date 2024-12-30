@@ -31,6 +31,15 @@ impl GamesReadRepository for MockRepository {
             .filter_map(|id| self.games.get(id).cloned())
             .collect())
     }
+    fn get_all_games(&self) -> Result<Vec<Game>, Error> {
+        Ok(self.games.values().cloned().collect())
+    }
+    fn is_game_in_release(&self, game_id: &ObjectId) -> Result<bool, Error> {
+        Ok(self
+            .releases
+            .values()
+            .any(|release| release.games.contains(game_id)))
+    }
 }
 
 impl CollectionFilesReadRepository for MockRepository {
@@ -45,5 +54,14 @@ impl CollectionFilesReadRepository for MockRepository {
 impl SystemReadRepository for MockRepository {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
         Ok(self.systems.get(id).cloned())
+    }
+    fn is_system_in_release(&self, system_id: &ObjectId) -> Result<bool, Error> {
+        Ok(self
+            .releases
+            .values()
+            .any(|release| release.system_id == Some(*system_id)))
+    }
+    fn get_all_systems(&self) -> Result<Vec<System>, Error> {
+        Ok(self.systems.values().cloned().collect())
     }
 }

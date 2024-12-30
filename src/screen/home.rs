@@ -54,7 +54,7 @@ impl Home {
         let settings_button = button("Settings")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::ManageSettings);
-        let exit_button = button("Save & Exit")
+        let exit_button = button("Exit")
             .width(iced::Length::Fixed(200.0))
             .on_press(Message::Exit);
 

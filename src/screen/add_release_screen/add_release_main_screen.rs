@@ -288,11 +288,8 @@ impl AddReleaseMainScreen {
             Message::CollectionFileTypeSelected,
         );
         let add_file_button = button("Add File").on_press_maybe(
-            if self.release.system_id.is_some() && self.selected_file_type.is_some() {
-                Some(Message::SelectFile)
-            } else {
-                None
-            },
+            (self.release.system_id.is_some() && self.selected_file_type.is_some())
+                .then(|| Message::SelectFile),
         );
         row![collection_file_type_picker, add_file_button].into()
     }
