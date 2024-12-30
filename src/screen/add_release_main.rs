@@ -148,9 +148,6 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ManageSystemsScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         manage_systems::Action::GoHome => self.switch_main_screen(),
-                        manage_systems::Action::SystemDeleted => {
-                            self.handle_navigate_to_manage_systems(None)
-                        }
                         manage_systems::Action::EditSystem(id) => {
                             self.handle_navigate_to_manage_systems(Some(id))
                         }

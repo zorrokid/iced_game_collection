@@ -1,6 +1,7 @@
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
-use crate::model::model::{Game, GameListModel, HasOid};
+use crate::model::model::Game;
+use crate::view_model::list_models::{get_games_as_list_model, GameListModel};
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
@@ -34,7 +35,7 @@ pub enum Action {
 impl ManageGames {
     pub fn new(edit_game: Option<Game>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
-        let games = db.to_game_list_model()?;
+        let games = get_games_as_list_model(db)?;
         let is_edit = edit_game.is_some();
         Ok(Self {
             game: match edit_game {
@@ -52,7 +53,7 @@ impl ManageGames {
 
     fn update_games(&mut self) -> Result<(), Error> {
         let db = DatabaseWithPolo::get_instance();
-        let games = db.to_game_list_model()?;
+        let games = get_games_as_list_model(db)?;
         self.games = games;
         Ok(())
     }
@@ -79,7 +80,7 @@ impl ManageGames {
                 let db = DatabaseWithPolo::get_instance();
                 match db.delete_game(&id) {
                     Ok(_) => {
-                        self.update_games();
+                        self.games.retain(|game| game.id != id);
                         Action::GameDeleted
                     }
                     Err(e) => Action::Error(e),
@@ -128,14 +129,10 @@ impl ManageGames {
                 row![
                     text(&game.name).width(iced::Length::Fixed(300.0)),
                     button("Edit")
-                        .on_press(Message::EditGame(game.id()))
+                        .on_press(Message::EditGame(game.id))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
-                        .on_press_maybe(if game.can_delete {
-                            Some(Message::DeleteGame(game.id()))
-                        } else {
-                            None
-                        })
+                        .on_press_maybe(game.can_delete.then(|| Message::DeleteGame(game.id)))
                         .width(iced::Length::Fixed(200.0))
                 ]
                 .into()

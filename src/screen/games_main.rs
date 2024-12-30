@@ -56,6 +56,8 @@ impl GamesMain {
                             }
                         }
                         games_main_screen::Action::GoHome => Action::Back,
+                        games_main_screen::Action::Error(error) => Action::Error(error),
+                        games_main_screen::Action::None => Action::None,
                     }
                 } else {
                     Action::None

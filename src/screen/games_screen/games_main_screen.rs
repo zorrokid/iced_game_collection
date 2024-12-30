@@ -7,7 +7,7 @@ use iced::{
 use crate::{
     database_with_polo::DatabaseWithPolo,
     error::Error,
-    model::model::{GameListModel, HasOid},
+    view_model::list_models::{get_games_as_list_model, GameListModel},
 };
 
 #[derive(Debug, Clone)]
@@ -18,18 +18,21 @@ pub struct GamesMainScreen {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewGame(ObjectId),
+    DeleteGame(ObjectId),
     GoHome,
 }
 
 pub enum Action {
     GoHome,
     ViewGame(ObjectId),
+    None,
+    Error(Error),
 }
 
 impl GamesMainScreen {
     pub fn new() -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
-        let games = db.to_game_list_model()?;
+        let games = get_games_as_list_model(db)?;
         Ok(Self { games })
     }
 
@@ -37,6 +40,16 @@ impl GamesMainScreen {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
             Message::GoHome => Action::GoHome,
+            Message::DeleteGame(id) => {
+                let db = DatabaseWithPolo::get_instance();
+                match db.delete_game(&id) {
+                    Ok(_) => {
+                        self.games.retain(|game| game.id != id);
+                        Action::None
+                    }
+                    Err(e) => Action::Error(e),
+                }
+            }
         }
     }
 
@@ -44,7 +57,9 @@ impl GamesMainScreen {
         let games = self.games.iter().map(|game| {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
-                button("View").on_press(Message::ViewGame(game.id())),
+                button("View").on_press(Message::ViewGame(game.id)),
+                button("Delete")
+                    .on_press_maybe(game.can_delete.then(|| Message::DeleteGame(game.id)))
             ]
             .into()
         });

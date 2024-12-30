@@ -14,6 +14,8 @@ pub trait ReleaseReadRepository {
 
 pub trait GamesReadRepository {
     fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error>;
+    fn get_all_games(&self) -> Result<Vec<Game>, Error>;
+    fn is_game_in_release(&self, game_id: &ObjectId) -> Result<bool, Error>;
 }
 
 pub trait CollectionFilesReadRepository {
@@ -22,4 +24,6 @@ pub trait CollectionFilesReadRepository {
 
 pub trait SystemReadRepository {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error>;
+    fn get_all_systems(&self) -> Result<Vec<System>, Error>;
+    fn is_system_in_release(&self, system_id: &ObjectId) -> Result<bool, Error>;
 }

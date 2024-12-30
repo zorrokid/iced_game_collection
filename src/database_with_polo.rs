@@ -10,7 +10,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Emulator, Game, GameListModel, HasOid, Release, ReleasesByGame, Settings, System},
+        model::{Emulator, Game, HasOid, Release, ReleasesByGame, Settings, System},
     },
     repository::repository::{
         CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
@@ -359,29 +359,28 @@ impl DatabaseWithPolo {
         Ok(res)
     }
 
-    pub fn to_game_list_model(&self) -> Result<Vec<GameListModel>, Error> {
-        let games = self.get_all_games()?;
-        let mut list_models: Vec<GameListModel> = games.iter().map(GameListModel::from).collect();
-
-        for game in &mut list_models {
-            let releases_with_game = self.get_releases_with_game(&game.id())?;
-            game.can_delete = releases_with_game.is_empty();
-        }
-        Ok(list_models)
-    }
-
     pub fn delete_emulator(&self, id: &ObjectId) -> Result<(), Error> {
         self.delete_item::<Emulator>(EMULATOR_COLLECTION, id)
     }
 
     pub fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
-        // TODO: game cannot be deleted if used in a release
-        self.delete_item::<Game>(GAME_COLLECTION, id)
+        if self.is_game_in_release(id)? {
+            Err(Error::DbError(
+                "Game cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<Game>(GAME_COLLECTION, id)
+        }
     }
 
     pub fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
-        // TODO: system cannot be deleted if used in a realase or emulator
-        self.delete_item::<System>(SYSTEM_COLLECTION, id)
+        if self.is_system_in_release(id)? {
+            Err(Error::DbError(
+                "System cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<System>(SYSTEM_COLLECTION, id)
+        }
     }
 
     fn delete_item<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>
@@ -409,6 +408,18 @@ impl GamesReadRepository for DatabaseWithPolo {
     fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error> {
         self.get_items_with_filter(GAME_COLLECTION, doc! {"_id": {"$in": ids}})
     }
+    fn get_all_games(&self) -> Result<Vec<Game>, Error> {
+        self.get_all_items(GAME_COLLECTION)
+    }
+    fn is_game_in_release(&self, game_id: &ObjectId) -> Result<bool, Error> {
+        let releases_by_game =
+            self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id)?;
+
+        match releases_by_game {
+            Some(releases_by_game) => Ok(!releases_by_game.release_ids.is_empty()),
+            None => Ok(false),
+        }
+    }
 }
 
 impl CollectionFilesReadRepository for DatabaseWithPolo {
@@ -420,5 +431,17 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
 impl SystemReadRepository for DatabaseWithPolo {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
         self.get_with_id(SYSTEM_COLLECTION, id)
+    }
+    fn is_system_in_release(&self, system_id: &ObjectId) -> Result<bool, Error> {
+        let filter = doc! {"system_id": system_id};
+        let release = self
+            .db
+            .collection::<Release>(RELEASE_COLLECTION)
+            .find_one(filter)
+            .map_err(|e| Error::DbError(format!("Error finding a release: {}", e)))?;
+        Ok(release.is_some())
+    }
+    fn get_all_systems(&self) -> Result<Vec<System>, Error> {
+        self.get_all_items(SYSTEM_COLLECTION)
     }
 }
