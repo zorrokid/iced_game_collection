@@ -10,6 +10,7 @@ use crate::{
 
 pub trait ReleaseReadRepository {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error>;
+    fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error>;
 }
 
 pub trait GamesReadRepository {

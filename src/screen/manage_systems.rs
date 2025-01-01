@@ -38,6 +38,7 @@ impl ManageSystems {
             Some(id) => db.get_system(&id)?,
             None => None,
         };
+
         Ok(Self {
             isEditing: edit_system.is_some(),
             system: match edit_system {

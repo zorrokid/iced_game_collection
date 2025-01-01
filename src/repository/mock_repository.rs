@@ -22,6 +22,14 @@ impl ReleaseReadRepository for MockRepository {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
         Ok(self.releases.get(id).cloned())
     }
+    fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
+        Ok(self
+            .releases
+            .values()
+            .filter(|release| release.games.contains(id))
+            .cloned()
+            .collect())
+    }
 }
 
 impl GamesReadRepository for MockRepository {
