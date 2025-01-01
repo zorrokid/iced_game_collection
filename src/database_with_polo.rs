@@ -580,19 +580,84 @@ impl SystemReadRepository for DatabaseWithPolo {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::model::System;
+    use crate::{
+        database_with_polo::DatabaseWithPolo,
+        model::{
+            collection_file::{CollectionFile, CollectionFileType, FileInfo},
+            model::{Game, Release, System},
+        },
+        repository::repository::ReleaseReadRepository,
+    };
+
+    fn create_test_system() -> System {
+        System {
+            _id: None,
+            name: "Test system".to_string(),
+        }
+    }
+
+    fn create_test_game() -> Game {
+        Game {
+            _id: None,
+            name: "Test game".to_string(),
+        }
+    }
+
+    fn create_test_collection_file() -> CollectionFile {
+        CollectionFile {
+            _id: None,
+            original_file_name: "Test file.zip".to_string(),
+            is_zip: true,
+            files: Some(vec![FileInfo {
+                name: "Test file.disk".to_string(),
+                checksum: "checksum".to_string(),
+            }]),
+            collection_file_type: CollectionFileType::DiskImage,
+        }
+    }
 
     #[test]
     fn test_add_system() {
-        let test_db = super::DatabaseWithPolo::new("test.db");
-        let system = System {
-            _id: None,
-            name: "Test system".to_string(),
-        };
+        let test_db_name = "test_add_system.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+        let system = create_test_system();
         let id = test_db.add_system(&system).unwrap();
 
         let system_from_db = test_db.get_system(&id).unwrap().unwrap();
         assert_eq!(system_from_db.name, system.name);
-        std::fs::remove_dir_all("test.db").unwrap();
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_add_release() {
+        let test_db_name = "test_add_release.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system = create_test_system();
+        let system_id = test_db.add_system(&system).unwrap();
+
+        let game = create_test_game();
+        let game_id = test_db.add_game(&game).unwrap();
+
+        let collection_file = create_test_collection_file();
+        let collection_file_id = test_db.add_collection_file(&collection_file).unwrap();
+
+        let release = Release {
+            _id: None,
+            name: "Test release".to_string(),
+            system_id: Some(system_id),
+            games: vec![game_id],
+            files: vec![collection_file_id],
+        };
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.name, release.name);
+
+        let releases_by_game = test_db.get_releases_with_game(&game_id).unwrap();
+        assert_eq!(releases_by_game.len(), 1);
+        assert_eq!(releases_by_game[0].name, release.name);
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
     }
 }
