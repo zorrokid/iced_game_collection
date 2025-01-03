@@ -720,7 +720,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_release_with_removed_game() {
+    fn test_update_release_with_removed_and_added_game() {
         let test_db_name = "test_update_release.db";
         let test_db = DatabaseWithPolo::new(&test_db_name);
 
@@ -731,39 +731,48 @@ mod tests {
             .add_collection_file(&create_test_collection_file())
             .unwrap();
 
-        let release = create_test_release(
-            system_id,
-            vec![game_id_1, game_id_2],
-            vec![collection_file_id],
-        );
+        let release = create_test_release(system_id, vec![game_id_1], vec![collection_file_id]);
 
-        // add release
+        // add release with game 1
 
         let id = test_db.add_release(&release).unwrap();
 
         let release_from_db = test_db.get_release(&id).unwrap().unwrap();
-        assert_eq!(release_from_db.games.len(), 2);
+        assert_eq!(release_from_db.games.len(), 1);
 
         let releases_by_game_1 = test_db.get_releases_by_game(&game_id_1).unwrap().unwrap();
-        let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
 
         assert_eq!(releases_by_game_1.release_ids.len(), 1);
-        assert_eq!(releases_by_game_2.release_ids.len(), 1);
         assert_eq!(releases_by_game_1.release_ids[0], id);
-        assert_eq!(releases_by_game_2.release_ids[0], id);
 
-        // update release, remove game
+        // update release, add game 2
+
         let mut updated_release = release_from_db.clone();
-        updated_release.games = vec![game_id_1];
-
+        updated_release.games.push(game_id_2);
         test_db.update_release(&updated_release).unwrap();
 
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.games.len(), 2);
+
         let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
-        assert_eq!(releases_by_game_2.release_ids.len(), 0);
+        assert_eq!(releases_by_game_2.release_ids.len(), 1);
+        assert_eq!(releases_by_game_2.release_ids[0], id);
+
+        // update release, remove game 1
+        let mut updated_release = release_from_db.clone();
+        updated_release
+            .games
+            .retain(|game_id| *game_id != game_id_1);
+
+        test_db.update_release(&updated_release).unwrap();
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.games.len(), 1);
+
+        let releases_by_game_1 = test_db.get_releases_by_game(&game_id_1).unwrap().unwrap();
+        assert_eq!(releases_by_game_1.release_ids.len(), 0);
 
         std::fs::remove_dir_all(&test_db_name).unwrap();
     }
 
-    // TODO: create a test for updating release with added game
     // TODO: create a test for updating release with removed game and before calling update remove the game from ReleasesByGame collection => expect error and changes to be rollbacked
 }
