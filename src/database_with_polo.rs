@@ -552,6 +552,9 @@ impl GamesReadRepository for DatabaseWithPolo {
             None => Ok(false),
         }
     }
+    fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error> {
+        self.get_with_id(RELEASES_BY_GAMES_COLLECTION, game_id)
+    }
 }
 
 impl CollectionFilesReadRepository for DatabaseWithPolo {
@@ -580,13 +583,15 @@ impl SystemReadRepository for DatabaseWithPolo {
 
 #[cfg(test)]
 mod tests {
+    use bson::oid::ObjectId;
+
     use crate::{
         database_with_polo::DatabaseWithPolo,
         model::{
             collection_file::{CollectionFile, CollectionFileType, FileInfo},
             model::{Game, Release, System},
         },
-        repository::repository::ReleaseReadRepository,
+        repository::repository::{GamesReadRepository, ReleaseReadRepository},
     };
 
     fn create_test_system() -> System {
@@ -616,6 +621,20 @@ mod tests {
         }
     }
 
+    fn create_test_release(
+        system_id: ObjectId,
+        games: Vec<ObjectId>,
+        files: Vec<ObjectId>,
+    ) -> Release {
+        Release {
+            _id: None,
+            name: "Test release".to_string(),
+            system_id: Some(system_id),
+            games,
+            files,
+        }
+    }
+
     #[test]
     fn test_add_system() {
         let test_db_name = "test_add_system.db";
@@ -633,22 +652,13 @@ mod tests {
         let test_db_name = "test_add_release.db";
         let test_db = DatabaseWithPolo::new(&test_db_name);
 
-        let system = create_test_system();
-        let system_id = test_db.add_system(&system).unwrap();
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
 
-        let game = create_test_game();
-        let game_id = test_db.add_game(&game).unwrap();
-
-        let collection_file = create_test_collection_file();
-        let collection_file_id = test_db.add_collection_file(&collection_file).unwrap();
-
-        let release = Release {
-            _id: None,
-            name: "Test release".to_string(),
-            system_id: Some(system_id),
-            games: vec![game_id],
-            files: vec![collection_file_id],
-        };
+        let release = create_test_release(system_id, vec![game_id], vec![collection_file_id]);
         let id = test_db.add_release(&release).unwrap();
 
         let release_from_db = test_db.get_release(&id).unwrap().unwrap();
@@ -657,6 +667,51 @@ mod tests {
         let releases_by_game = test_db.get_releases_with_game(&game_id).unwrap();
         assert_eq!(releases_by_game.len(), 1);
         assert_eq!(releases_by_game[0].name, release.name);
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_update_release_with_removed_game() {
+        let test_db_name = "test_update_release.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id_1 = test_db.add_game(&create_test_game()).unwrap();
+        let game_id_2 = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
+
+        let release = create_test_release(
+            system_id,
+            vec![game_id_1, game_id_2],
+            vec![collection_file_id],
+        );
+
+        // add release
+
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.games.len(), 2);
+
+        let releases_by_game_1 = test_db.get_releases_by_game(&game_id_1).unwrap().unwrap();
+        let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
+
+        assert_eq!(releases_by_game_1.release_ids.len(), 1);
+        assert_eq!(releases_by_game_2.release_ids.len(), 1);
+        assert_eq!(releases_by_game_1.release_ids[0], id);
+        assert_eq!(releases_by_game_2.release_ids[0], id);
+
+        // update release, remove game
+        let mut updated_release = release_from_db.clone();
+        updated_release.games = vec![game_id_1];
+
+        test_db.update_release(&updated_release).unwrap();
+
+        let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
+        assert_eq!(releases_by_game_2.release_ids.len(), 0);
 
         std::fs::remove_dir_all(&test_db_name).unwrap();
     }

@@ -5,7 +5,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Game, Release, System},
+        model::{Game, HasOid, Release, ReleasesByGame, System},
     },
 };
 use bson::oid::ObjectId;
@@ -47,6 +47,17 @@ impl GamesReadRepository for MockRepository {
             .releases
             .values()
             .any(|release| release.games.contains(game_id)))
+    }
+    fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error> {
+        Ok(Some(ReleasesByGame {
+            _id: *game_id,
+            release_ids: self
+                .releases
+                .values()
+                .filter(|release| release.games.contains(game_id))
+                .map(|release| release.id())
+                .collect(),
+        }))
     }
 }
 
