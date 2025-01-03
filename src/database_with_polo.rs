@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use polodb_core::{
     bson::{doc, Document},
     options::UpdateOptions,
-    CollectionT, Database,
+    CollectionT, Database, Transaction,
 };
 
 use crate::{
@@ -170,27 +170,13 @@ impl DatabaseWithPolo {
         self.update_item(EMULATOR_COLLECTION, emulator, update_doc)
     }
 
-    pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
-        println!("Updating release: {:?}", release);
-
-        let current_release = self
-            .get_release(&release.id())?
-            .expect("Existing version of release not found");
-
-        let games_in_curent_release = &current_release.games;
-        let games_in_updated_release = &release.games;
-
-        let removed_games = games_in_curent_release
-            .iter()
-            .filter(|game_id| !games_in_updated_release.contains(game_id))
-            .collect::<Vec<&ObjectId>>();
-
-        let transaction = self
-            .db
-            .start_transaction()
-            .map_err(|e| Error::DbError(e.to_string()))?;
-
-        for game_id in &removed_games {
+    fn update_removed_games_from_release(
+        &self,
+        release: &Release,
+        removed_games: &Vec<&ObjectId>,
+        transaction: &Transaction,
+    ) -> Result<(), Error> {
+        for game_id in removed_games {
             match transaction
                 .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
                 .find_one(doc! {"_id": game_id})
@@ -210,28 +196,27 @@ impl DatabaseWithPolo {
                             },
                         );
                     if let Err(error) = res {
-                        transaction
-                            .rollback()
-                            .map_err(|e| Error::DbError(e.to_string()))?;
                         return Err(Error::DbError(error.to_string()));
                     }
                 }
-                Ok(None) => {}
+                Ok(None) => {
+                    return Err(Error::DbError("Game not found".to_string()));
+                }
                 Err(e) => {
-                    transaction
-                        .rollback()
-                        .map_err(|e| Error::DbError(e.to_string()))?;
                     return Err(Error::DbError(e.to_string()));
                 }
             };
         }
+        Ok(())
+    }
 
-        let new_games = games_in_updated_release
-            .iter()
-            .filter(|game_id| !games_in_curent_release.contains(game_id))
-            .collect::<Vec<&ObjectId>>();
-
-        for game_id in &new_games {
+    fn update_added_games_to_release(
+        &self,
+        release: &Release,
+        new_games: &Vec<&ObjectId>,
+        transaction: &Transaction,
+    ) -> Result<(), Error> {
+        for game_id in new_games {
             match transaction
                 .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
                 .find_one(doc! {"_id":  game_id})
@@ -248,11 +233,7 @@ impl DatabaseWithPolo {
                                 }
                             },
                         );
-
                     if let Err(error) = res {
-                        transaction
-                            .rollback()
-                            .map_err(|e| Error::DbError(e.to_string()))?;
                         return Err(Error::DbError(error.to_string()));
                     }
                 }
@@ -265,19 +246,54 @@ impl DatabaseWithPolo {
                         .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
                         .insert_one(&releases_by_game);
                     if let Err(error) = res {
-                        transaction
-                            .rollback()
-                            .map_err(|e| Error::DbError(e.to_string()))?;
                         return Err(Error::DbError(error.to_string()));
                     }
                 }
                 Err(e) => {
-                    transaction
-                        .rollback()
-                        .map_err(|e| Error::DbError(e.to_string()))?;
                     return Err(Error::DbError(e.to_string()));
                 }
             }
+        }
+        Ok(())
+    }
+
+    pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
+        let current_release = self
+            .get_release(&release.id())?
+            .expect("Existing version of release not found");
+
+        let games_in_curent_release = &current_release.games;
+        let games_in_updated_release = &release.games;
+
+        let removed_games = games_in_curent_release
+            .iter()
+            .filter(|game_id| !games_in_updated_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        let transaction = self
+            .db
+            .start_transaction()
+            .map_err(|e| Error::DbError(e.to_string()))?;
+
+        if let Err(error) =
+            self.update_removed_games_from_release(release, &removed_games, &transaction)
+        {
+            transaction
+                .rollback()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+            return Err(error);
+        }
+
+        let new_games = games_in_updated_release
+            .iter()
+            .filter(|game_id| !games_in_curent_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        if let Err(error) = self.update_added_games_to_release(release, &new_games, &transaction) {
+            transaction
+                .rollback()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+            return Err(error);
         }
 
         let update_doc = doc! {
@@ -747,4 +763,7 @@ mod tests {
 
         std::fs::remove_dir_all(&test_db_name).unwrap();
     }
+
+    // TODO: create a test for updating release with added game
+    // TODO: create a test for updating release with removed game and before calling update remove the game from ReleasesByGame collection => expect error and changes to be rollbacked
 }
