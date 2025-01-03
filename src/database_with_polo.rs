@@ -33,14 +33,14 @@ pub struct DatabaseWithPolo {
 }
 
 impl DatabaseWithPolo {
-    pub fn new() -> Self {
-        let db = Database::open_path(COLLECTION_DATABASE_NAME).unwrap();
+    pub fn new(db_path: &str) -> Self {
+        let db = Database::open_path(db_path).unwrap();
         Self { db }
     }
 
     pub fn get_instance() -> &'static Self {
         lazy_static! {
-            static ref INSTANCE: DatabaseWithPolo = DatabaseWithPolo::new();
+            static ref INSTANCE: DatabaseWithPolo = DatabaseWithPolo::new(COLLECTION_DATABASE_NAME);
         }
         &INSTANCE
     }
@@ -172,6 +172,93 @@ impl DatabaseWithPolo {
 
     pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
         println!("Updating release: {:?}", release);
+
+        let current_release = self
+            .get_release(&release.id())?
+            .expect("Existing version of release not found");
+
+        let games_in_curent_release = &current_release.games;
+        let games_in_updated_release = &release.games;
+
+        let removed_games = games_in_curent_release
+            .iter()
+            .filter(|game_id| !games_in_updated_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        // TODO: is this transcation used correctly?
+        let transaction = self
+            .db
+            .start_transaction()
+            .map_err(|e| Error::DbError(e.to_string()))?;
+
+        removed_games.iter().for_each(|game_id| {
+            let current_values =
+                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+
+            match current_values {
+                Ok(Some(mut releases_by_game)) => {
+                    releases_by_game
+                        .release_ids
+                        .retain(|id| *id != release.id());
+                    self.update_item(
+                        RELEASES_BY_GAMES_COLLECTION,
+                        &releases_by_game,
+                        doc! {
+                            "$set": {
+                                "release_ids": releases_by_game.release_ids.clone(),
+                            }
+                        },
+                    )
+                    .expect("Error updating releases_by_game");
+                }
+                _ => {}
+            }
+        });
+
+        let new_games = games_in_updated_release
+            .iter()
+            .filter(|game_id| !games_in_curent_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        new_games.iter().for_each(|game_id| {
+            let current_values =
+                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
+
+            match current_values {
+                Ok(Some(mut releases_by_game)) => {
+                    releases_by_game.release_ids.push(release.id());
+                    self.update_item(
+                        RELEASES_BY_GAMES_COLLECTION,
+                        &releases_by_game,
+                        doc! {
+                            "$set": {
+                                "release_ids": releases_by_game.release_ids.clone(),
+                            }
+                        },
+                    )
+                    .expect("Error updating releases_by_game");
+                }
+                Ok(None) => {
+                    let releases_by_game = ReleasesByGame {
+                        _id: **game_id,
+                        release_ids: vec![release.id()],
+                    };
+                    self.add_item(RELEASES_BY_GAMES_COLLECTION, &releases_by_game)
+                        .expect("Error adding releases_by_game");
+                }
+                Err(e) => {
+                    // TODO handle error
+                    println!("Error: {}", e);
+                }
+            }
+        });
+
+        // TODO: before updating, check existing release
+        // - if existing release has files, check if files are the same
+        // -- delete files that are not in the new release
+        // - if release has games, check if games are the same
+        // -- delete game-release mapping for games that are not in the updated release
+
         let update_doc = doc! {
             "$set": {
                 "name": &release.name,
@@ -181,7 +268,13 @@ impl DatabaseWithPolo {
             }
         };
 
-        self.update_item(RELEASE_COLLECTION, release, update_doc)
+        let result = self.update_item(RELEASE_COLLECTION, release, update_doc);
+
+        transaction
+            .commit()
+            .map_err(|e| Error::DbError(e.to_string()))?;
+
+        result
     }
 
     pub fn get_systems(&self) -> Result<Vec<System>, Error> {
@@ -300,36 +393,6 @@ impl DatabaseWithPolo {
         }
     }
 
-    pub fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
-        let releases_by_game =
-            self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
-
-        println!("releases_by_game: {:?}", releases_by_game);
-
-        let relese_ids = match releases_by_game {
-            Some(releases_by_game) => releases_by_game.release_ids,
-            None => vec![],
-        };
-
-        if let Ok(cursor) = self
-            .db
-            .collection(RELEASE_COLLECTION)
-            .find(doc! {"_id": {"$in": relese_ids}})
-            .run()
-            .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
-        {
-            let releases_with_game: Vec<Release> = cursor
-                .collect::<Result<Vec<Release>, _>>()
-                .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
-                .unwrap_or(vec![]);
-            println!("collected {:?}", releases_with_game);
-            Ok(releases_with_game)
-        } else {
-            println!("Didn't find any releases");
-            Ok(vec![])
-        }
-    }
-
     fn get_with_id<T>(&self, collection_name: &str, id: &ObjectId) -> Result<Option<T>, Error>
     where
         T: for<'a> serde::Deserialize<'a>
@@ -383,6 +446,46 @@ impl DatabaseWithPolo {
         }
     }
 
+    pub fn delete_release(&self, id: &ObjectId) -> Result<(), Error> {
+        let release = self.get_release(id)?.expect("Release not found");
+        if release.files.is_empty() {
+            self.delete_release_from_games(&release)?;
+            self.delete_item::<Release>(RELEASE_COLLECTION, id)
+        } else {
+            Err(Error::DbError(
+                "Release cannot be deleted because it has files".to_string(),
+            ))
+        }
+    }
+
+    pub fn delete_release_from_games(&self, release: &Release) -> Result<(), Error> {
+        let game_ids = &release.games;
+        let result = game_ids.iter().try_for_each(|game_id| {
+            let current_values =
+                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id)?;
+
+            match current_values {
+                Some(mut releases_by_game) => {
+                    releases_by_game
+                        .release_ids
+                        .retain(|id| *id != release.id());
+                    self.update_item(
+                        RELEASES_BY_GAMES_COLLECTION,
+                        &releases_by_game,
+                        doc! {
+                            "$set": {
+                                "release_ids": releases_by_game.release_ids.clone(),
+                            }
+                        },
+                    )?;
+                }
+                _ => {}
+            }
+            Ok(())
+        });
+        result
+    }
+
     fn delete_item<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>
     where
         T: serde::Serialize,
@@ -402,6 +505,35 @@ impl ReleaseReadRepository for DatabaseWithPolo {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
         self.get_with_id(RELEASE_COLLECTION, id)
     }
+    fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
+        let releases_by_game =
+            self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
+
+        println!("releases_by_game: {:?}", releases_by_game);
+
+        let relese_ids = match releases_by_game {
+            Some(releases_by_game) => releases_by_game.release_ids,
+            None => vec![],
+        };
+
+        if let Ok(cursor) = self
+            .db
+            .collection(RELEASE_COLLECTION)
+            .find(doc! {"_id": {"$in": relese_ids}})
+            .run()
+            .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
+        {
+            let releases_with_game: Vec<Release> = cursor
+                .collect::<Result<Vec<Release>, _>>()
+                .map_err(|e| Error::DbError(format!("Error getting releases with game: {}", e)))
+                .unwrap_or(vec![]);
+            println!("collected {:?}", releases_with_game);
+            Ok(releases_with_game)
+        } else {
+            println!("Didn't find any releases");
+            Ok(vec![])
+        }
+    }
 }
 
 impl GamesReadRepository for DatabaseWithPolo {
@@ -419,6 +551,9 @@ impl GamesReadRepository for DatabaseWithPolo {
             Some(releases_by_game) => Ok(!releases_by_game.release_ids.is_empty()),
             None => Ok(false),
         }
+    }
+    fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error> {
+        self.get_with_id(RELEASES_BY_GAMES_COLLECTION, game_id)
     }
 }
 
@@ -443,5 +578,141 @@ impl SystemReadRepository for DatabaseWithPolo {
     }
     fn get_all_systems(&self) -> Result<Vec<System>, Error> {
         self.get_all_items(SYSTEM_COLLECTION)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bson::oid::ObjectId;
+
+    use crate::{
+        database_with_polo::DatabaseWithPolo,
+        model::{
+            collection_file::{CollectionFile, CollectionFileType, FileInfo},
+            model::{Game, Release, System},
+        },
+        repository::repository::{GamesReadRepository, ReleaseReadRepository},
+    };
+
+    fn create_test_system() -> System {
+        System {
+            _id: None,
+            name: "Test system".to_string(),
+        }
+    }
+
+    fn create_test_game() -> Game {
+        Game {
+            _id: None,
+            name: "Test game".to_string(),
+        }
+    }
+
+    fn create_test_collection_file() -> CollectionFile {
+        CollectionFile {
+            _id: None,
+            original_file_name: "Test file.zip".to_string(),
+            is_zip: true,
+            files: Some(vec![FileInfo {
+                name: "Test file.disk".to_string(),
+                checksum: "checksum".to_string(),
+            }]),
+            collection_file_type: CollectionFileType::DiskImage,
+        }
+    }
+
+    fn create_test_release(
+        system_id: ObjectId,
+        games: Vec<ObjectId>,
+        files: Vec<ObjectId>,
+    ) -> Release {
+        Release {
+            _id: None,
+            name: "Test release".to_string(),
+            system_id: Some(system_id),
+            games,
+            files,
+        }
+    }
+
+    #[test]
+    fn test_add_system() {
+        let test_db_name = "test_add_system.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+        let system = create_test_system();
+        let id = test_db.add_system(&system).unwrap();
+
+        let system_from_db = test_db.get_system(&id).unwrap().unwrap();
+        assert_eq!(system_from_db.name, system.name);
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_add_release() {
+        let test_db_name = "test_add_release.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
+
+        let release = create_test_release(system_id, vec![game_id], vec![collection_file_id]);
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.name, release.name);
+
+        let releases_by_game = test_db.get_releases_with_game(&game_id).unwrap();
+        assert_eq!(releases_by_game.len(), 1);
+        assert_eq!(releases_by_game[0].name, release.name);
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_update_release_with_removed_game() {
+        let test_db_name = "test_update_release.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id_1 = test_db.add_game(&create_test_game()).unwrap();
+        let game_id_2 = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
+
+        let release = create_test_release(
+            system_id,
+            vec![game_id_1, game_id_2],
+            vec![collection_file_id],
+        );
+
+        // add release
+
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.games.len(), 2);
+
+        let releases_by_game_1 = test_db.get_releases_by_game(&game_id_1).unwrap().unwrap();
+        let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
+
+        assert_eq!(releases_by_game_1.release_ids.len(), 1);
+        assert_eq!(releases_by_game_2.release_ids.len(), 1);
+        assert_eq!(releases_by_game_1.release_ids[0], id);
+        assert_eq!(releases_by_game_2.release_ids[0], id);
+
+        // update release, remove game
+        let mut updated_release = release_from_db.clone();
+        updated_release.games = vec![game_id_1];
+
+        test_db.update_release(&updated_release).unwrap();
+
+        let releases_by_game_2 = test_db.get_releases_by_game(&game_id_2).unwrap().unwrap();
+        assert_eq!(releases_by_game_2.release_ids.len(), 0);
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
     }
 }

@@ -4,18 +4,20 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Game, Release, System},
+        model::{Game, Release, ReleasesByGame, System},
     },
 };
 
 pub trait ReleaseReadRepository {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error>;
+    fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error>;
 }
 
 pub trait GamesReadRepository {
     fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error>;
     fn get_all_games(&self) -> Result<Vec<Game>, Error>;
     fn is_game_in_release(&self, game_id: &ObjectId) -> Result<bool, Error>;
+    fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error>;
 }
 
 pub trait CollectionFilesReadRepository {
