@@ -185,79 +185,100 @@ impl DatabaseWithPolo {
             .filter(|game_id| !games_in_updated_release.contains(game_id))
             .collect::<Vec<&ObjectId>>();
 
-        // TODO: is this transcation used correctly?
         let transaction = self
             .db
             .start_transaction()
             .map_err(|e| Error::DbError(e.to_string()))?;
 
-        removed_games.iter().for_each(|game_id| {
-            let current_values =
-                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
-
-            match current_values {
+        for game_id in &removed_games {
+            match transaction
+                .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                .find_one(doc! {"_id": game_id})
+            {
                 Ok(Some(mut releases_by_game)) => {
                     releases_by_game
                         .release_ids
                         .retain(|id| *id != release.id());
-                    self.update_item(
-                        RELEASES_BY_GAMES_COLLECTION,
-                        &releases_by_game,
-                        doc! {
-                            "$set": {
-                                "release_ids": releases_by_game.release_ids.clone(),
-                            }
-                        },
-                    )
-                    .expect("Error updating releases_by_game");
+                    let res = transaction
+                        .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                        .update_one(
+                            doc! {"_id": game_id},
+                            doc! {
+                                "$set": {
+                                    "release_ids": releases_by_game.release_ids.clone(),
+                                }
+                            },
+                        );
+                    if let Err(error) = res {
+                        transaction
+                            .rollback()
+                            .map_err(|e| Error::DbError(e.to_string()))?;
+                        return Err(Error::DbError(error.to_string()));
+                    }
                 }
-                _ => {}
-            }
-        });
+                Ok(None) => {}
+                Err(e) => {
+                    transaction
+                        .rollback()
+                        .map_err(|e| Error::DbError(e.to_string()))?;
+                    return Err(Error::DbError(e.to_string()));
+                }
+            };
+        }
 
         let new_games = games_in_updated_release
             .iter()
             .filter(|game_id| !games_in_curent_release.contains(game_id))
             .collect::<Vec<&ObjectId>>();
 
-        new_games.iter().for_each(|game_id| {
-            let current_values =
-                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id);
-
-            match current_values {
+        for game_id in &new_games {
+            match transaction
+                .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                .find_one(doc! {"_id":  game_id})
+            {
                 Ok(Some(mut releases_by_game)) => {
                     releases_by_game.release_ids.push(release.id());
-                    self.update_item(
-                        RELEASES_BY_GAMES_COLLECTION,
-                        &releases_by_game,
-                        doc! {
-                            "$set": {
-                                "release_ids": releases_by_game.release_ids.clone(),
-                            }
-                        },
-                    )
-                    .expect("Error updating releases_by_game");
+                    let res = transaction
+                        .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                        .update_one(
+                            doc! {"_id": game_id},
+                            doc! {
+                                "$set": {
+                                    "release_ids": releases_by_game.release_ids.clone(),
+                                }
+                            },
+                        );
+
+                    if let Err(error) = res {
+                        transaction
+                            .rollback()
+                            .map_err(|e| Error::DbError(e.to_string()))?;
+                        return Err(Error::DbError(error.to_string()));
+                    }
                 }
                 Ok(None) => {
                     let releases_by_game = ReleasesByGame {
                         _id: **game_id,
                         release_ids: vec![release.id()],
                     };
-                    self.add_item(RELEASES_BY_GAMES_COLLECTION, &releases_by_game)
-                        .expect("Error adding releases_by_game");
+                    let res = transaction
+                        .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                        .insert_one(&releases_by_game);
+                    if let Err(error) = res {
+                        transaction
+                            .rollback()
+                            .map_err(|e| Error::DbError(e.to_string()))?;
+                        return Err(Error::DbError(error.to_string()));
+                    }
                 }
                 Err(e) => {
-                    // TODO handle error
-                    println!("Error: {}", e);
+                    transaction
+                        .rollback()
+                        .map_err(|e| Error::DbError(e.to_string()))?;
+                    return Err(Error::DbError(e.to_string()));
                 }
             }
-        });
-
-        // TODO: before updating, check existing release
-        // - if existing release has files, check if files are the same
-        // -- delete files that are not in the new release
-        // - if release has games, check if games are the same
-        // -- delete game-release mapping for games that are not in the updated release
+        }
 
         let update_doc = doc! {
             "$set": {
@@ -268,13 +289,24 @@ impl DatabaseWithPolo {
             }
         };
 
-        let result = self.update_item(RELEASE_COLLECTION, release, update_doc);
+        match transaction
+            .collection::<Release>(RELEASE_COLLECTION)
+            .update_one(doc! {"_id": release.id()}, update_doc)
+        {
+            Ok(result) => result,
+            Err(e) => {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                return Err(Error::DbError(e.to_string()));
+            }
+        };
 
         transaction
             .commit()
             .map_err(|e| Error::DbError(e.to_string()))?;
 
-        result
+        Ok(release.id())
     }
 
     pub fn get_systems(&self) -> Result<Vec<System>, Error> {
