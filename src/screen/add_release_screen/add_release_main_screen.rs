@@ -162,6 +162,7 @@ impl AddReleaseMainScreen {
                     if let Some(file) = self.files.iter().find(|f| f.id() == id) {
                         if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
                         {
+                            // TODO: remove also thumbnail if exists
                             return Action::Run(Task::perform(
                                 delete_file(file_path.clone()),
                                 move |result| Message::FileDeleted(result, id.clone()),
@@ -174,6 +175,8 @@ impl AddReleaseMainScreen {
             Message::FileDeleted(result, id) => match result {
                 Ok(_) => {
                     if let Some(file_id) = self.release.files.iter().find(|f| **f == id) {
+                        // TODO: maybe instead of spawning a task, just remove the file from the release
+                        // => move logic from main to here
                         return Action::DeleteFile(file_id.clone());
                     }
                     Action::None
@@ -345,7 +348,8 @@ impl AddReleaseMainScreen {
                     },
                     move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
                 );
-                row![container_filename, file_picker,].into()
+                let delete_button = button("Delete").on_press(Message::DeleteFile(file.id()));
+                row![container_filename, file_picker, delete_button].into()
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(files_list).into()
