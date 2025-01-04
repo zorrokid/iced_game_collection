@@ -506,7 +506,7 @@ impl DatabaseWithPolo {
         }
     }
 
-    pub fn delete_release_from_games(&self, release: &Release) -> Result<(), Error> {
+    fn delete_release_from_games(&self, release: &Release) -> Result<(), Error> {
         let game_ids = &release.games;
         let result = game_ids.iter().try_for_each(|game_id| {
             let current_values =
@@ -517,15 +517,20 @@ impl DatabaseWithPolo {
                     releases_by_game
                         .release_ids
                         .retain(|id| *id != release.id());
-                    self.update_item(
-                        RELEASES_BY_GAMES_COLLECTION,
-                        &releases_by_game,
-                        doc! {
-                            "$set": {
-                                "release_ids": releases_by_game.release_ids.clone(),
-                            }
-                        },
-                    )?;
+
+                    if releases_by_game.release_ids.is_empty() {
+                        self.delete_item::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id)?;
+                    } else {
+                        self.update_item(
+                            RELEASES_BY_GAMES_COLLECTION,
+                            &releases_by_game,
+                            doc! {
+                                "$set": {
+                                    "release_ids": releases_by_game.release_ids.clone(),
+                                }
+                            },
+                        )?;
+                    }
                 }
                 _ => {}
             }
@@ -774,5 +779,58 @@ mod tests {
         std::fs::remove_dir_all(&test_db_name).unwrap();
     }
 
-    // TODO: create a test for updating release with removed game and before calling update remove the game from ReleasesByGame collection => expect error and changes to be rollbacked
+    #[test]
+    fn test_delete_release_with_files() {
+        let test_db_name = "test_delete_release_with_files.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
+
+        let release = create_test_release(system_id, vec![game_id], vec![collection_file_id]);
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.name, release.name);
+
+        let result = test_db.delete_release(&id);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Release cannot be deleted because it has files"));
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_delete_release_without_files() {
+        let test_db_name = "test_delete_release_without_files.db";
+        let test_db = DatabaseWithPolo::new(&test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id = test_db.add_game(&create_test_game()).unwrap();
+        let release = create_test_release(system_id, vec![game_id], vec![]);
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.name, release.name);
+
+        // check that release is in releases_by_game
+        let releases_by_game = test_db.get_releases_by_game(&game_id).unwrap().unwrap();
+        assert_eq!(releases_by_game.release_ids.first().unwrap(), &id);
+
+        let result = test_db.delete_release(&id);
+        assert!(result.is_ok());
+        let release_from_db = test_db.get_release(&id).unwrap();
+        assert!(release_from_db.is_none());
+
+        let releases_by_game = test_db.get_releases_by_game(&game_id).unwrap();
+        assert!(releases_by_game.is_none());
+
+        std::fs::remove_dir_all(&test_db_name).unwrap();
+    }
 }

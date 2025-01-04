@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
-    model::model::{Game, HasOid, Release, System},
-    repository::repository::ReleaseReadRepository,
+    model::model::Game,
+    view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, Column};
@@ -14,8 +14,7 @@ use iced::widget::{button, column, row, text, Column};
 #[derive(Debug, Clone)]
 pub struct ViewGame {
     game: Game,
-    releases: Vec<Release>,
-    systems: Vec<System>,
+    releases: Vec<ReleaseListModel>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +22,7 @@ pub enum Message {
     GoToGames,
     EditRelease(ObjectId),
     ViewRelease(ObjectId),
+    DeleteRelease(ObjectId),
 }
 
 #[derive(Debug, Clone)]
@@ -30,13 +30,14 @@ pub enum Action {
     Back,
     EditRelease(ObjectId),
     ViewRelease(ObjectId),
+    None,
+    Error(Error),
 }
 
 impl ViewGame {
     pub fn new(game_id: ObjectId) -> Result<Self, Error> {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
-        let releases = db.get_releases_with_game(&game_id)?;
-        let systems = db.get_systems()?;
+        let releases = get_releases_in_list_model(db, &game_id)?; // db.get_releases_with_game(&game_id)?;
 
         let game = db.get_game(&game_id)?;
         match game {
@@ -44,11 +45,7 @@ impl ViewGame {
                 "Game with id {} not found",
                 game_id
             ))),
-            Some(game) => Ok(Self {
-                game,
-                releases,
-                systems,
-            }),
+            Some(game) => Ok(Self { game, releases }),
         }
     }
 
@@ -61,6 +58,16 @@ impl ViewGame {
             Message::GoToGames => Action::Back,
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::ViewRelease(id) => Action::ViewRelease(id),
+            Message::DeleteRelease(id) => {
+                let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+                match db.delete_release(&id) {
+                    Ok(_) => {
+                        self.releases.retain(|release| release.id != id);
+                        Action::None
+                    }
+                    Err(e) => Action::Error(e),
+                }
+            }
         }
     }
 
@@ -71,27 +78,20 @@ impl ViewGame {
             .releases
             .iter()
             .map(|release| {
-                let system = self
-                    .systems
-                    .iter()
-                    .find(|s| {
-                        release
-                            .system_id
-                            .map_or(false, |system_id| s.id() == system_id)
-                    })
-                    .unwrap();
-
-                let edit_release_button =
-                    button("Edit").on_press(Message::EditRelease(release.id()));
-
-                let view_release_button =
-                    button("View").on_press(Message::ViewRelease(release.id()));
+                let edit_release_button = button("Edit").on_press(Message::EditRelease(release.id));
+                let view_release_button = button("View").on_press(Message::ViewRelease(release.id));
+                let delete_button = button("Delete").on_press_maybe(
+                    release
+                        .can_delete
+                        .then(|| Message::DeleteRelease(release.id)),
+                );
 
                 let release_row = row![
-                    text(release.to_string()),
-                    text(system.name.clone()),
+                    text(&release.name),
+                    text(&release.system_name),
                     view_release_button,
                     edit_release_button,
+                    delete_button,
                 ];
 
                 release_row.into()
