@@ -73,6 +73,8 @@ impl ViewGameMain {
                             }
                         }
                         view_game::Action::Back => Action::Back,
+                        view_game::Action::Error(e) => Action::Error(e),
+                        view_game::Action::None => Action::None,
                     }
                 }
                 _ => Action::None,

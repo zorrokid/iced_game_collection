@@ -8,21 +8,6 @@ pub trait GetIdString {
     fn get_id_string(&self) -> String;
 }
 
-#[derive(Debug, Clone)]
-pub struct ReleaseListModel {
-    pub id: ObjectId,
-    pub name: String,
-}
-
-impl From<&Release> for ReleaseListModel {
-    fn from(release: &Release) -> Self {
-        ReleaseListModel {
-            id: release.id().clone(),
-            name: release.name.clone(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
     pub _id: Option<ObjectId>,
@@ -66,12 +51,6 @@ pub struct Emulator {
     pub system_id: Option<ObjectId>,
     pub extract_files: bool,
     pub supported_file_type_extensions: Vec<String>,
-}
-
-impl HasOid for ReleaseListModel {
-    fn id(&self) -> ObjectId {
-        self.id.clone()
-    }
 }
 
 impl HasOid for Game {
