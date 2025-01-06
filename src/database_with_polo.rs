@@ -139,6 +139,7 @@ impl DatabaseWithPolo {
         let update_doc = doc! {
             "$set": {
                 "name": &system.name,
+                "notes": &system.notes,
             }
         };
 
@@ -164,6 +165,7 @@ impl DatabaseWithPolo {
                 "system_id": &emulator.system_id,
                 "extract_files": emulator.extract_files,
                 "supported_file_type_extensions": emulator.supported_file_type_extensions.clone(),
+                "notes": &emulator.notes
             }
         };
 
@@ -651,6 +653,7 @@ mod tests {
         System {
             _id: None,
             name: "Test system".to_string(),
+            notes: None,
         }
     }
 

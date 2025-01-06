@@ -65,6 +65,7 @@ mod tests {
         let system = System {
             _id: Some(ObjectId::new()),
             name: "System".to_string(),
+            notes: None,
         };
 
         let collection_file = CollectionFile {
@@ -99,6 +100,7 @@ mod tests {
         let system = System {
             _id: Some(ObjectId::new()),
             name: "System".to_string(),
+            notes: None,
         };
 
         let file_type = CollectionFileType::DiskImage;
