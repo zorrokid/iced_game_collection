@@ -99,12 +99,14 @@ impl ViewRelease {
 
         let emulator_files_list = self.create_emulator_files_list(&self.release.system);
         let scan_files_list = self.create_scan_files_list();
+        let screenshot_files_list = self.create_sreenshot_files_list();
 
         column![
             back_button,
             selected_games_list,
             emulator_files_list,
             scan_files_list,
+            screenshot_files_list
         ]
         .into()
     }
@@ -151,6 +153,33 @@ impl ViewRelease {
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(scan_files_list).into()
+    }
+
+    fn create_sreenshot_files_list(&self) -> Element<Message> {
+        let files_list = self
+            .release
+            .files
+            .iter()
+            .filter(|f| f.collection_file_type == CollectionFileType::Screenshot)
+            .filter_map(|file| {
+                if let Ok(thumb_path) =
+                    get_thumbnail_path(file, &self.settings, &self.release.system)
+                {
+                    if let Ok(file_path) = self
+                        .file_path_builder
+                        .build_file_path(&self.release.system, file)
+                    {
+                        let image = image(thumb_path);
+                        let view_image_button =
+                            button(image).on_press(Message::ViewImage(file_path));
+                        return Some(row![view_image_button].into());
+                    }
+                }
+
+                None
+            })
+            .collect::<Vec<iced::Element<Message>>>();
+        Column::with_children(files_list).into()
     }
 
     fn create_emulator_files_list(&self, selected_system: &System) -> Element<Message> {
