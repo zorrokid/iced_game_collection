@@ -16,6 +16,9 @@ use super::view_image;
 pub struct AddReleaseMain {
     screen: AddReleaseScreen,
     // release to be added or edited, sub screens will submit events to update this
+    // NOTE! Do not move state to sub screen, when moving between screens, changes won't be lost event without saving to db
+    // Also, we don't want to save to db after each state, because of cancel functionality.
+    // Only changes that are saved to db immediately are adding or deleting files because actual files are copied or deleted.
     release: Release,
 }
 

@@ -14,9 +14,10 @@ pub enum CollectionFileType {
     Rom,
     DiskImage,
     TapeImage,
-    ScreenShot,
+    Screenshot,
     Manual,
     CoverScan,
+    MemorySnapshot,
 }
 
 impl CollectionFileType {
@@ -25,9 +26,10 @@ impl CollectionFileType {
             CollectionFileType::Rom => "roms",
             CollectionFileType::DiskImage => "disk_images",
             CollectionFileType::TapeImage => "tape_images",
-            CollectionFileType::ScreenShot => "screenshots",
+            CollectionFileType::Screenshot => "screenshots",
             CollectionFileType::Manual => "manuals",
             CollectionFileType::CoverScan => "cover_scans",
+            CollectionFileType::MemorySnapshot => "memory_snapshots",
         }
     }
 }
@@ -38,9 +40,10 @@ impl ToString for CollectionFileType {
             CollectionFileType::Rom => "Rom".to_string(),
             CollectionFileType::DiskImage => "Disk Image".to_string(),
             CollectionFileType::TapeImage => "Tape Image".to_string(),
-            CollectionFileType::ScreenShot => "Screen Shot".to_string(),
+            CollectionFileType::Screenshot => "Screenshot".to_string(),
             CollectionFileType::Manual => "Manual".to_string(),
-            CollectionFileType::CoverScan => "Cover scan".to_string(),
+            CollectionFileType::CoverScan => "Cover Scan".to_string(),
+            CollectionFileType::MemorySnapshot => "Memory Snapshot".to_string(),
         }
     }
 }

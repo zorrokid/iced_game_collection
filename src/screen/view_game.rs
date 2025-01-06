@@ -4,7 +4,10 @@ use crate::{
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 use bson::oid::ObjectId;
-use iced::widget::{button, column, row, text, Column};
+use iced::{
+    widget::{button, column, row, text, Column},
+    Length,
+};
 
 // TODO: ViewGame needs to be a main screen with subscreens:
 // - view game main screen with list of releases
@@ -37,7 +40,7 @@ pub enum Action {
 impl ViewGame {
     pub fn new(game_id: ObjectId) -> Result<Self, Error> {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
-        let releases = get_releases_in_list_model(db, &game_id)?; // db.get_releases_with_game(&game_id)?;
+        let releases = get_releases_in_list_model(db, &game_id)?;
 
         let game = db.get_game(&game_id)?;
         match game {
@@ -78,17 +81,23 @@ impl ViewGame {
             .releases
             .iter()
             .map(|release| {
-                let edit_release_button = button("Edit").on_press(Message::EditRelease(release.id));
-                let view_release_button = button("View").on_press(Message::ViewRelease(release.id));
-                let delete_button = button("Delete").on_press_maybe(
-                    release
-                        .can_delete
-                        .then(|| Message::DeleteRelease(release.id)),
-                );
+                let edit_release_button = button("Edit")
+                    .on_press(Message::EditRelease(release.id))
+                    .width(Length::Fixed(100.0));
+                let view_release_button = button("View")
+                    .on_press(Message::ViewRelease(release.id))
+                    .width(Length::Fixed(100.0));
+                let delete_button = button("Delete")
+                    .on_press_maybe(
+                        release
+                            .can_delete
+                            .then(|| Message::DeleteRelease(release.id)),
+                    )
+                    .width(Length::Fixed(100.0));
 
                 let release_row = row![
-                    text(&release.name),
-                    text(&release.system_name),
+                    text(&release.name).width(Length::Fixed(100.0)),
+                    text(&release.system_name).width(Length::Fixed(100.0)),
                     view_release_button,
                     edit_release_button,
                     delete_button,
