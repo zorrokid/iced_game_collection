@@ -12,6 +12,7 @@ pub trait GetIdString {
 pub struct System {
     pub _id: Option<ObjectId>,
     pub name: String,
+    pub notes: Option<String>,
 }
 
 impl Display for System {
@@ -51,6 +52,7 @@ pub struct Emulator {
     pub system_id: Option<ObjectId>,
     pub extract_files: bool,
     pub supported_file_type_extensions: Vec<String>,
+    pub notes: Option<String>,
 }
 
 impl HasOid for Game {
@@ -124,6 +126,7 @@ impl Default for Emulator {
             system_id: None,
             extract_files: false,
             supported_file_type_extensions: vec![],
+            notes: None,
         }
     }
 }
@@ -133,6 +136,7 @@ impl Default for System {
         System {
             _id: None,
             name: "".to_string(),
+            notes: None,
         }
     }
 }

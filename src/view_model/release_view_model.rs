@@ -103,6 +103,7 @@ mod tests {
         let system = System {
             _id: Some(system_id.clone()),
             name: "Test System".to_string(),
+            notes: None,
         };
 
         let mut releases = HashMap::new();

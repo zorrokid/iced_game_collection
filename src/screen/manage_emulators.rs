@@ -15,6 +15,7 @@ pub struct ManageEmulators {
 #[derive(Debug, Clone)]
 pub enum Message {
     NameChanged(String),
+    NotesChanged(String),
     SystemSelected(System),
     ExecutableChanged(String),
     ArgumentsChanged(String),
@@ -67,6 +68,12 @@ impl ManageEmulators {
         match message {
             Message::NameChanged(name) => {
                 self.emulator.name = name;
+                Action::None
+            }
+            Message::NotesChanged(notes) => {
+                if !notes.is_empty() {
+                    self.emulator.notes = Some(notes);
+                }
                 Action::None
             }
             Message::ExecutableChanged(executable) => {
@@ -126,6 +133,9 @@ impl ManageEmulators {
     pub fn view(&self) -> Element<Message> {
         let name_input_field =
             text_input("Enter name", &self.emulator.name).on_input(Message::NameChanged);
+        let current_notes = self.emulator.notes.clone().unwrap_or_default();
+        let notes_input_field =
+            text_input("Enter notes", &current_notes).on_input(Message::NotesChanged);
         let executable_input_field = text_input("Enter executable", &self.emulator.executable)
             .on_input(Message::ExecutableChanged);
         let systems_select = pick_list(
@@ -171,6 +181,7 @@ impl ManageEmulators {
             supported_file_type_extensions,
             systems_select,
             extract_files_checkbox,
+            notes_input_field,
             main_buttons,
             Column::with_children(emulators_list)
         ]

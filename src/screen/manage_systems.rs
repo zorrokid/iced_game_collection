@@ -20,6 +20,7 @@ pub enum Message {
     EditSystem(ObjectId),
     DeleteSystem(ObjectId),
     Clear,
+    NotesChanged(String),
 }
 
 pub enum Action {
@@ -57,6 +58,12 @@ impl ManageSystems {
         match message {
             Message::NameChanged(name) => {
                 self.system.name = name;
+                Action::None
+            }
+            Message::NotesChanged(notes) => {
+                if !notes.is_empty() {
+                    self.system.notes = Some(notes);
+                }
                 Action::None
             }
             Message::Submit => match &mut self.system.name {
@@ -97,6 +104,8 @@ impl ManageSystems {
     pub fn view(&self) -> iced::Element<Message> {
         let name_input_field =
             text_input("Enter name", &self.system.name).on_input(Message::NameChanged);
+        let current_notes = self.system.notes.clone().unwrap_or_default();
+        let notes_field = text_input("Enter notes", &current_notes).on_input(Message::NotesChanged);
         let main_buttons = row![
             button("Submit").on_press(Message::Submit),
             button("Clear").on_press(Message::Clear)
@@ -122,6 +131,7 @@ impl ManageSystems {
         column![
             back_button,
             name_input_field,
+            notes_field,
             main_buttons,
             Column::with_children(systems_list)
         ]
