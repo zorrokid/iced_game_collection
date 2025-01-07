@@ -209,8 +209,8 @@ impl AddReleaseMainScreen {
 
         let file_picker_row = self.create_file_picker();
         let emulator_files_list = self.create_emulator_files_list();
-        let scan_files_list = self.create_scan_files_list();
-        let screenshot_files_list = self.create_screenshot_files_list();
+        let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
+        let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
 
         let main_buttons = row![
             button("Save").on_press(Message::Save),
@@ -300,38 +300,11 @@ impl AddReleaseMainScreen {
         row![collection_file_type_picker, add_file_button].into()
     }
 
-    fn create_scan_files_list(&self) -> Element<Message> {
-        let scan_files_list = self
-            .files
-            .iter()
-            .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
-            .filter_map(|file| {
-                if let Some(system) = self.get_release_system() {
-                    if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
-                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
-                        {
-                            let image = image(thumb_path);
-                            let view_image_button =
-                                button(image).on_press(Message::ViewImage(file_path));
-                            let delete_button =
-                                button("Delete").on_press(Message::DeleteFile(file.id()));
-                            return Some(row![view_image_button, delete_button].into());
-                        }
-                    }
-                }
-
-                None
-            })
-            .collect::<Vec<iced::Element<Message>>>();
-        Column::with_children(scan_files_list).into()
-    }
-
-    // TODO: this can be generic - also this could be component, same list in used in view release screen
-    fn create_screenshot_files_list(&self) -> Element<Message> {
+    fn create_files_list(&self, file_type: CollectionFileType) -> Element<Message> {
         let files_list = self
             .files
             .iter()
-            .filter(|f| f.collection_file_type == CollectionFileType::Screenshot)
+            .filter(|f| f.collection_file_type == file_type)
             .filter_map(|file| {
                 if let Some(system) = self.get_release_system() {
                     if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
