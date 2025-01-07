@@ -98,13 +98,15 @@ impl ViewRelease {
         let selected_games_list = self.create_selected_games_list();
 
         let emulator_files_list = self.create_emulator_files_list(&self.release.system);
-        let scan_files_list = self.create_scan_files_list();
+        let scan_files_list = self.create_files_list(&CollectionFileType::CoverScan);
+        let screenshot_files_list = self.create_files_list(&CollectionFileType::Screenshot);
 
         column![
             back_button,
             selected_games_list,
             emulator_files_list,
             scan_files_list,
+            screenshot_files_list
         ]
         .into()
     }
@@ -126,12 +128,12 @@ impl ViewRelease {
         .into()
     }
 
-    fn create_scan_files_list(&self) -> Element<Message> {
+    fn create_files_list(&self, file_type: &CollectionFileType) -> Element<Message> {
         let scan_files_list = self
             .release
             .files
             .iter()
-            .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
+            .filter(|f| f.collection_file_type == *file_type)
             .filter_map(|file| {
                 if let Ok(thumb_path) =
                     get_thumbnail_path(file, &self.settings, &self.release.system)

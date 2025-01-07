@@ -209,7 +209,8 @@ impl AddReleaseMainScreen {
 
         let file_picker_row = self.create_file_picker();
         let emulator_files_list = self.create_emulator_files_list();
-        let scan_files_list = self.create_scan_files_list();
+        let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
+        let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
 
         let main_buttons = row![
             button("Save").on_press(Message::Save),
@@ -227,6 +228,7 @@ impl AddReleaseMainScreen {
             file_picker_row,
             emulator_files_list,
             scan_files_list,
+            screenshot_files_list,
             main_buttons
         ]
         .into()
@@ -298,11 +300,11 @@ impl AddReleaseMainScreen {
         row![collection_file_type_picker, add_file_button].into()
     }
 
-    fn create_scan_files_list(&self) -> Element<Message> {
-        let scan_files_list = self
+    fn create_files_list(&self, file_type: CollectionFileType) -> Element<Message> {
+        let files_list = self
             .files
             .iter()
-            .filter(|f| f.collection_file_type == CollectionFileType::CoverScan)
+            .filter(|f| f.collection_file_type == file_type)
             .filter_map(|file| {
                 if let Some(system) = self.get_release_system() {
                     if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
@@ -321,7 +323,7 @@ impl AddReleaseMainScreen {
                 None
             })
             .collect::<Vec<iced::Element<Message>>>();
-        Column::with_children(scan_files_list).into()
+        Column::with_children(files_list).into()
     }
 
     fn create_emulator_files_list(&self) -> Element<Message> {
