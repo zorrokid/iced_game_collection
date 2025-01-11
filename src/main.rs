@@ -5,6 +5,7 @@ mod files;
 mod model;
 mod repository;
 mod screen;
+mod title_bar;
 mod util;
 mod view_model;
 
@@ -21,6 +22,7 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
+use title_bar::TitleBar;
 
 use crate::screen::Screen;
 
@@ -35,6 +37,7 @@ fn main() -> iced::Result {
 
 struct IcedGameCollection {
     screen: Screen,
+    title_bar: TitleBar,
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +51,7 @@ enum Message {
     FinishedRunningWithEmulator(Result<(), Error>),
     Error(error_screen::Message),
     SettingsMain(settings_main::Message),
+    TitleBar(title_bar::Message),
 }
 
 impl IcedGameCollection {
@@ -60,6 +64,7 @@ impl IcedGameCollection {
         (
             Self {
                 screen: home_screen,
+                title_bar: TitleBar::new(),
             },
             Task::none(),
         )
@@ -91,6 +96,7 @@ impl IcedGameCollection {
             }
             Message::Error(message) => self.update_error(message),
             Message::SettingsMain(message) => self.update_settings_main(message),
+            Message::TitleBar(message) => self.update_title_bar(message),
         }
     }
 
@@ -110,9 +116,7 @@ impl IcedGameCollection {
             Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
         };
 
-        let title_bar = text!("Iced Game Collection").size(30);
-
-        column![title_bar, view].into()
+        column![self.title_bar.view().map(Message::TitleBar), view].into()
     }
 
     fn update_settings_main(&mut self, message: settings_main::Message) -> Task<Message> {
@@ -124,6 +128,29 @@ impl IcedGameCollection {
             }
         } else {
             Task::none()
+        }
+    }
+
+    fn update_title_bar(&mut self, message: title_bar::Message) -> Task<Message> {
+        self.title_bar.update(message.clone());
+        match message {
+            title_bar::Message::TabSelected(tab) => match tab {
+                // TODO: use TabsConroller
+                title_bar::Tab::Home => self.try_create_home_screen(),
+                title_bar::Tab::Settings => {
+                    let screen = screen::SettingsMain::new();
+                    match screen {
+                        Ok(screen) => {
+                            self.screen = Screen::SettingsMain(screen);
+                            Task::none()
+                        }
+                        Err(e) => {
+                            self.screen = Screen::Error(screen::Error::new(e));
+                            Task::none()
+                        }
+                    }
+                }
+            },
         }
     }
 
