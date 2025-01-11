@@ -11,6 +11,7 @@ mod view_model;
 use bson::oid::ObjectId;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
+use iced::widget::{column, text};
 use iced::{exit, Task};
 use screen::add_release_main;
 use screen::error as error_screen;
@@ -94,7 +95,7 @@ impl IcedGameCollection {
     }
 
     fn view(&self) -> iced::Element<Message> {
-        match &self.screen {
+        let view = match &self.screen {
             Screen::Home(home) => home.view().map(Message::Home),
             Screen::ManageSystems(add_system) => add_system.view().map(Message::ManageSystems),
             Screen::ManageGames(manage_games) => manage_games.view().map(Message::ManageGames),
@@ -107,7 +108,11 @@ impl IcedGameCollection {
             }
             Screen::Error(error) => error.view().map(Message::Error),
             Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
-        }
+        };
+
+        let title_bar = text!("Iced Game Collection").size(30);
+
+        column![title_bar, view].into()
     }
 
     fn update_settings_main(&mut self, message: settings_main::Message) -> Task<Message> {
