@@ -3,11 +3,7 @@ use iced::{
     Element,
 };
 
-#[derive(Debug, Clone)]
-pub enum Tab {
-    Home,
-    Settings,
-}
+use crate::tabs::tabs_controller::Tab;
 
 #[derive(Debug, Clone)]
 pub enum Message {

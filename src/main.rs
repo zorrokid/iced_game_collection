@@ -5,9 +5,12 @@ mod files;
 mod model;
 mod repository;
 mod screen;
+mod tabs;
 mod title_bar;
 mod util;
 mod view_model;
+
+use std::ops::ControlFlow;
 
 use bson::oid::ObjectId;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
@@ -22,6 +25,7 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
+use tabs::tabs_controller::{self, Tab, TabsController};
 use title_bar::TitleBar;
 
 use crate::screen::Screen;
@@ -38,6 +42,7 @@ fn main() -> iced::Result {
 struct IcedGameCollection {
     screen: Screen,
     title_bar: TitleBar,
+    tabs_controller: TabsController,
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +57,7 @@ enum Message {
     Error(error_screen::Message),
     SettingsMain(settings_main::Message),
     TitleBar(title_bar::Message),
+    TabsController(tabs::tabs_controller::Message),
 }
 
 impl IcedGameCollection {
@@ -61,13 +67,20 @@ impl IcedGameCollection {
             Err(e) => Screen::Error(error_screen::Error::new(e)),
         };
 
-        (
-            Self {
-                screen: home_screen,
-                title_bar: TitleBar::new(),
-            },
-            Task::none(),
-        )
+        let controller = TabsController::new();
+
+        if let Ok(tabs_controller) = controller {
+            (
+                Self {
+                    screen: home_screen,
+                    title_bar: TitleBar::new(),
+                    tabs_controller,
+                },
+                Task::none(),
+            )
+        } else {
+            panic!("Failed init the app");
+        }
     }
 
     fn title(&self) -> String {
@@ -97,6 +110,7 @@ impl IcedGameCollection {
             Message::Error(message) => self.update_error(message),
             Message::SettingsMain(message) => self.update_settings_main(message),
             Message::TitleBar(message) => self.update_title_bar(message),
+            Message::TabsController(message) => self.update_tabs_controller(message),
         }
     }
 
@@ -116,7 +130,9 @@ impl IcedGameCollection {
             Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
         };
 
-        column![self.title_bar.view().map(Message::TitleBar), view].into()
+        let tab_view = self.tabs_controller.view().map(Message::TabsController);
+
+        column![self.title_bar.view().map(Message::TitleBar), view, tab_view].into()
     }
 
     fn update_settings_main(&mut self, message: settings_main::Message) -> Task<Message> {
@@ -131,26 +147,19 @@ impl IcedGameCollection {
         }
     }
 
+    fn update_tabs_controller(&mut self, message: tabs::tabs_controller::Message) -> Task<Message> {
+        self.tabs_controller
+            .update(message)
+            .map(Message::TabsController)
+    }
+
     fn update_title_bar(&mut self, message: title_bar::Message) -> Task<Message> {
         self.title_bar.update(message.clone());
         match message {
-            title_bar::Message::TabSelected(tab) => match tab {
-                // TODO: use TabsConroller
-                title_bar::Tab::Home => self.try_create_home_screen(),
-                title_bar::Tab::Settings => {
-                    let screen = screen::SettingsMain::new();
-                    match screen {
-                        Ok(screen) => {
-                            self.screen = Screen::SettingsMain(screen);
-                            Task::none()
-                        }
-                        Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e));
-                            Task::none()
-                        }
-                    }
-                }
-            },
+            title_bar::Message::TabSelected(tab) => self
+                .tabs_controller
+                .switch_to_tab(tab)
+                .map(Message::TabsController),
         }
     }
 
