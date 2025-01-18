@@ -32,6 +32,7 @@ impl TitleBar {
     pub fn view(&self) -> Element<Message> {
         let home_button = button("Home").on_press(Message::TabSelected(Tab::Home));
         let settings_button = button("Settings").on_press(Message::TabSelected(Tab::Settings));
-        row![home_button, settings_button].into()
+        let games_button = button("Games").on_press(Message::TabSelected(Tab::Games));
+        row![home_button, settings_button, games_button].into()
     }
 }

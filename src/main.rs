@@ -67,7 +67,7 @@ impl IcedGameCollection {
             Err(e) => Screen::Error(error_screen::Error::new(e)),
         };
 
-        let controller = TabsController::new();
+        let controller = TabsController::new(None);
 
         if let Ok(tabs_controller) = controller {
             (
