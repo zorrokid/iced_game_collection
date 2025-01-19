@@ -11,10 +11,15 @@ use crate::{
 
 pub struct GamesList {
     pub games: Vec<GameListModel>,
+    pub selected_game: Option<ObjectId>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    ViewGame(ObjectId),
+}
+
+pub enum Action {
     ViewGame(ObjectId),
 }
 
@@ -26,16 +31,20 @@ impl GamesList {
             vec![]
         });
 
-        Self { games }
+        Self {
+            games,
+            selected_game: None,
+        }
     }
 
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(id) => {
-                println!("Viewing game with id: {:?}", id);
+                self.selected_game = Some(id);
+                println!("ViewGame message received with id: {:?}", id);
+                Action::ViewGame(id)
             }
         }
-        Task::none()
     }
 
     pub fn view(&self) -> iced::Element<Message> {

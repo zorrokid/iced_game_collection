@@ -1,3 +1,4 @@
+use bson::oid::ObjectId;
 use iced::{
     widget::{row, text},
     Task,
@@ -36,8 +37,39 @@ impl GamesTab {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::GameSelected(message) => {
-                self.games_list.update(message).map(Message::GameSelected)
+                println!("Game selected message received: {:?}", message);
+                match message {
+                    games_list_widget::Message::ViewGame(game_id) => {
+                        println!("Game selected message received with game id: {:?}", game_id);
+                        self.releases_list
+                            .update(releases_list_widget::Message::GameSelected(game_id));
+                        Task::none()
+                    }
+                }
             } // Handle other messages here
+            Message::ReleaseSelected(message) => {
+                println!("Release selected message received: {:?}", message);
+                match message {
+                    releases_list_widget::Message::ViewRelease(release_id) => {
+                        println!(
+                            "Release selected message received with release id: {:?}",
+                            release_id
+                        );
+                        self.release_details
+                            .update(release_details_widget::Message::ReleaseSelected(release_id));
+                        Task::none()
+                    }
+                    releases_list_widget::Message::GameSelected(game_id) => {
+                        println!(
+                            "Release selected message received with game id: {:?}",
+                            game_id
+                        );
+                        self.releases_list
+                            .update(releases_list_widget::Message::GameSelected(game_id));
+                        Task::none()
+                    }
+                }
+            }
             _ => Task::none(),
         }
     }

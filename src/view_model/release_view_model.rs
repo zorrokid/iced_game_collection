@@ -22,6 +22,18 @@ pub struct ReleaseViewModel {
     pub games: Vec<Game>,
 }
 
+impl Default for ReleaseViewModel {
+    fn default() -> Self {
+        Self {
+            id: ObjectId::new(),
+            name: "".to_string(),
+            system: System::default(),
+            files: vec![],
+            games: vec![],
+        }
+    }
+}
+
 pub fn get_release_view_model<R>(
     release_id: &ObjectId,
     repository: &R,
