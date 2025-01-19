@@ -1,3 +1,7 @@
+use crate::emulator_runner::{
+    process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions,
+};
+use crate::error::Error;
 use crate::model::model::HasOid;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
@@ -33,9 +37,11 @@ pub enum Message {
     ViewImage(PathBuf),
     RunWithEmulator(Emulator, String, CollectionFileType),
     FileSelected(ObjectId, String),
+    FinishedRunningWithEmulator(Result<(), Error>),
 }
 
 pub enum Action {
+    Run(Task<Message>),
     None,
 }
 
@@ -75,11 +81,42 @@ impl ReleaseDetails {
                 // TODO
             }
             Message::FileSelected(id, file) => {
-                // TODO
+                self.selected_file.insert(id, file);
             }
             Message::RunWithEmulator(emulator, selected_file_name, selcted_file_type) => {
+                if let Some(release) = &self.release {
+                    let system = &release.system;
+                    let options = EmulatorRunOptions {
+                        emulator,
+                        files: release.files.clone(),
+                        selected_file_name: selected_file_name,
+                        source_path: self
+                            .file_path_builder
+                            .build_target_directory(system, &selcted_file_type),
+                        target_path: env::temp_dir(),
+                    };
+                    match process_files_for_emulator(&options) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            println!("Failed to process files for emulator {:?}", e);
+                            return Action::None;
+                        }
+                    }
+                    return Action::Run(Task::perform(
+                        run_with_emulator_async(options),
+                        Message::FinishedRunningWithEmulator,
+                    ));
+
+                    // TODO
+                }
                 // TODO
             }
+            Message::FinishedRunningWithEmulator(result) => match result {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("Failed to run with emulator {:?}", e);
+                }
+            },
         }
         // TODO: handle ReleaseSelected message
         // Update fields here

@@ -70,6 +70,10 @@ impl GamesTab {
                     }
                 }
             }
+            Message::ShowReleaseDetails(message) => match self.release_details.update(message) {
+                release_details_widget::Action::Run(task) => task.map(Message::ShowReleaseDetails),
+                release_details_widget::Action::None => Task::none(),
+            },
             _ => Task::none(),
         }
     }
