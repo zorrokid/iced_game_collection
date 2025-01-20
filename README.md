@@ -22,33 +22,6 @@ A game can belong to multiple releases and a release can contain multiple games 
 A collection file can be a single file or an archive file containing multiple files.
 Collection file should also have a type, whether is a file for emulator (rom, disk or tape image), manual, box scan or some other kind of file.
 
-# UI Components
-
-```mermaid
-graph LR;
-    main{{main}}-->Home;
-    main-->ManageSystems;
-    main-->ManageGames;
-    main-->ManageEmulators;
-    main-->Error;
-    main-->AddReleaseMain{{AddReleaseMain}};
-    main-->GamesMain;
-    main-->SettingsMain{{SettingsMain}};
-    AddReleaseMain-->AddReleaseMainScreen;
-    AddReleaseMain-->ManageGames;
-    AddReleaseMain-->ManageSystems;
-    AddReleaseMain-->ViewImage;
-    SettingsMain-->SettingsMainScreen;
-    GamesMain{{GamesMain}}-->ViewGameMain;
-    GamesMain-->GamesMainScreen;
-    ViewGameMain{{ViewGameMain}}-->ViewGame;
-    ViewGameMain-->ViewImage;
-    ViewGameMain-->ViewRelease;
-    ViewGameMain-->AddReleaseMain;
-    
-
-
-```
 
 # Starting
 
