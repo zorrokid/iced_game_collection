@@ -1,4 +1,3 @@
-use bson::oid::ObjectId;
 use iced::{
     widget::{row, text},
     Task,
@@ -6,6 +5,7 @@ use iced::{
 
 use super::widgets::{
     games_list_widget::{self, GamesList},
+    image_viewer_widget::{self, ImageViewer},
     release_details_widget::{self, ReleaseDetails},
     releases_list_widget::{self, ReleasesList},
 };
@@ -14,7 +14,7 @@ pub struct GamesTab {
     games_list: GamesList,
     releases_list: ReleasesList,
     release_details: ReleaseDetails,
-    // Add fields here
+    image_viewer: ImageViewer,
 }
 
 #[derive(Debug, Clone)]
@@ -22,7 +22,7 @@ pub enum Message {
     GameSelected(games_list_widget::Message),
     ReleaseSelected(releases_list_widget::Message),
     ShowReleaseDetails(release_details_widget::Message),
-    // Add message variants here
+    ViewImage(image_viewer_widget::Message),
 }
 
 impl GamesTab {
@@ -31,6 +31,7 @@ impl GamesTab {
             games_list: GamesList::new(),
             releases_list: ReleasesList::new(),
             release_details: ReleaseDetails::new(),
+            image_viewer: ImageViewer::new(),
         }
     }
 
@@ -72,6 +73,11 @@ impl GamesTab {
             }
             Message::ShowReleaseDetails(message) => match self.release_details.update(message) {
                 release_details_widget::Action::Run(task) => task.map(Message::ShowReleaseDetails),
+                release_details_widget::Action::ImageSelected(path) => {
+                    self.image_viewer
+                        .update(image_viewer_widget::Message::ImageSelected(path));
+                    Task::none()
+                }
                 release_details_widget::Action::None => Task::none(),
             },
             _ => Task::none(),
@@ -83,6 +89,7 @@ impl GamesTab {
             self.games_list.view().map(Message::GameSelected),
             self.releases_list.view().map(Message::ReleaseSelected),
             self.release_details.view().map(Message::ShowReleaseDetails),
+            self.image_viewer.view().map(Message::ViewImage),
         ]
         .into()
     }

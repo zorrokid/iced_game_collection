@@ -9,7 +9,7 @@ use crate::view_model::release_view_model::ReleaseViewModel;
 use crate::{
     model::{
         collection_file::{CollectionFileType, GetFileExtensions},
-        model::{Emulator, Release, Settings, System},
+        model::{Emulator, Settings},
     },
     view_model::release_view_model::get_release_view_model,
 };
@@ -42,6 +42,7 @@ pub enum Message {
 
 pub enum Action {
     Run(Task<Message>),
+    ImageSelected(PathBuf),
     None,
 }
 
@@ -77,9 +78,7 @@ impl ReleaseDetails {
                 });
                 self.release = release;
             }
-            Message::ViewImage(path) => {
-                // TODO
-            }
+            Message::ViewImage(path) => return Action::ImageSelected(path),
             Message::FileSelected(id, file) => {
                 self.selected_file.insert(id, file);
             }
@@ -106,10 +105,7 @@ impl ReleaseDetails {
                         run_with_emulator_async(options),
                         Message::FinishedRunningWithEmulator,
                     ));
-
-                    // TODO
                 }
-                // TODO
             }
             Message::FinishedRunningWithEmulator(result) => match result {
                 Ok(_) => {}
@@ -118,8 +114,6 @@ impl ReleaseDetails {
                 }
             },
         }
-        // TODO: handle ReleaseSelected message
-        // Update fields here
         Action::None
     }
 
