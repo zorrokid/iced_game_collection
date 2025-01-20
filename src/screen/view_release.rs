@@ -57,8 +57,7 @@ impl ViewRelease {
             ))),
             Some(release) => Ok(Self {
                 release,
-                selected_file: HashMap::new(),
-                emulators,
+                selected_file: HashMap::new(), emulators,
                 settings,
                 file_path_builder,
             }),
