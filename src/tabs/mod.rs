@@ -1,3 +1,4 @@
+pub mod add_release_tab;
 pub mod games_tab;
 pub mod home_tab;
 pub mod settings_tab;

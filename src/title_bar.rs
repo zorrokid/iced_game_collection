@@ -33,6 +33,14 @@ impl TitleBar {
         let home_button = button("Home").on_press(Message::TabSelected(Tab::Home));
         let settings_button = button("Settings").on_press(Message::TabSelected(Tab::Settings));
         let games_button = button("Games").on_press(Message::TabSelected(Tab::Games));
-        row![home_button, settings_button, games_button].into()
+        let add_release_button =
+            button("Add release").on_press(Message::TabSelected(Tab::AddRelease));
+        row![
+            home_button,
+            settings_button,
+            games_button,
+            add_release_button
+        ]
+        .into()
     }
 }

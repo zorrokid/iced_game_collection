@@ -2,13 +2,14 @@ use iced::Task;
 
 use crate::error::Error;
 
-use super::{games_tab, home_tab, settings_tab};
+use super::{add_release_tab, games_tab, home_tab, settings_tab};
 
 #[derive(Debug, Clone)]
 pub enum Tab {
     Home,
     Settings,
     Games,
+    AddRelease,
 }
 
 #[derive(Debug, Clone)]
@@ -16,6 +17,7 @@ pub enum Message {
     Home(home_tab::Message),
     Settings(settings_tab::Message),
     Games(games_tab::Message),
+    AddRelease(add_release_tab::Message),
 }
 
 pub struct TabsController {
@@ -23,6 +25,7 @@ pub struct TabsController {
     home_tab: home_tab::HomeTab,
     settings_tab: settings_tab::SettingsTab,
     games_tab: games_tab::GamesTab,
+    add_release_tab: add_release_tab::AddReleaseTab,
 }
 
 impl TabsController {
@@ -33,6 +36,7 @@ impl TabsController {
             home_tab: home_tab::HomeTab::new(),
             settings_tab,
             games_tab: games_tab::GamesTab::new(),
+            add_release_tab: add_release_tab::AddReleaseTab::new(),
         })
     }
 
@@ -41,6 +45,10 @@ impl TabsController {
             Message::Home(message) => self.home_tab.update(message).map(Message::Home),
             Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
             Message::Games(message) => self.games_tab.update(message).map(Message::Games),
+            Message::AddRelease(message) => self
+                .add_release_tab
+                .update(message)
+                .map(Message::AddRelease),
         }
     }
 
@@ -49,6 +57,7 @@ impl TabsController {
             Tab::Home => self.home_tab.view().map(Message::Home),
             Tab::Settings => self.settings_tab.view().map(Message::Settings),
             Tab::Games => self.games_tab.view().map(Message::Games),
+            Tab::AddRelease => self.add_release_tab.view().map(Message::AddRelease),
         }
     }
 
