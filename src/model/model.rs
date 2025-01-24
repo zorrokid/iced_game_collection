@@ -84,9 +84,16 @@ impl HasOid for Release {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct Franchise {
+    pub _id: Option<ObjectId>,
+    pub name: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
     pub _id: Option<ObjectId>,
     pub name: String,
+    pub franchise_id: Option<ObjectId>,
 }
 
 impl Display for Game {
@@ -146,6 +153,7 @@ impl Default for Game {
         Game {
             _id: None,
             name: "".to_string(),
+            franchise_id: None,
         }
     }
 }

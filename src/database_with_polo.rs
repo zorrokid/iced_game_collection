@@ -661,6 +661,7 @@ mod tests {
         Game {
             _id: None,
             name: "Test game".to_string(),
+            franchise_id: None,
         }
     }
 
