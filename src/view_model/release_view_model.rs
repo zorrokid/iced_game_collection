@@ -102,6 +102,7 @@ mod tests {
         let game = Game {
             _id: Some(game_id.clone()),
             name: "Test Game".to_string(),
+            franchise_id: None,
         };
 
         let collection_file = CollectionFile {

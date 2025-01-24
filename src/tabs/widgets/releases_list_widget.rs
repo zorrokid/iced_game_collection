@@ -1,10 +1,11 @@
 use bson::oid::ObjectId;
 use iced::{
     widget::{button, row, text, Column},
-    Length, Task,
+    Length,
 };
 
 use crate::{
+    database_with_polo::DatabaseWithPolo,
     model::model::Game,
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
@@ -18,9 +19,12 @@ pub struct ReleasesList {
 pub enum Message {
     GameSelected(ObjectId),
     ViewRelease(ObjectId),
+    EditRelease(ObjectId),
+    DeleteRelease(ObjectId),
 }
 
 pub enum Action {
+    EditRelease(ObjectId),
     None,
 }
 
@@ -29,7 +33,6 @@ impl ReleasesList {
         Self {
             game: None,
             releases: vec![],
-            // Initialize fields here
         }
     }
 
@@ -53,6 +56,20 @@ impl ReleasesList {
                 println!("ViewRelease message received with id: {:?}", id);
                 Action::None
             }
+            Message::DeleteRelease(id) => {
+                match DatabaseWithPolo::get_instance().delete_release(&id) {
+                    Ok(_) => {
+                        self.releases.retain(|release| release.id != id);
+                        Action::None
+                    }
+                    Err(e) => {
+                        // TODO: Show error message
+                        println!("Failed to delete release {:?}", e);
+                        Action::None
+                    }
+                }
+            }
+            Message::EditRelease(id) => Action::EditRelease(id),
         }
     }
 
@@ -61,12 +78,26 @@ impl ReleasesList {
             .releases
             .iter()
             .map(|release| {
+                let edit_release_button = button("Edit")
+                    .on_press(Message::EditRelease(release.id))
+                    .width(Length::Fixed(100.0));
                 let view_release_button = button("View")
                     .on_press(Message::ViewRelease(release.id))
                     .width(Length::Fixed(100.0));
+                let delete_button = button("Delete")
+                    .on_press_maybe(
+                        release
+                            .can_delete
+                            .then(|| Message::DeleteRelease(release.id)),
+                    )
+                    .width(Length::Fixed(100.0));
+
                 let release_row = row![
                     text(&release.name).width(Length::Fixed(100.0)),
+                    text(&release.system_name).width(Length::Fixed(100.0)),
                     view_release_button,
+                    edit_release_button,
+                    delete_button,
                 ];
 
                 release_row.into()

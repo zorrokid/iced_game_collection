@@ -1,7 +1,4 @@
-use iced::{
-    widget::{row, text},
-    Task,
-};
+use iced::{widget::row, Task};
 
 use super::widgets::{
     games_list_widget::{self, GamesList},
@@ -47,7 +44,7 @@ impl GamesTab {
                         Task::none()
                     }
                 }
-            } // Handle other messages here
+            }
             Message::ReleaseSelected(message) => {
                 println!("Release selected message received: {:?}", message);
                 match message {
@@ -67,6 +64,18 @@ impl GamesTab {
                         );
                         self.releases_list
                             .update(releases_list_widget::Message::GameSelected(game_id));
+                        Task::none()
+                    }
+                    releases_list_widget::Message::EditRelease(release_id) => {
+                        println!(
+                            "Edit release message received with release id: {:?}",
+                            release_id
+                        );
+                        // TODO: send action to TabsController to open edit release screen
+                        Task::none()
+                    }
+                   _ => {
+                        self.releases_list.update(message);
                         Task::none()
                     }
                 }
