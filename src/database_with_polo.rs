@@ -10,17 +10,18 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Emulator, Game, HasOid, Release, ReleasesByGame, Settings, System},
+        model::{Emulator, Franchise, Game, HasOid, Release, ReleasesByGame, Settings, System},
     },
     repository::repository::{
-        CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
-        SystemReadRepository,
+        CollectionFilesReadRepository, FranchisReadRepository, GamesReadRepository,
+        ReleaseReadRepository, SystemReadRepository,
     },
 };
 
 const COLLECTION_DATABASE_NAME: &str = "iced_game_collection.db";
 const SYSTEM_COLLECTION: &str = "system";
 const GAME_COLLECTION: &str = "game";
+const FRANCHISE_COLLECTION: &str = "franchise";
 const EMULATOR_COLLECTION: &str = "emulator";
 const SETTINGS_COLLECTION: &str = "settings";
 const RELEASE_COLLECTION: &str = "release";
@@ -609,6 +610,20 @@ impl GamesReadRepository for DatabaseWithPolo {
     }
     fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error> {
         self.get_with_id(RELEASES_BY_GAMES_COLLECTION, game_id)
+    }
+}
+
+impl FranchisReadRepository for DatabaseWithPolo {
+    fn get_all_franchises(&self) -> Result<Vec<Franchise>, Error> {
+        self.get_all_items(FRANCHISE_COLLECTION)
+    }
+    fn add_franchise(&self, name: &str) -> Result<ObjectId, Error> {
+        let franchise = Franchise {
+            _id: None,
+            name: name.to_string(),
+        };
+        let id = self.add_item(FRANCHISE_COLLECTION, &franchise)?;
+        Ok(id)
     }
 }
 

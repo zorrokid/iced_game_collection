@@ -1,20 +1,33 @@
 use iced::{widget::text, Task};
 
-pub struct AddReleaseTab {}
+use super::widgets::add_game_widget;
+
+pub struct AddReleaseTab {
+    add_game_widget: add_game_widget::AddGame,
+}
 
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    AddGame(add_game_widget::Message),
+}
 
 impl AddReleaseTab {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            add_game_widget: add_game_widget::AddGame::new(),
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
-        Task::none()
+        match message {
+            Message::AddGame(message) => {
+                self.add_game_widget.update(message);
+                Task::none()
+            }
+        }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        text("Add Release Tab").into()
+        self.add_game_widget.view().map(Message::AddGame)
     }
 }

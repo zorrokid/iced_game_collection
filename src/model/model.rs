@@ -89,6 +89,13 @@ pub struct Franchise {
     pub name: String,
 }
 
+impl Display for Franchise {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
     pub _id: Option<ObjectId>,

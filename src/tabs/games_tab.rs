@@ -74,7 +74,7 @@ impl GamesTab {
                         // TODO: send action to TabsController to open edit release screen
                         Task::none()
                     }
-                   _ => {
+                    _ => {
                         self.releases_list.update(message);
                         Task::none()
                     }
