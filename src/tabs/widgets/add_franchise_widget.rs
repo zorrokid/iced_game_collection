@@ -6,7 +6,7 @@ use crate::{
     repository::repository::FranchisReadRepository,
 };
 
-pub struct FranchiseSelect{
+pub struct AddFranchise{
     new_franchise_name: String,
 }
 
@@ -23,7 +23,7 @@ pub enum Action {
     None,
 }
 
-impl FranchiseSelect {
+impl AddFranchise {
     pub fn new() -> Self {
         Self { new_franchise_name: "".to_string() }
     }
@@ -53,7 +53,7 @@ impl FranchiseSelect {
     pub fn view(&self) -> iced::Element<Message> {
         row![
             text_input("Franchise name", &self.new_franchise_name).on_input(Message::FranchiseNameUpdated),
-            button("Submit franchise").on_press(Message::Submit),
+            button("Submit franchise").on_press_maybe((!self.new_franchise_name.is_empty()).then(||Message::Submit)),
             button("Cancel").on_press(Message::CancelAddFranchise) 
         ]
         .into()

@@ -6,13 +6,13 @@ use crate::{
     repository::repository::FranchisReadRepository,
 };
 
-use super::franchise_widget::{self, FranchiseSelect};
+use super::add_franchise_widget::{self, AddFranchise};
 
 pub struct AddGame {
     franchises: Vec<Franchise>,
     selected_franchise: Option<Franchise>,
     game_name: String,
-    francise_select: FranchiseSelect,
+    francise_select: AddFranchise,
     adding_franchise: bool,
 }
 
@@ -21,7 +21,7 @@ pub enum Message {
     FranchiseSelected(Franchise),
     Submit,
     SetAddFranchise,
-    AddFranchise(franchise_widget::Message),
+    AddFranchise(add_franchise_widget::Message),
     GameNameUpdated(String),
     CancelAddGame,
 }
@@ -39,7 +39,7 @@ impl AddGame {
             println!("Failed to get franchises {:?}", err);
             vec![]
         });
-        Self { franchises, selected_franchise: None, game_name: "".to_string(), francise_select: FranchiseSelect::new(), adding_franchise: false }
+        Self { franchises, selected_franchise: None, game_name: "".to_string(), francise_select: AddFranchise::new(), adding_franchise: false }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -69,11 +69,11 @@ impl AddGame {
             Message::AddFranchise(message) => {
                 let action = self.francise_select.update(message);
                 match action {
-                    franchise_widget::Action::FranchiseAdded(franchise) => {
+                    add_franchise_widget::Action::FranchiseAdded(franchise) => {
                         self.franchises.push(franchise.clone());
                         self.adding_franchise = false;
                     }
-                    franchise_widget::Action::CancelAddFranchise => {
+                    add_franchise_widget::Action::CancelAddFranchise => {
                         self.adding_franchise = false;
                     }
                     _ => {}

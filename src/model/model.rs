@@ -27,6 +27,13 @@ impl GetIdString for System {
     }
 }
 
+impl WithId for System {
+    fn with_id(mut self, id: ObjectId) -> Self {
+        self._id = Some(id);
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Release {
     pub _id: Option<ObjectId>,
