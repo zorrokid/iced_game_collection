@@ -61,6 +61,13 @@ impl HasOid for Game {
     }
 }
 
+impl WithId for Game {
+    fn with_id(mut self, id: ObjectId) -> Self {
+        self._id = Some(id);
+        self
+    }
+}
+
 impl HasOid for System {
     fn id(&self) -> ObjectId {
         self._id.clone().expect("Object id not set")
@@ -70,6 +77,11 @@ impl HasOid for System {
 pub trait HasOid {
     fn id(&self) -> ObjectId;
 }
+
+pub trait WithId {
+    fn with_id(self, id: ObjectId) -> Self;
+}
+
 
 impl HasOid for Emulator {
     fn id(&self) -> ObjectId {
@@ -92,6 +104,13 @@ pub struct Franchise {
 impl Display for Franchise {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+impl WithId for Franchise {
+    fn with_id(mut self, id: ObjectId) -> Self {
+        self._id = Some(id);
+        self
     }
 }
 

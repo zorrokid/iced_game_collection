@@ -2,7 +2,7 @@ use iced::widget::{button, column, pick_list, row, text_input};
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
-    model::model::Franchise,
+    model::model::{Franchise, Game, WithId},
     repository::repository::FranchisReadRepository,
 };
 
@@ -22,10 +22,13 @@ pub enum Message {
     Submit,
     SetAddFranchise,
     AddFranchise(franchise_widget::Message),
+    GameNameUpdated(String),
+    CancelAddGame,
 }
 
 pub enum Action {
-    GameAdded,
+    GameAdded(Game),
+    CancelAddGame,
     None,
 }
 
@@ -46,7 +49,18 @@ impl AddGame {
                 Action::None
             }
             Message::Submit => {
-                Action::GameAdded
+                let db = DatabaseWithPolo::get_instance();
+                let franchise_id = if let Some(franchise) = self.selected_franchise.as_ref() {
+                    franchise._id.clone()
+                } else {
+                    None
+                };
+                let game_to_db = Game { _id: None, name: self.game_name.clone(), franchise_id };
+                if let Ok(id) = db.add_game(&game_to_db) {
+                   Action::GameAdded(game_to_db.clone().with_id(id))
+                } else {
+                    Action::None
+                }
             }
             Message::SetAddFranchise => {
                 self.adding_franchise = true;
@@ -54,11 +68,25 @@ impl AddGame {
             }
             Message::AddFranchise(message) => {
                 let action = self.francise_select.update(message);
-                if let franchise_widget::Action::FranchiseAdded(franchise) = action {
-                    self.franchises.push(franchise.clone());
-                    self.adding_franchise = false;
+                match action {
+                    franchise_widget::Action::FranchiseAdded(franchise) => {
+                        self.franchises.push(franchise.clone());
+                        self.adding_franchise = false;
+                    }
+                    franchise_widget::Action::CancelAddFranchise => {
+                        self.adding_franchise = false;
+                    }
+                    _ => {}
                 }
                 Action::None
+            }
+            Message::GameNameUpdated(name) => {
+                self.game_name = name;
+                Action::None
+            }
+            Message::CancelAddGame => {
+                self.adding_franchise = false;
+                Action::CancelAddGame
             }
         }
     }
@@ -66,29 +94,33 @@ impl AddGame {
     pub fn view(&self) -> iced::Element<Message> {
         let franchise_row = row![
             self.create_franchise_dropdown(),
-            button("Add Franchise").on_press(Message::SetAddFranchise)
+            button("Add Franchise").on_press_maybe((!self.adding_franchise).then(|| Message::SetAddFranchise))
         ];
         let add_franchise_row = if self.adding_franchise {
             self.francise_select.view().map(Message::AddFranchise)
         } else {
             row![].into()
         };
+
+        let add_game_row = row![
+            text_input("Game Name", &self.game_name).on_input(Message::GameNameUpdated),
+            button("Submit game").on_press_maybe((!self.game_name.is_empty()).then(|| Message::Submit)),
+            button("Cancel").on_press(Message::CancelAddGame),
+        ];
         
         column![
-            text_input("Game Name", &self.game_name),
+            add_game_row,
             franchise_row,
             add_franchise_row,
-            button("Submit")
         ]
         .into()
     }
 
     fn create_franchise_dropdown(&self) -> iced::Element<Message> {
-        let pick_list = pick_list(
+        pick_list(
             self.franchises.clone(),
             self.selected_franchise.clone(),
             Message::FranchiseSelected,
-        );
-        pick_list.into()
+        ).into()
     }
 }
