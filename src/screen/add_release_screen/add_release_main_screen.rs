@@ -103,14 +103,8 @@ impl AddReleaseMainScreen {
             Message::SystemSelected(system) => Action::SystemSelected(system),
             Message::SelectFile => Action::Run(Task::perform(pick_file(), Message::FilePicked)),
             Message::FilePicked(result) => {
-                let selected_system = self.systems.iter().find(|system| {
-                    self.release
-                        .system_id
-                        .map_or(false, |system_id| system.id() == system_id)
-                });
-
-                if let (Some(system), Some(selected_file_type)) =
-                    (selected_system, self.selected_file_type.clone())
+                if let (Some(system_id), Some(selected_file_type)) =
+                    (self.release.system_id, self.selected_file_type.clone())
                 {
                     match result {
                         Ok(picked_file) => {
@@ -125,8 +119,10 @@ impl AddReleaseMainScreen {
                             match db.add_collection_file(&collection_file) {
                                 Ok(id) => Action::Run(Task::perform(
                                     copy_file(
-                                        self.file_path_builder
-                                            .build_target_directory(system, &selected_file_type),
+                                        self.file_path_builder.build_target_directory(
+                                            &system_id,
+                                            &selected_file_type,
+                                        ),
                                         id,
                                         picked_file,
                                     ),
@@ -160,7 +156,8 @@ impl AddReleaseMainScreen {
             Message::DeleteFile(id) => {
                 if let Some(system) = self.get_release_system() {
                     if let Some(file) = self.files.iter().find(|f| f.id() == id) {
-                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
+                        if let Ok(file_path) =
+                            self.file_path_builder.build_file_path(&system.id(), file)
                         {
                             // TODO: remove also thumbnail if exists
                             return Action::Run(Task::perform(
@@ -295,7 +292,7 @@ impl AddReleaseMainScreen {
         );
         let add_file_button = button("Add File").on_press_maybe(
             (self.release.system_id.is_some() && self.selected_file_type.is_some())
-                .then(|| Message::SelectFile),
+                .then_some(Message::SelectFile),
         );
         row![collection_file_type_picker, add_file_button].into()
     }
@@ -307,8 +304,9 @@ impl AddReleaseMainScreen {
             .filter(|f| f.collection_file_type == file_type)
             .filter_map(|file| {
                 if let Some(system) = self.get_release_system() {
-                    if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, system) {
-                        if let Ok(file_path) = self.file_path_builder.build_file_path(system, file)
+                    if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, &system.id()) {
+                        if let Ok(file_path) =
+                            self.file_path_builder.build_file_path(&system.id(), file)
                         {
                             let image = image(thumb_path);
                             let view_image_button =

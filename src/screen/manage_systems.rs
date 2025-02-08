@@ -120,7 +120,7 @@ impl ManageSystems {
                     button("Delete").on_press_maybe(
                         system
                             .can_delete
-                            .then(|| Message::DeleteSystem(system.id()))
+                            .then_some(Message::DeleteSystem(system.id()))
                     ),
                 ]
                 .into()

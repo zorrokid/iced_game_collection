@@ -1,9 +1,11 @@
+use bson::oid::ObjectId;
+
 use crate::{
     error::Error,
     files::get_file_extension,
     model::{
         collection_file::{CollectionFile, CollectionFileType},
-        model::{GetIdString, HasOid, System},
+        model::GetIdString,
     },
 };
 use std::path::{Path, PathBuf};
@@ -22,13 +24,13 @@ impl FilePathBuilder {
 
     pub fn build_file_path(
         &self,
-        system: &System,
+        system_id: &ObjectId,
         collection_file: &CollectionFile,
     ) -> Result<PathBuf, Error> {
         let mut path = PathBuf::from(&self.collection_root_dir);
 
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
-        path.push(&system.id().to_string());
+        path.push(&system_id.to_hex());
         path.push(&collection_file.collection_file_type.directory());
         path.push(&collection_file.get_id_string());
         Ok(path.with_extension(extension))
@@ -36,11 +38,11 @@ impl FilePathBuilder {
 
     pub fn build_target_directory(
         &self,
-        system: &System,
+        system_id: &ObjectId,
         file_type: &CollectionFileType,
     ) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(&system.id().to_hex());
+        path.push(&system_id.to_hex());
         path.push(&file_type.directory());
         path
     }
@@ -62,11 +64,7 @@ mod tests {
         let collection_root_dir = "/home/user/collection".to_string();
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
-        let system = System {
-            _id: Some(ObjectId::new()),
-            name: "System".to_string(),
-            notes: None,
-        };
+        let system_id = ObjectId::new();
 
         let collection_file = CollectionFile {
             _id: Some(ObjectId::new()),
@@ -79,14 +77,14 @@ mod tests {
             collection_file_type: CollectionFileType::DiskImage,
         };
 
-        let result = file_path_builder.build_file_path(&system, &collection_file);
+        let result = file_path_builder.build_file_path(&system_id, &collection_file);
         assert!(result.is_ok());
         let path = result.unwrap();
         assert_eq!(
             path,
             PathBuf::from(format!(
                 "/home/user/collection/{}/disk_images/{}.zip",
-                system.get_id_string(),
+                system_id.to_hex(),
                 collection_file.get_id_string()
             ))
         );
@@ -97,20 +95,16 @@ mod tests {
         let collection_root_dir = "/home/user/collection".to_string();
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
-        let system = System {
-            _id: Some(ObjectId::new()),
-            name: "System".to_string(),
-            notes: None,
-        };
+        let system_id = ObjectId::new();
 
         let file_type = CollectionFileType::DiskImage;
 
-        let path = file_path_builder.build_target_directory(&system, &file_type);
+        let path = file_path_builder.build_target_directory(&system_id, &file_type);
         assert_eq!(
             path,
             PathBuf::from(format!(
                 "/home/user/collection/{}/disk_images",
-                system.id().to_hex()
+                system_id.to_hex()
             ))
         );
     }

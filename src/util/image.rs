@@ -9,16 +9,17 @@ use crate::{
 };
 
 use super::file_path_builder::FilePathBuilder;
+use bson::oid::ObjectId;
 use image;
 
 pub fn get_thumbnail_path(
     collection_file: &CollectionFile,
     settings: &Settings,
-    system: &System,
+    system_id: &ObjectId,
 ) -> Result<PathBuf, Error> {
     let thumbnail_directory = Path::new(&settings.collection_root_dir).join("thumbnails");
     let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
-    let file_path = file_path_builder.build_file_path(system, collection_file)?;
+    let file_path = file_path_builder.build_file_path(system_id, collection_file)?;
 
     let thumbnail_path = thumbnail_directory
         .join(collection_file.get_id_string())

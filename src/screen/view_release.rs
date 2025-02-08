@@ -57,7 +57,8 @@ impl ViewRelease {
             ))),
             Some(release) => Ok(Self {
                 release,
-                selected_file: HashMap::new(), emulators,
+                selected_file: HashMap::new(),
+                emulators,
                 settings,
                 file_path_builder,
             }),
@@ -72,14 +73,13 @@ impl ViewRelease {
         match message {
             Message::Back => Action::Back,
             Message::RunWithEmulator(emulator, selected_file_name, collection_file_type) => {
-                let system = &self.release.system;
                 let options = EmulatorRunOptions {
                     emulator,
                     files: self.release.files.clone(),
-                    selected_file_name: selected_file_name,
+                    selected_file_name,
                     source_path: self
                         .file_path_builder
-                        .build_target_directory(system, &collection_file_type),
+                        .build_target_directory(&self.release.system.id(), &collection_file_type),
                     target_path: env::temp_dir(),
                 };
                 Action::RunWithEmulator(options)
@@ -135,11 +135,11 @@ impl ViewRelease {
             .filter(|f| f.collection_file_type == *file_type)
             .filter_map(|file| {
                 if let Ok(thumb_path) =
-                    get_thumbnail_path(file, &self.settings, &self.release.system)
+                    get_thumbnail_path(file, &self.settings, &self.release.system.id())
                 {
                     if let Ok(file_path) = self
                         .file_path_builder
-                        .build_file_path(&self.release.system, file)
+                        .build_file_path(&self.release.system.id(), file)
                     {
                         let image = image(thumb_path);
                         let view_image_button =

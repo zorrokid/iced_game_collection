@@ -1,3 +1,4 @@
+use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, container, pick_list, row, text, text_input},
     Task,
@@ -5,28 +6,31 @@ use iced::{
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
-    model::model::{Game, System},
+    model::model::{Game, HasOid, System},
     repository::repository::SystemReadRepository,
 };
 
-use super::widgets::{add_game_widget, add_system_widget};
+use super::widgets::{add_game_widget, add_system_widget, file_select_widget};
 
 pub struct AddReleaseTab {
     games: Vec<Game>,
     selected_game: Option<Game>,
     add_game_widget: add_game_widget::AddGame,
     add_system_widget: add_system_widget::AddSystem,
+    file_select_widget: file_select_widget::FileSelect,
     adding_game: bool,
     adding_system: bool,
     release_name: String,
     systems: Vec<System>,
     selected_system: Option<System>,
+    files: Vec<ObjectId>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     AddGame(add_game_widget::Message),
     AddSystem(add_system_widget::Message),
+    FileSelect(file_select_widget::Message),
     GameSelected(Game),
     StartAddingGame,
     StopAddingGame,
@@ -50,6 +54,7 @@ impl AddReleaseTab {
         Self {
             add_game_widget: add_game_widget::AddGame::new(),
             add_system_widget: add_system_widget::AddSystem::new(),
+            file_select_widget: file_select_widget::FileSelect::new(),
             games,
             adding_game: false,
             adding_system: false,
@@ -57,6 +62,7 @@ impl AddReleaseTab {
             release_name: "".to_string(),
             systems,
             selected_system: None,
+            files: vec![],
         }
     }
 
@@ -88,6 +94,20 @@ impl AddReleaseTab {
                 }
                 Task::none()
             }
+            Message::FileSelect(message) => {
+                match self.file_select_widget.update(message) {
+                    file_select_widget::Action::None => {
+                        // do nothing
+                    }
+                    file_select_widget::Action::AddFile(file_id) => {
+                        self.files.push(file_id);
+                    }
+                    file_select_widget::Action::Run(task) => {
+                        return task.map(Message::FileSelect);
+                    }
+                }
+                Task::none()
+            }
             Message::StartAddingGame => {
                 self.adding_game = true;
                 Task::none()
@@ -113,7 +133,10 @@ impl AddReleaseTab {
                 Task::none()
             }
             Message::SystemSelected(system) => {
+                let system_id = system.id();
                 self.selected_system = Some(system);
+                self.file_select_widget
+                    .update(file_select_widget::Message::SetSystemId(system_id));
                 Task::none()
             }
         }
@@ -125,13 +148,13 @@ impl AddReleaseTab {
         let games_row = row![
             self.create_games_dropdown(),
             button("Add Game")
-                .on_press_maybe((!self.adding_game).then(|| Message::StartAddingGame)),
+                .on_press_maybe((!self.adding_game).then_some(Message::StartAddingGame)),
         ];
 
         let systems_row = row![
             self.create_systems_dropdown(),
             button("Add System")
-                .on_press_maybe((!self.adding_system).then(|| Message::StartAddingSystem)),
+                .on_press_maybe((!self.adding_system).then_some(Message::StartAddingSystem)),
         ];
 
         let add_game_row = if self.adding_game {
@@ -146,12 +169,15 @@ impl AddReleaseTab {
             row![].into()
         };
 
+        let file_select = self.file_select_widget.view().map(Message::FileSelect);
+
         column![
             release_name_input,
             games_row,
             add_game_row,
             systems_row,
             add_system_row,
+            file_select,
             button("Submit"),
         ]
         .into()

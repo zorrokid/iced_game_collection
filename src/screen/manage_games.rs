@@ -132,7 +132,7 @@ impl ManageGames {
                         .on_press(Message::EditGame(game.id))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
-                        .on_press_maybe(game.can_delete.then(|| Message::DeleteGame(game.id)))
+                        .on_press_maybe(game.can_delete.then_some(Message::DeleteGame(game.id)))
                         .width(iced::Length::Fixed(200.0))
                 ]
                 .into()

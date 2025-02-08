@@ -1,0 +1,139 @@
+use bson::oid::ObjectId;
+use iced::{
+    widget::{button, pick_list, row},
+    Element, Task,
+};
+
+use crate::{
+    database_with_polo::DatabaseWithPolo,
+    error::Error,
+    files::{copy_file, pick_file, PickedFile},
+    model::collection_file::{CollectionFile, CollectionFileType},
+    util::file_path_builder::FilePathBuilder,
+};
+
+pub struct FileSelect {
+    selected_file_type: Option<CollectionFileType>,
+    system_id: Option<ObjectId>,
+    file_path_builder: FilePathBuilder,
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    FileTypeSelected(CollectionFileType),
+    StartFileSelection,
+    FilePicked(Result<PickedFile, Error>),
+    FileCopied(Result<ObjectId, Error>),
+    SetSystemId(ObjectId),
+}
+
+pub enum Action {
+    None,
+    Run(Task<Message>),
+    AddFile(ObjectId),
+}
+
+impl FileSelect {
+    pub fn new() -> Self {
+        let db = DatabaseWithPolo::get_instance();
+        let settings = db.get_settings().unwrap_or_default();
+        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
+
+        Self {
+            selected_file_type: None,
+            system_id: None,
+            file_path_builder,
+        }
+    }
+
+    pub fn update(&mut self, message: Message) -> Action {
+        match message {
+            Message::FileTypeSelected(file_type) => {
+                self.selected_file_type = Some(file_type);
+                Action::None
+            }
+            Message::StartFileSelection => {
+                if self.system_id.is_none() || self.selected_file_type.is_none() {
+                    return Action::None;
+                }
+                Action::Run(Task::perform(pick_file(), Message::FilePicked))
+            }
+            Message::FilePicked(result) => {
+                if let (Some(system_id), Some(selected_file_type)) =
+                    (self.system_id, self.selected_file_type.clone())
+                {
+                    match result {
+                        Ok(picked_file) => {
+                            let collection_file = CollectionFile {
+                                _id: None,
+                                original_file_name: picked_file.file_name.clone(),
+                                collection_file_type: self.selected_file_type.clone().unwrap(),
+                                files: picked_file.files.clone(),
+                                is_zip: picked_file.is_zip,
+                            };
+                            let db = DatabaseWithPolo::get_instance();
+                            match db.add_collection_file(&collection_file) {
+                                Ok(id) => Action::Run(Task::perform(
+                                    copy_file(
+                                        self.file_path_builder.build_target_directory(
+                                            &system_id,
+                                            &selected_file_type,
+                                        ),
+                                        id,
+                                        picked_file,
+                                    ),
+                                    Message::FileCopied,
+                                )),
+                                Err(err) => {
+                                    println!("Failed to add file {:?}", err);
+                                    // TODO: show message to user
+                                    Action::None
+                                }
+                            }
+                        }
+                        Err(_) => Action::None,
+                    }
+                } else {
+                    Action::None
+                }
+            }
+            Message::FileCopied(result) => match result {
+                Ok(id) => Action::AddFile(id),
+                // TODO: if copy fails, remove the file from the database
+                Err(err) => {
+                    println!("Failed to copy file {:?}", err);
+                    // TODO: show message to user
+                    Action::None
+                }
+            },
+            Message::SetSystemId(system_id) => {
+                self.system_id = Some(system_id);
+                Action::None
+            }
+        }
+    }
+
+    pub fn view(&self) -> Element<Message> {
+        row![self.create_file_picker(),].into()
+    }
+
+    fn create_file_picker(&self) -> Element<Message> {
+        let collection_file_type_picker = pick_list(
+            vec![
+                CollectionFileType::Rom,
+                CollectionFileType::DiskImage,
+                CollectionFileType::CoverScan,
+                CollectionFileType::Manual,
+                CollectionFileType::Screenshot,
+                CollectionFileType::TapeImage,
+            ],
+            self.selected_file_type.clone(),
+            Message::FileTypeSelected,
+        );
+        let add_file_button = button("Add File").on_press_maybe(
+            (self.system_id.is_some() && self.selected_file_type.is_some())
+                .then_some(Message::StartFileSelection),
+        );
+        row![collection_file_type_picker, add_file_button].into()
+    }
+}

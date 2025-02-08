@@ -61,7 +61,7 @@ impl SettingsMainScreen {
         let collection_root_dir_input = text(&self.collection_root_dir);
 
         let collection_root_dir_button = button("Collection root dir")
-            .on_press_maybe((!self.is_locked).then(|| Message::SelectFolder));
+            .on_press_maybe((!self.is_locked).then_some(Message::SelectFolder));
         let save_button = button("Submit").on_press(Message::Submit);
 
         let root_dir_row = row![

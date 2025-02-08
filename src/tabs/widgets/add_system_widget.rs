@@ -74,7 +74,7 @@ impl AddSystem {
             text_input("Enter notes", &self.system_notes).on_input(Message::NotesChanged);
 
         let submit_button = button("Submit system")
-            .on_press_maybe((!self.new_system_name.is_empty()).then(|| Message::Submit));
+            .on_press_maybe((!self.new_system_name.is_empty()).then_some(Message::Submit));
         let cancel_button = button("Cancel").on_press(Message::CancelAddSystem);
         row![name_input, notes_field, submit_button, cancel_button].into()
     }

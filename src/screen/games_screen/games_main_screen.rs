@@ -59,7 +59,7 @@ impl GamesMainScreen {
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),
                 button("Delete")
-                    .on_press_maybe(game.can_delete.then(|| Message::DeleteGame(game.id)))
+                    .on_press_maybe(game.can_delete.then_some(Message::DeleteGame(game.id)))
             ]
             .into()
         });

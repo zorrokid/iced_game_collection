@@ -88,7 +88,7 @@ impl ReleasesList {
                     .on_press_maybe(
                         release
                             .can_delete
-                            .then(|| Message::DeleteRelease(release.id)),
+                            .then_some(Message::DeleteRelease(release.id)),
                     )
                     .width(Length::Fixed(100.0));
 

@@ -84,14 +84,13 @@ impl ReleaseDetails {
             }
             Message::RunWithEmulator(emulator, selected_file_name, selcted_file_type) => {
                 if let Some(release) = &self.release {
-                    let system = &release.system;
                     let options = EmulatorRunOptions {
                         emulator,
                         files: release.files.clone(),
                         selected_file_name: selected_file_name,
                         source_path: self
                             .file_path_builder
-                            .build_target_directory(system, &selcted_file_type),
+                            .build_target_directory(&release.system.id(), &selcted_file_type),
                         target_path: env::temp_dir(),
                     };
                     match process_files_for_emulator(&options) {
@@ -155,11 +154,11 @@ impl ReleaseDetails {
                 .filter(|f| f.collection_file_type == *file_type)
                 .filter_map(|file| {
                     if let Ok(thumb_path) =
-                        get_thumbnail_path(file, &self.settings, &release.system)
+                        get_thumbnail_path(file, &self.settings, &release.system.id())
                     {
                         if let Ok(file_path) = self
                             .file_path_builder
-                            .build_file_path(&release.system, file)
+                            .build_file_path(&release.system.id(), file)
                         {
                             let image = image(thumb_path);
                             let view_image_button =

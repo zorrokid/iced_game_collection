@@ -34,12 +34,18 @@ pub enum Action {
 
 impl AddGame {
     pub fn new() -> Self {
-       let db = DatabaseWithPolo::get_instance();
-       let franchises = db.get_all_franchises().unwrap_or_else(|err| {
+        let db = DatabaseWithPolo::get_instance();
+        let franchises = db.get_all_franchises().unwrap_or_else(|err| {
             println!("Failed to get franchises {:?}", err);
             vec![]
         });
-        Self { franchises, selected_franchise: None, game_name: "".to_string(), francise_select: AddFranchise::new(), adding_franchise: false }
+        Self {
+            franchises,
+            selected_franchise: None,
+            game_name: "".to_string(),
+            francise_select: AddFranchise::new(),
+            adding_franchise: false,
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -55,9 +61,13 @@ impl AddGame {
                 } else {
                     None
                 };
-                let game_to_db = Game { _id: None, name: self.game_name.clone(), franchise_id };
+                let game_to_db = Game {
+                    _id: None,
+                    name: self.game_name.clone(),
+                    franchise_id,
+                };
                 if let Ok(id) = db.add_game(&game_to_db) {
-                   Action::GameAdded(game_to_db.clone().with_id(id))
+                    Action::GameAdded(game_to_db.clone().with_id(id))
                 } else {
                     Action::None
                 }
@@ -94,7 +104,8 @@ impl AddGame {
     pub fn view(&self) -> iced::Element<Message> {
         let franchise_row = row![
             self.create_franchise_dropdown(),
-            button("Add Franchise").on_press_maybe((!self.adding_franchise).then(|| Message::SetAddFranchise))
+            button("Add Franchise")
+                .on_press_maybe((!self.adding_franchise).then_some(Message::SetAddFranchise))
         ];
         let add_franchise_row = if self.adding_franchise {
             self.francise_select.view().map(Message::AddFranchise)
@@ -104,16 +115,12 @@ impl AddGame {
 
         let add_game_row = row![
             text_input("Game Name", &self.game_name).on_input(Message::GameNameUpdated),
-            button("Submit game").on_press_maybe((!self.game_name.is_empty()).then(|| Message::Submit)),
+            button("Submit game")
+                .on_press_maybe((!self.game_name.is_empty()).then_some(Message::Submit)),
             button("Cancel").on_press(Message::CancelAddGame),
         ];
-        
-        column![
-            add_game_row,
-            franchise_row,
-            add_franchise_row,
-        ]
-        .into()
+
+        column![add_game_row, franchise_row, add_franchise_row,].into()
     }
 
     fn create_franchise_dropdown(&self) -> iced::Element<Message> {
@@ -121,6 +128,7 @@ impl AddGame {
             self.franchises.clone(),
             self.selected_franchise.clone(),
             Message::FranchiseSelected,
-        ).into()
+        )
+        .into()
     }
 }
