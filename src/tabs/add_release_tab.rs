@@ -1,6 +1,6 @@
 use bson::oid::ObjectId;
 use iced::{
-    widget::{button, column, container, pick_list, row, text, text_input},
+    widget::{button, column, container, pick_list, row, text, text_input, Column},
     Task,
 };
 
@@ -15,6 +15,7 @@ use super::widgets::{add_game_widget, add_system_widget, file_select_widget};
 pub struct AddReleaseTab {
     games: Vec<Game>,
     selected_game: Option<Game>,
+    selected_games: Vec<ObjectId>,
     add_game_widget: add_game_widget::AddGame,
     add_system_widget: add_system_widget::AddSystem,
     file_select_widget: file_select_widget::FileSelect,
@@ -32,10 +33,9 @@ pub enum Message {
     AddSystem(add_system_widget::Message),
     FileSelect(file_select_widget::Message),
     GameSelected(Game),
+    RemoveGame(ObjectId),
     StartAddingGame,
-    StopAddingGame,
     StartAddingSystem,
-    StopAddingSystem,
     ReleaseNameUpdated(String),
     SystemSelected(System),
 }
@@ -59,6 +59,7 @@ impl AddReleaseTab {
             adding_game: false,
             adding_system: false,
             selected_game: None,
+            selected_games: vec![],
             release_name: "".to_string(),
             systems,
             selected_system: None,
@@ -112,20 +113,18 @@ impl AddReleaseTab {
                 self.adding_game = true;
                 Task::none()
             }
-            Message::StopAddingGame => {
-                self.adding_game = false;
-                Task::none()
-            }
             Message::StartAddingSystem => {
                 self.adding_system = true;
                 Task::none()
             }
-            Message::StopAddingSystem => {
-                self.adding_system = false;
+            Message::GameSelected(game) => {
+                let game_id = game.id();
+                self.selected_game = Some(game);
+                self.selected_games.push(game_id);
                 Task::none()
             }
-            Message::GameSelected(game) => {
-                self.selected_game = Some(game);
+            Message::RemoveGame(remove_id) => {
+                self.selected_games.retain(|id| *id != remove_id);
                 Task::none()
             }
             Message::ReleaseNameUpdated(name) => {
@@ -151,6 +150,8 @@ impl AddReleaseTab {
                 .on_press_maybe((!self.adding_game).then_some(Message::StartAddingGame)),
         ];
 
+        let selected_games_list = self.create_selected_games_list();
+
         let systems_row = row![
             self.create_systems_dropdown(),
             button("Add System")
@@ -175,6 +176,7 @@ impl AddReleaseTab {
             release_name_input,
             games_row,
             add_game_row,
+            selected_games_list,
             systems_row,
             add_system_row,
             file_select,
@@ -214,6 +216,29 @@ impl AddReleaseTab {
             self.selected_system.clone(),
             Message::SystemSelected,
         )
+        .into()
+    }
+
+    fn create_selected_games_list(&self) -> iced::Element<Message> {
+        let selected_games_title = text("Games in release:");
+
+        let selected_games_list = self
+            .games
+            .iter()
+            .filter(|game| self.selected_games.contains(&game.id()))
+            .map(|game| {
+                row![
+                    text(&game.name),
+                    button("Remove").on_press(Message::RemoveGame(game.id()))
+                ]
+                .into()
+            })
+            .collect::<Vec<iced::Element<Message>>>();
+
+        column![
+            selected_games_title,
+            Column::with_children(selected_games_list)
+        ]
         .into()
     }
 }
