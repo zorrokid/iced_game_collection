@@ -27,6 +27,7 @@ pub trait FranchisReadRepository {
 
 pub trait CollectionFilesReadRepository {
     fn get_collection_files(&self, ids: &Vec<ObjectId>) -> Result<Vec<CollectionFile>, Error>;
+    fn is_collection_file_in_release(&self, collection_file_id: &ObjectId) -> Result<bool, Error>;
 }
 
 pub trait SystemReadRepository {

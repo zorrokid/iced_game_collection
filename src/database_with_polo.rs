@@ -67,7 +67,13 @@ impl DatabaseWithPolo {
     }
 
     pub fn delete_collection_file(&self, id: &ObjectId) -> Result<(), Error> {
-        self.delete_item::<CollectionFile>(COLLECTION_FILE_COLLECTION, id)
+        if self.is_collection_file_in_release(id)? {
+            Err(Error::DbError(
+                "Collection file cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<CollectionFile>(COLLECTION_FILE_COLLECTION, id)
+        }
     }
 
     pub fn add_or_update_settings(&self, settings: &Settings) -> Result<String, Error> {
@@ -756,6 +762,15 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
     fn get_collection_files(&self, ids: &Vec<ObjectId>) -> Result<Vec<CollectionFile>, Error> {
         self.get_items_with_filter(COLLECTION_FILE_COLLECTION, doc! {"_id": {"$in": ids}})
     }
+    fn is_collection_file_in_release(&self, collection_file_id: &ObjectId) -> Result<bool, Error> {
+        let releases_by_file =
+            self.get_with_id::<ReleasesByFile>(RELEASES_BY_FILES_COLLECTION, collection_file_id)?;
+
+        match releases_by_file {
+            Some(releases_by_file) => Ok(!releases_by_file.release_ids.is_empty()),
+            None => Ok(false),
+        }
+    }
 }
 
 impl SystemReadRepository for DatabaseWithPolo {
@@ -974,6 +989,33 @@ mod tests {
 
         let releases_by_game = test_db.get_releases_by_game(&game_id).unwrap();
         assert!(releases_by_game.is_none());
+
+        std::fs::remove_dir_all(test_db_name).unwrap();
+    }
+
+    #[test]
+    fn test_delete_collection_file_that_is_in_release() {
+        let test_db_name = "test_delete_collection_file_that_is_in_release.db";
+        let test_db = DatabaseWithPolo::new(test_db_name);
+
+        let system_id = test_db.add_system(&create_test_system()).unwrap();
+        let game_id = test_db.add_game(&create_test_game()).unwrap();
+        let collection_file_id = test_db
+            .add_collection_file(&create_test_collection_file())
+            .unwrap();
+
+        let release = create_test_release(system_id, vec![game_id], vec![collection_file_id]);
+        let id = test_db.add_release(&release).unwrap();
+
+        let release_from_db = test_db.get_release(&id).unwrap().unwrap();
+        assert_eq!(release_from_db.name, release.name);
+
+        let result = test_db.delete_collection_file(&collection_file_id);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Collection file cannot be deleted because it is used in a release"));
 
         std::fs::remove_dir_all(test_db_name).unwrap();
     }

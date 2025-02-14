@@ -68,6 +68,12 @@ impl CollectionFilesReadRepository for MockRepository {
             .filter_map(|id| self.collection_files.get(id).cloned())
             .collect())
     }
+    fn is_collection_file_in_release(&self, collection_file_id: &ObjectId) -> Result<bool, Error> {
+        Ok(self
+            .releases
+            .values()
+            .any(|release| release.files.contains(collection_file_id)))
+    }
 }
 
 impl SystemReadRepository for MockRepository {
