@@ -304,7 +304,9 @@ impl AddReleaseMainScreen {
             .filter(|f| f.collection_file_type == file_type)
             .filter_map(|file| {
                 if let Some(system) = self.get_release_system() {
-                    if let Ok(thumb_path) = get_thumbnail_path(file, &self.settings, &system.id()) {
+                    if let Ok(thumb_path) =
+                        get_thumbnail_path(file, &self.settings.collection_root_dir, &system.id())
+                    {
                         if let Ok(file_path) =
                             self.file_path_builder.build_file_path(&system.id(), file)
                         {

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use bson::oid::ObjectId;
 use iced::{
     widget::{button, pick_list, row},
@@ -7,8 +9,11 @@ use iced::{
 use crate::{
     database_with_polo::DatabaseWithPolo,
     error::Error,
-    files::{copy_file, pick_file, PickedFile},
-    model::collection_file::{CollectionFile, CollectionFileType},
+    files::{copy_file, delete_file, pick_file, PickedFile},
+    model::{
+        collection_file::{CollectionFile, CollectionFileType},
+        model::HasOid,
+    },
     util::file_path_builder::FilePathBuilder,
 };
 
@@ -25,19 +30,21 @@ pub enum Message {
     FilePicked(Result<PickedFile, Error>),
     FileCopied(Result<ObjectId, Error>),
     SetSystemId(ObjectId),
+    DeleteFile(CollectionFile),
+    FileDeleted(Result<(), Error>, ObjectId),
 }
 
 pub enum Action {
     None,
     Run(Task<Message>),
     AddFile(ObjectId),
+    //ViewImage(PathBuf),
+    //DeleteFile(ObjectId),
 }
 
 impl FileSelect {
-    pub fn new() -> Self {
-        let db = DatabaseWithPolo::get_instance();
-        let settings = db.get_settings().unwrap_or_default();
-        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
+    pub fn new(files_root_dir: String) -> Self {
+        let file_path_builder = FilePathBuilder::new(files_root_dir);
 
         Self {
             selected_file_type: None,
@@ -72,6 +79,7 @@ impl FileSelect {
                                 is_zip: picked_file.is_zip,
                             };
                             let db = DatabaseWithPolo::get_instance();
+                            // Add file info to database and copy file to collection directory
                             match db.add_collection_file(&collection_file) {
                                 Ok(id) => Action::Run(Task::perform(
                                     copy_file(
@@ -110,6 +118,44 @@ impl FileSelect {
                 self.system_id = Some(system_id);
                 Action::None
             }
+            Message::DeleteFile(file) => {
+                // TODO: maybe file could be used in multiple releases
+                // - add a reference list
+                // - check if file has references to releases
+                // - delete file only if it's not used in any release
+                if let Some(system_id) = self.system_id {
+                    if let Ok(file_path) = self.file_path_builder.build_file_path(&system_id, &file)
+                    {
+                        // TODO: remove also thumbnail if exists
+                        return Action::Run(Task::perform(
+                            delete_file(file_path.clone()),
+                            move |result| Message::FileDeleted(result, file.id().clone()),
+                        ));
+                    }
+                }
+                Action::None
+            }
+            Message::FileDeleted(result, id) => match result {
+                Ok(_) => {
+                    // File was deleted from disk, now delete from database
+                    let db = DatabaseWithPolo::get_instance();
+                    match db.delete_collection_file(&id) {
+                        Ok(_) => {
+                            println!("File deleted {:?}", id);
+                        }
+                        Err(err) => {
+                            // TODO: show message to user
+                            println!("Failed to delete file {:?}", err);
+                        }
+                    };
+                    Action::None
+                }
+                Err(err) => {
+                    println!("Failed to delete file {:?}", err);
+                    // TODO: show message to user
+                    Action::None
+                }
+            },
         }
     }
 

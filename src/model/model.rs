@@ -89,7 +89,6 @@ pub trait WithId {
     fn with_id(self, id: ObjectId) -> Self;
 }
 
-
 impl HasOid for Emulator {
     fn id(&self) -> ObjectId {
         self._id.clone().expect("Object id not set")
@@ -120,7 +119,6 @@ impl WithId for Franchise {
         self
     }
 }
-
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Game {
@@ -203,14 +201,42 @@ impl Default for Release {
     }
 }
 
+pub trait CanBeLinkedToReleases {
+    fn release_ids(&self) -> Vec<ObjectId>;
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReleasesByGame {
     pub _id: ObjectId, // game id
     pub release_ids: Vec<ObjectId>,
 }
 
+impl CanBeLinkedToReleases for ReleasesByGame {
+    fn release_ids(&self) -> Vec<ObjectId> {
+        self.release_ids.clone()
+    }
+}
+
 impl HasOid for ReleasesByGame {
     fn id(&self) -> ObjectId {
         self._id.clone()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ReleasesByFile {
+    pub _id: ObjectId, // file id
+    pub release_ids: Vec<ObjectId>,
+}
+
+impl HasOid for ReleasesByFile {
+    fn id(&self) -> ObjectId {
+        self._id.clone()
+    }
+}
+
+impl CanBeLinkedToReleases for ReleasesByFile {
+    fn release_ids(&self) -> Vec<ObjectId> {
+        self.release_ids.clone()
     }
 }

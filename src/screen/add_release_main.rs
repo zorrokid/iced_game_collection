@@ -203,9 +203,9 @@ impl AddReleaseMain {
     }
     fn update_release(&mut self) -> Result<ObjectId, Error> {
         let db = DatabaseWithPolo::get_instance();
-        match self.release._id.is_some() {
-            true => db.update_release(&self.release),
-            false => {
+        match self.release._id {
+            Some(_) => db.update_release(&self.release),
+            None => {
                 let id = db.add_release(&self.release)?;
                 if let Some(release) = db.get_release(&id)? {
                     self.release = release;

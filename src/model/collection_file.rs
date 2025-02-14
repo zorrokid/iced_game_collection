@@ -7,7 +7,7 @@ use bson::{oid::ObjectId, to_bson};
 use polodb_core::bson::Bson;
 use serde::{Deserialize, Serialize};
 
-use super::model::{GetIdString, HasOid};
+use super::model::{GetIdString, HasOid, WithId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CollectionFileType {
@@ -127,6 +127,13 @@ impl Display for CollectionFile {
 impl Into<Bson> for CollectionFile {
     fn into(self) -> Bson {
         to_bson(&self).unwrap_or(Bson::Null)
+    }
+}
+
+impl WithId for CollectionFile {
+    fn with_id(mut self, id: ObjectId) -> CollectionFile {
+        self._id = Some(id);
+        self
     }
 }
 

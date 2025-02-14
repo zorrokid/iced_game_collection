@@ -36,7 +36,7 @@ impl TabsController {
             home_tab: home_tab::HomeTab::new(),
             settings_tab,
             games_tab: games_tab::GamesTab::new(),
-            add_release_tab: add_release_tab::AddReleaseTab::new(),
+            add_release_tab: add_release_tab::AddReleaseTab::new(None),
         })
     }
 

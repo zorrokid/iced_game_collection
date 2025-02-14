@@ -34,3 +34,8 @@ pub trait SystemReadRepository {
     fn get_all_systems(&self) -> Result<Vec<System>, Error>;
     fn is_system_in_release(&self, system_id: &ObjectId) -> Result<bool, Error>;
 }
+
+pub trait ReleaseWriteRepository {
+    fn update_release(&self, release: &Release) -> Result<(), Error>;
+    fn add_release(&self, release: &Release) -> Result<ObjectId, Error>;
+}

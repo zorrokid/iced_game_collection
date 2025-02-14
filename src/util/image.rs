@@ -2,10 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     error::Error,
-    model::{
-        collection_file::CollectionFile,
-        model::{GetIdString, Settings, System},
-    },
+    model::{collection_file::CollectionFile, model::GetIdString},
 };
 
 use super::file_path_builder::FilePathBuilder;
@@ -14,11 +11,11 @@ use image;
 
 pub fn get_thumbnail_path(
     collection_file: &CollectionFile,
-    settings: &Settings,
+    collection_root_dir: &str,
     system_id: &ObjectId,
 ) -> Result<PathBuf, Error> {
-    let thumbnail_directory = Path::new(&settings.collection_root_dir).join("thumbnails");
-    let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
+    let thumbnail_directory = Path::new(collection_root_dir).join("thumbnails");
+    let file_path_builder = FilePathBuilder::new(collection_root_dir.to_string());
     let file_path = file_path_builder.build_file_path(system_id, collection_file)?;
 
     let thumbnail_path = thumbnail_directory

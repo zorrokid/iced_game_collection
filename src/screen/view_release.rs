@@ -134,9 +134,11 @@ impl ViewRelease {
             .iter()
             .filter(|f| f.collection_file_type == *file_type)
             .filter_map(|file| {
-                if let Ok(thumb_path) =
-                    get_thumbnail_path(file, &self.settings, &self.release.system.id())
-                {
+                if let Ok(thumb_path) = get_thumbnail_path(
+                    file,
+                    &self.settings.collection_root_dir,
+                    &self.release.system.id(),
+                ) {
                     if let Ok(file_path) = self
                         .file_path_builder
                         .build_file_path(&self.release.system.id(), file)
