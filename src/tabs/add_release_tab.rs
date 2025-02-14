@@ -303,7 +303,10 @@ impl AddReleaseTab {
     fn create_systems_dropdown(&self) -> iced::Element<Message> {
         pick_list(
             self.systems.clone(),
-            self.selected_system.clone(),
+            self.systems
+                .iter()
+                .find(|s| self.release.system_id == Some(s.id()))
+                .cloned(),
             Message::SystemSelected,
         )
         .into()
