@@ -2,7 +2,7 @@ use iced::widget::{button, column, pick_list, row, text_input};
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
-    model::model::{Franchise, Game, WithId},
+    model::model::{Franchise, Game, HasOid as _},
     repository::repository::FranchisReadRepository,
 };
 
@@ -67,7 +67,7 @@ impl AddGame {
                     franchise_id,
                 };
                 if let Ok(id) = db.add_game(&game_to_db) {
-                    Action::GameAdded(game_to_db.clone().with_id(id))
+                    Action::GameAdded(game_to_db.with_id(id))
                 } else {
                     Action::None
                 }

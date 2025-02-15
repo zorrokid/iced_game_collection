@@ -2,6 +2,7 @@ mod database_with_polo;
 mod emulator_runner;
 mod error;
 mod files;
+mod macros;
 mod model;
 mod repository;
 mod screen;

@@ -1,7 +1,7 @@
+use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::System;
 use crate::view_model::list_models::{get_systems_in_list_model, SystemListModel};
-use crate::{database_with_polo::DatabaseWithPolo, model::model::HasOid};
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 
@@ -116,11 +116,11 @@ impl ManageSystems {
             .map(|system| {
                 row![
                     text(system.to_string()).width(iced::Length::Fixed(300.0)),
-                    button("Edit").on_press(Message::EditSystem(system.id())),
+                    button("Edit").on_press(Message::EditSystem(system.id)),
                     button("Delete").on_press_maybe(
                         system
                             .can_delete
-                            .then_some(Message::DeleteSystem(system.id()))
+                            .then_some(Message::DeleteSystem(system.id))
                     ),
                 ]
                 .into()

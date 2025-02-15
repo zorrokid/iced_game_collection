@@ -7,7 +7,9 @@ use bson::{oid::ObjectId, to_bson};
 use polodb_core::bson::Bson;
 use serde::{Deserialize, Serialize};
 
-use super::model::{GetIdString, HasOid, WithId};
+use crate::impl_has_oid;
+
+use super::model::{HasIdField, HasOid};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CollectionFileType {
@@ -48,12 +50,6 @@ impl ToString for CollectionFileType {
     }
 }
 
-impl HasOid for CollectionFile {
-    fn id(&self) -> ObjectId {
-        self._id.clone().expect("Object id not set")
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileInfo {
     pub name: String,
@@ -68,12 +64,6 @@ pub trait GetCollectionFileName {
     fn get_collection_file_name(&self) -> String;
 }
 
-impl GetIdString for CollectionFile {
-    fn get_id_string(&self) -> String {
-        self.id().to_hex()
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
     pub _id: Option<ObjectId>,
@@ -82,6 +72,8 @@ pub struct CollectionFile {
     pub files: Option<Vec<FileInfo>>,
     pub collection_file_type: CollectionFileType,
 }
+
+impl_has_oid!(CollectionFile);
 
 impl GetFileExtensions for CollectionFile {
     fn get_file_extensions(&self) -> Vec<String> {
@@ -127,13 +119,6 @@ impl Display for CollectionFile {
 impl Into<Bson> for CollectionFile {
     fn into(self) -> Bson {
         to_bson(&self).unwrap_or(Bson::Null)
-    }
-}
-
-impl WithId for CollectionFile {
-    fn with_id(mut self, id: ObjectId) -> CollectionFile {
-        self._id = Some(id);
-        self
     }
 }
 

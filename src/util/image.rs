@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     error::Error,
-    model::{collection_file::CollectionFile, model::GetIdString},
+    model::{collection_file::CollectionFile, model::HasOid},
 };
 
 use super::file_path_builder::FilePathBuilder;

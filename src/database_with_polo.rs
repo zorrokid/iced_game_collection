@@ -328,9 +328,33 @@ impl DatabaseWithPolo {
 
     pub fn delete_release(&self, id: &ObjectId) -> Result<(), Error> {
         let release = self.get_release(id)?.expect("Release not found");
+
+        // files need to be deleted before release can be deleted
         if release.files.is_empty() {
-            self.delete_release_from_games(&release)?;
-            self.delete_item::<Release>(RELEASE_COLLECTION, id)
+            let transaction = self
+                .db
+                .start_transaction()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+
+            if let Err(err) = self.delete_release_from_games(&release, &transaction) {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                return Err(err);
+            }
+
+            if let Err(err) = self.delete_item::<Release>(RELEASE_COLLECTION, id) {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                return Err(err);
+            }
+
+            transaction
+                .commit()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+
+            Ok(())
         } else {
             Err(Error::DbError(
                 "Release cannot be deleted because it has files".to_string(),
@@ -338,11 +362,18 @@ impl DatabaseWithPolo {
         }
     }
 
-    fn delete_release_from_games(&self, release: &Release) -> Result<(), Error> {
+    fn delete_release_from_games(
+        &self,
+        release: &Release,
+        transaction: &Transaction,
+    ) -> Result<(), Error> {
         let game_ids = &release.games;
-        let result = game_ids.iter().try_for_each(|game_id| {
-            let current_values =
-                self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id)?;
+
+        for game_id in game_ids {
+            let current_values = transaction
+                .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                .find_one(doc! {"_id": game_id})
+                .map_err(|e| Error::DbError(format!("Error getting item: {}", e)))?;
 
             if let Some(mut releases_by_game) = current_values {
                 releases_by_game
@@ -350,23 +381,27 @@ impl DatabaseWithPolo {
                     .retain(|id| *id != release.id());
 
                 if releases_by_game.release_ids.is_empty() {
-                    self.delete_item::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, game_id)?;
+                    transaction
+                        .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                        .delete_one(doc! {"_id": game_id})
+                        .map_err(|e| Error::DbError(format!("Error deleting item: {}", e)))?;
                 } else {
-                    self.update_item(
-                        RELEASES_BY_GAMES_COLLECTION,
-                        &releases_by_game,
-                        doc! {
-                            "$set": {
-                                "release_ids": releases_by_game.release_ids.clone(),
-                            }
-                        },
-                    )?;
+                    transaction
+                        .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
+                        .update_one(
+                            doc! {"_id": releases_by_game._id},
+                            doc! {
+                                "$set": {
+                                    "release_ids": releases_by_game.release_ids.clone(),
+                                }
+                            },
+                        )
+                        .map_err(|e| Error::DbError(format!("Error updating item: {}", e)))?;
                 }
             }
+        }
 
-            Ok(())
-        });
-        result
+        Ok(())
     }
 
     fn delete_item<T>(&self, collection_name: &str, id: &ObjectId) -> Result<(), Error>

@@ -45,11 +45,12 @@ pub struct SystemListModel {
     pub can_delete: bool,
 }
 
-impl HasOid for SystemListModel {
+// TODO: List models probably should not implement HasOid, they always have an id
+/*impl HasOid for SystemListModel {
     fn id(&self) -> ObjectId {
         self.id.clone()
     }
-}
+}*/
 
 impl Display for SystemListModel {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

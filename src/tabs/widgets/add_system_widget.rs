@@ -2,8 +2,7 @@ use iced::widget::{button, row, text_input};
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
-    model::model::{System, WithId},
-    repository::repository::SystemReadRepository,
+    model::model::{HasOid, System},
 };
 
 pub struct AddSystem {

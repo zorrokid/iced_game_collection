@@ -56,6 +56,8 @@ pub enum Message {
     DeleteFile(ObjectId),
     FileDeleted(Result<(), Error>, ObjectId),
     FileSelected(ObjectId, String),
+    Cancel,
+    Save,
 }
 
 impl AddReleaseTab {
@@ -222,6 +224,31 @@ impl AddReleaseTab {
                 // TODO
                 Task::none()
             }
+            Message::Cancel => {
+                if self.can_cancel {
+                    self.release = Release::default();
+                }
+                Task::none()
+            }
+            Message::Save => {
+                let db = DatabaseWithPolo::get_instance();
+
+                if self.release.has_id() {
+                    db.update_release(&self.release);
+                } else {
+                    db.add_release(&self.release);
+                }
+                match db.add_release(&self.release) {
+                    Ok(_) => {
+                        self.release = Release::default();
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to add release: {}", err);
+                    }
+                }
+                // TODO
+                Task::none()
+            }
         }
     }
 
@@ -259,6 +286,11 @@ impl AddReleaseTab {
         let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
         let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
 
+        let cancel_button =
+            button("Cancel").on_press_maybe(self.can_cancel.then_some(Message::Cancel));
+
+        let save_button = button("Save").on_press(Message::Save);
+
         column![
             release_name_input,
             games_row,
@@ -270,7 +302,7 @@ impl AddReleaseTab {
             emulator_files_list,
             scan_files_list,
             screenshot_files_list,
-            button("Submit"),
+            row![cancel_button, save_button],
         ]
         .into()
     }

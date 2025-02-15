@@ -4,9 +4,42 @@ use serde::{Deserialize, Serialize};
 
 use polodb_core::bson::oid::ObjectId;
 
-pub trait GetIdString {
+use crate::impl_has_oid;
+
+pub trait HasIdField {
+    fn get_id(&self) -> &Option<ObjectId>;
+    fn set_id(&mut self, id: ObjectId);
+}
+
+pub trait HasOid {
+    fn id(&self) -> ObjectId;
+    fn has_id(&self) -> bool;
+    fn with_id(self, id: ObjectId) -> Self;
     fn get_id_string(&self) -> String;
 }
+
+impl<T> HasOid for T
+where
+    T: HasIdField,
+{
+    fn id(&self) -> ObjectId {
+        self.get_id().clone().expect("Object id not set")
+    }
+
+    fn has_id(&self) -> bool {
+        self.get_id().is_some()
+    }
+
+    fn with_id(mut self, id: ObjectId) -> Self {
+        self.set_id(id);
+        self
+    }
+    fn get_id_string(&self) -> String {
+        self.id().to_hex()
+    }
+}
+
+impl_has_oid!(Emulator System Game Release Franchise);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct System {
@@ -18,19 +51,6 @@ pub struct System {
 impl Display for System {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl GetIdString for System {
-    fn get_id_string(&self) -> String {
-        self.id().to_hex()
-    }
-}
-
-impl WithId for System {
-    fn with_id(mut self, id: ObjectId) -> Self {
-        self._id = Some(id);
-        self
     }
 }
 
@@ -62,45 +82,6 @@ pub struct Emulator {
     pub notes: Option<String>,
 }
 
-impl HasOid for Game {
-    fn id(&self) -> ObjectId {
-        self._id.clone().expect("Object id not set")
-    }
-}
-
-impl WithId for Game {
-    fn with_id(mut self, id: ObjectId) -> Self {
-        self._id = Some(id);
-        self
-    }
-}
-
-impl HasOid for System {
-    fn id(&self) -> ObjectId {
-        self._id.clone().expect("Object id not set")
-    }
-}
-
-pub trait HasOid {
-    fn id(&self) -> ObjectId;
-}
-
-pub trait WithId {
-    fn with_id(self, id: ObjectId) -> Self;
-}
-
-impl HasOid for Emulator {
-    fn id(&self) -> ObjectId {
-        self._id.clone().expect("Object id not set")
-    }
-}
-
-impl HasOid for Release {
-    fn id(&self) -> ObjectId {
-        self._id.clone().expect("Object id not set")
-    }
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Franchise {
     pub _id: Option<ObjectId>,
@@ -110,13 +91,6 @@ pub struct Franchise {
 impl Display for Franchise {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl WithId for Franchise {
-    fn with_id(mut self, id: ObjectId) -> Self {
-        self._id = Some(id);
-        self
     }
 }
 
@@ -217,22 +191,10 @@ impl CanBeLinkedToReleases for ReleasesByGame {
     }
 }
 
-impl HasOid for ReleasesByGame {
-    fn id(&self) -> ObjectId {
-        self._id.clone()
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReleasesByFile {
     pub _id: ObjectId, // file id
     pub release_ids: Vec<ObjectId>,
-}
-
-impl HasOid for ReleasesByFile {
-    fn id(&self) -> ObjectId {
-        self._id.clone()
-    }
 }
 
 impl CanBeLinkedToReleases for ReleasesByFile {

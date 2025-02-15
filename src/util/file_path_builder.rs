@@ -5,7 +5,7 @@ use crate::{
     files::get_file_extension,
     model::{
         collection_file::{CollectionFile, CollectionFileType},
-        model::GetIdString,
+        model::HasOid,
     },
 };
 use std::path::{Path, PathBuf};
@@ -30,9 +30,9 @@ impl FilePathBuilder {
         let mut path = PathBuf::from(&self.collection_root_dir);
 
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
-        path.push(&system_id.to_hex());
-        path.push(&collection_file.collection_file_type.directory());
-        path.push(&collection_file.get_id_string());
+        path.push(system_id.to_hex());
+        path.push(collection_file.collection_file_type.directory());
+        path.push(collection_file.get_id_string());
         Ok(path.with_extension(extension))
     }
 
@@ -42,8 +42,8 @@ impl FilePathBuilder {
         file_type: &CollectionFileType,
     ) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(&system_id.to_hex());
-        path.push(&file_type.directory());
+        path.push(system_id.to_hex());
+        path.push(file_type.directory());
         path
     }
 }
@@ -53,10 +53,7 @@ mod tests {
     use bson::oid::ObjectId;
 
     use super::*;
-    use crate::model::{
-        collection_file::{CollectionFileType, FileInfo},
-        model::GetIdString,
-    };
+    use crate::model::collection_file::{CollectionFileType, FileInfo};
     use std::path::PathBuf;
 
     #[test]
