@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use iced::{
     widget::{button, row, text, Column},
-    Element, Task,
+    Element,
 };
 
 use crate::{

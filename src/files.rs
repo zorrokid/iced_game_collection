@@ -71,9 +71,9 @@ pub fn get_file_name(path: &SyncPath) -> Result<String, Error> {
         .to_owned()
         .into_string()
         .map_err(|_| {
-            Error::IoError(format!(
-                "Failed to get file name (invalid unicode data in file name)"
-            ))
+            Error::IoError(
+                "Failed to get file name (invalid unicode data in file name)".to_string(),
+            )
         })?;
     Ok(file_name)
 }
@@ -85,9 +85,9 @@ pub fn get_file_extension(path: &SyncPath) -> Result<String, Error> {
         .to_owned()
         .into_string()
         .map_err(|_| {
-            Error::IoError(format!(
-                "Failed to get file extension (invalid unicode data in file extension)"
-            ))
+            Error::IoError(
+                "Failed to get file extension (invalid unicode data in file extension)".to_string(),
+            )
         })?;
     Ok(extension)
 }
@@ -98,7 +98,7 @@ pub async fn copy_file(
     picked_file: PickedFile,
 ) -> Result<ObjectId, Error> {
     let destination_file_path = AsyncPath::new(&destination_directory)
-        .join(&file_id.to_hex())
+        .join(file_id.to_hex())
         .with_extension(&picked_file.extension);
 
     println!("destination_file_path: {:?}", destination_file_path);
@@ -208,7 +208,13 @@ pub fn is_zip_file_sync(file_path: &SyncPath) -> Result<bool, Error> {
     let mut file = File::open(file_path)
         .map_err(|_| Error::IoError(format!("Failed opening file {:?}.", file_path.file_name())))?;
     let mut buffer = [0; 4];
-    file.read_exact(&mut buffer);
+    file.read_exact(&mut buffer).map_err(|err| {
+        Error::IoError(format!(
+            "Failed reading from file {:?}: {}",
+            file_path.file_name(),
+            err
+        ))
+    })?;
 
     Ok(buffer == ZIP_MAGIC_NUMBER)
 }
@@ -229,10 +235,10 @@ pub fn extract_zip_files(
     //       Then again the one version of the same release could consist of multiple files.
     //       But in any case, no need to extract all the files, only the selected ones.
     for file in files {
-        let file_path = source.join(&file.get_collection_file_name());
+        let file_path = source.join(file.get_collection_file_name());
         println!("file_path: {:?}", file_path);
         let res = match is_zip_file_sync(file_path.as_path()) {
-            Ok(true) => extract_zip_file(&file_path, &destination),
+            Ok(true) => extract_zip_file(&file_path, destination),
             Ok(false) => {
                 let destination_file = destination.join(&file.original_file_name);
                 copy(&file_path, &destination_file)
@@ -257,7 +263,7 @@ pub fn copy_files(
 ) -> Result<(), Error> {
     // TODO: no need to copy all files, just the selected one
     for file in files {
-        let file_path = source.join(&file.get_collection_file_name());
+        let file_path = source.join(file.get_collection_file_name());
         println!("file_path: {:?}", file_path);
         let destination_file = destination.join(&file.original_file_name);
         copy(&file_path, &destination_file)
@@ -272,8 +278,8 @@ pub fn extract_zip_file(file_path: &SyncPathBuf, destination: &SyncPathBuf) -> R
         "Extracting zip file from path: {:?}, to path {:?}",
         file_path, destination
     );
-    let file = File::open(&file_path)
-        .map_err(|e| Error::IoError(format!("Failed to open file: {}", e)))?;
+    let file =
+        File::open(file_path).map_err(|e| Error::IoError(format!("Failed to open file: {}", e)))?;
     let mut buffer = Vec::new();
     file.take(10 * 1024 * 1024) // Read up to 10 MB
         .read_to_end(&mut buffer)

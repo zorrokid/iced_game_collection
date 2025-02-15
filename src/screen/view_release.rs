@@ -193,9 +193,7 @@ impl ViewRelease {
                     } else {
                         None
                     },
-                    move |selected_file_name| {
-                        Message::FileSelected(file.id().clone(), selected_file_name)
-                    },
+                    move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
                 );
                 let emulator_buttons = emulators_for_system
                     .iter()

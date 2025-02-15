@@ -46,7 +46,7 @@ impl GamesMain {
                 if let GamesScreen::GamesMainScreen(screen) = &mut self.screen {
                     match screen.update(message) {
                         games_main_screen::Action::ViewGame(id) => {
-                            self.selected_game_id = Some(id.clone());
+                            self.selected_game_id = Some(id);
                             match view_game_main::ViewGameMain::new(id) {
                                 Ok(view_game) => {
                                     self.screen = GamesScreen::ViewGameScreen(view_game);

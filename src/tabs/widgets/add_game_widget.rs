@@ -56,11 +56,10 @@ impl AddGame {
             }
             Message::Submit => {
                 let db = DatabaseWithPolo::get_instance();
-                let franchise_id = if let Some(franchise) = self.selected_franchise.as_ref() {
-                    franchise._id.clone()
-                } else {
-                    None
-                };
+                let franchise_id = self
+                    .selected_franchise
+                    .as_ref()
+                    .map(|franchise| franchise.id());
                 let game_to_db = Game {
                     _id: None,
                     name: self.game_name.clone(),

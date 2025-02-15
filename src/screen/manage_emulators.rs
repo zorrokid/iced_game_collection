@@ -50,10 +50,7 @@ impl ManageEmulators {
         }?;
 
         Ok(Self {
-            emulator: match edit_emulator {
-                Some(emulator) => emulator,
-                None => Emulator::default(),
-            },
+            emulator: edit_emulator.unwrap_or_default(),
             emulators,
             systems,
             is_edit,

@@ -45,13 +45,6 @@ pub struct SystemListModel {
     pub can_delete: bool,
 }
 
-// TODO: List models probably should not implement HasOid, they always have an id
-/*impl HasOid for SystemListModel {
-    fn id(&self) -> ObjectId {
-        self.id.clone()
-    }
-}*/
-
 impl Display for SystemListModel {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
@@ -61,7 +54,7 @@ impl Display for SystemListModel {
 impl From<&System> for SystemListModel {
     fn from(system: &System) -> Self {
         SystemListModel {
-            id: system.id().clone(),
+            id: system.id(),
             name: system.name.clone(),
             can_delete: false,
         }

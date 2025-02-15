@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use bson::oid::ObjectId;
 use iced::{
     widget::{button, pick_list, row},
@@ -129,7 +127,7 @@ impl FileSelect {
                         // TODO: remove also thumbnail if exists
                         return Action::Run(Task::perform(
                             delete_file(file_path.clone()),
-                            move |result| Message::FileDeleted(result, file.id().clone()),
+                            move |result| Message::FileDeleted(result, file.id()),
                         ));
                     }
                 }

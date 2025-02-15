@@ -47,10 +47,7 @@ impl AddReleaseMain {
             None => None,
         };
 
-        let release = match edit_release {
-            Some(release) => release,
-            None => Release::default(),
-        };
+        let release = edit_release.unwrap_or_default();
         let screen = add_release_main_screen::AddReleaseMainScreen::new(release.clone())?;
 
         Ok(Self {
@@ -166,7 +163,6 @@ impl AddReleaseMain {
                 if let AddReleaseScreen::ViewImageScreen(sub_screen) = &mut self.screen {
                     match sub_screen.update(sub_screen_message) {
                         view_image::Action::Back => self.switch_main_screen(),
-                        _ => Action::None,
                     }
                 } else {
                     Action::None

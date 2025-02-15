@@ -11,12 +11,10 @@ mod title_bar;
 mod util;
 mod view_model;
 
-use std::ops::ControlFlow;
-
 use bson::oid::ObjectId;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
-use iced::widget::{column, text};
+use iced::widget::column;
 use iced::{exit, Task};
 use screen::add_release_main;
 use screen::error as error_screen;
@@ -26,7 +24,7 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
-use tabs::tabs_controller::{self, Tab, TabsController};
+use tabs::tabs_controller::TabsController;
 use title_bar::TitleBar;
 
 use crate::screen::Screen;

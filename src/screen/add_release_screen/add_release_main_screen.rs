@@ -162,7 +162,7 @@ impl AddReleaseMainScreen {
                             // TODO: remove also thumbnail if exists
                             return Action::Run(Task::perform(
                                 delete_file(file_path.clone()),
-                                move |result| Message::FileDeleted(result, id.clone()),
+                                move |result| Message::FileDeleted(result, id),
                             ));
                         }
                     }
@@ -174,7 +174,7 @@ impl AddReleaseMainScreen {
                     if let Some(file_id) = self.release.files.iter().find(|f| **f == id) {
                         // TODO: maybe instead of spawning a task, just remove the file from the release
                         // => move logic from main to here
-                        return Action::DeleteFile(file_id.clone());
+                        return Action::DeleteFile(*file_id);
                     }
                     Action::None
                 }

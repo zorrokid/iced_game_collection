@@ -23,7 +23,7 @@ where
     T: HasIdField,
 {
     fn id(&self) -> ObjectId {
-        self.get_id().clone().expect("Object id not set")
+        self.get_id().expect("Object id not set")
     }
 
     fn has_id(&self) -> bool {

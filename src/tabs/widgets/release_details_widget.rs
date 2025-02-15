@@ -87,7 +87,7 @@ impl ReleaseDetails {
                     let options = EmulatorRunOptions {
                         emulator,
                         files: release.files.clone(),
-                        selected_file_name: selected_file_name,
+                        selected_file_name,
                         source_path: self
                             .file_path_builder
                             .build_target_directory(&release.system.id(), &selcted_file_type),
@@ -217,7 +217,7 @@ impl ReleaseDetails {
                             None
                         },
                         move |selected_file_name| {
-                            Message::FileSelected(file.id().clone(), selected_file_name)
+                            Message::FileSelected(file.id(), selected_file_name)
                         },
                     );
                     let emulator_buttons = emulators_for_system

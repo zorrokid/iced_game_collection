@@ -31,9 +31,7 @@ pub struct AddReleaseTab {
     file_select_widget: file_select_widget::FileSelect,
     adding_game: bool,
     adding_system: bool,
-    //release_name: String,
     systems: Vec<System>,
-    selected_system: Option<System>,
     files: Vec<CollectionFile>,
     settings: Settings,
     file_path_builder: FilePathBuilder,
@@ -109,7 +107,6 @@ impl AddReleaseTab {
             selected_game: None,
             selected_games: vec![],
             systems,
-            selected_system: None,
             files,
             settings,
             file_path_builder,
@@ -234,19 +231,15 @@ impl AddReleaseTab {
                 let db = DatabaseWithPolo::get_instance();
 
                 if self.release.has_id() {
-                    db.update_release(&self.release);
-                } else {
-                    db.add_release(&self.release);
-                }
-                match db.add_release(&self.release) {
-                    Ok(_) => {
-                        self.release = Release::default();
+                    if let Err(err) = db.update_release(&self.release) {
+                        // TODO: show error to user
+                        eprintln!("Failed to update release: {}", err);
                     }
-                    Err(err) => {
-                        eprintln!("Failed to add release: {}", err);
-                    }
+                } else if let Err(err) = db.add_release(&self.release) {
+                    // TODO: show error to user
+                    eprintln!("Failed to add release: {}", err);
                 }
-                // TODO
+
                 Task::none()
             }
         }

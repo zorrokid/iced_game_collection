@@ -38,10 +38,7 @@ impl ManageGames {
         let games = get_games_as_list_model(db)?;
         let is_edit = edit_game.is_some();
         Ok(Self {
-            game: match edit_game {
-                Some(game) => game,
-                None => Game::default(),
-            },
+            game: edit_game.unwrap_or_default(),
             games,
             is_edit,
         })
@@ -70,7 +67,9 @@ impl ManageGames {
 
                 match res {
                     Ok(_) => {
-                        self.update_games();
+                        if let Err(err) = self.update_games() {
+                            return Action::Error(err);
+                        }
                         Action::GameSubmitted
                     }
                     Err(e) => Action::Error(e),
@@ -99,7 +98,7 @@ impl ManageGames {
                             Action::Error(Error::DbError(format!("Game with id {} not found", &id)))
                         }
                     },
-                    Err(e) => return Action::Error(e),
+                    Err(e) => Action::Error(e),
                 }
             }
             Message::NameChanged(name) => {

@@ -44,23 +44,23 @@ impl SettingsMain {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::SettingsMainScreen(message) => {
-                if let SettingsScreen::SettingsMainScreen(screen) = &mut self.screen {
-                    match screen.update(message) {
-                        settings_main_screen::Action::SetCollectionRootDir(dir) => {
-                            self.settings.collection_root_dir = dir;
-                            let db = DatabaseWithPolo::get_instance();
-                            db.add_or_update_settings(&self.settings);
+                let SettingsScreen::SettingsMainScreen(screen) = &mut self.screen;
+                match screen.update(message) {
+                    settings_main_screen::Action::SetCollectionRootDir(dir) => {
+                        self.settings.collection_root_dir = dir;
+                        let db = DatabaseWithPolo::get_instance();
+                        if let Err(err) = db.add_or_update_settings(&self.settings) {
+                            // TODO: Show error
+                            eprintln!("Failed to update settings {:?}", err);
+                        }
 
-                            Action::None
-                        }
-                        settings_main_screen::Action::Back => Action::Back,
-                        settings_main_screen::Action::None => Action::None,
-                        settings_main_screen::Action::Run(task) => {
-                            Action::Run(task.map(Message::SettingsMainScreen))
-                        }
+                        Action::None
                     }
-                } else {
-                    Action::None
+                    settings_main_screen::Action::Back => Action::Back,
+                    settings_main_screen::Action::None => Action::None,
+                    settings_main_screen::Action::Run(task) => {
+                        Action::Run(task.map(Message::SettingsMainScreen))
+                    }
                 }
             }
         }
