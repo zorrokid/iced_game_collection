@@ -30,6 +30,7 @@ pub enum Message {
     SetSystemId(ObjectId),
     DeleteFile(CollectionFile),
     FileDeleted(Result<(), Error>, ObjectId),
+    Reset,
 }
 
 pub enum Action {
@@ -154,6 +155,11 @@ impl FileSelect {
                     Action::None
                 }
             },
+            Message::Reset => {
+                self.selected_file_type = None;
+                self.system_id = None;
+                Action::None
+            }
         }
     }
 

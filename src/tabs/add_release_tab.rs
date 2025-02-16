@@ -224,6 +224,14 @@ impl AddReleaseTab {
             Message::Cancel => {
                 if self.can_cancel {
                     self.release = Release::default();
+                    self.selected_games.clear();
+                    self.selected_game = None;
+                    self.adding_game = false;
+                    self.adding_system = false;
+                    self.files.clear();
+                    self.selected_file.clear();
+                    self.file_select_widget
+                        .update(file_select_widget::Message::Reset);
                 }
                 Task::none()
             }
