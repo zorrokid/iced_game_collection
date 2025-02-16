@@ -36,7 +36,7 @@ pub enum Action {
     Back,
     None,
     Run(Task<Message>),
-    RunWithEmulator(EmulatorRunOptions),
+    RunWithEmulator(Box<EmulatorRunOptions>),
     ViewImage(PathBuf),
     Error(Error),
 }
@@ -82,7 +82,7 @@ impl ViewRelease {
                         .build_target_directory(&self.release.system.id(), &collection_file_type),
                     target_path: env::temp_dir(),
                 };
-                Action::RunWithEmulator(options)
+                Action::RunWithEmulator(Box::new(options))
             }
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
             Message::FileSelected(id, file) => {

@@ -25,7 +25,7 @@ pub enum Action {
     None,
     Run(iced::Task<Message>),
     Error(Error),
-    RunWithEmulator(EmulatorRunOptions),
+    RunWithEmulator(Box<EmulatorRunOptions>),
 }
 
 impl ViewGameMain {

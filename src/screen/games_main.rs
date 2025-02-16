@@ -21,7 +21,7 @@ pub enum Message {
 
 pub enum Action {
     Back,
-    RunWithEmulator(EmulatorRunOptions),
+    RunWithEmulator(Box<EmulatorRunOptions>),
     None,
     Run(Task<Message>),
     Error(Error),

@@ -303,7 +303,7 @@ impl IcedGameCollection {
                         }
                     }
                     Task::perform(
-                        run_with_emulator_async(options),
+                        run_with_emulator_async(*options),
                         Message::FinishedRunningWithEmulator,
                     )
                 }
