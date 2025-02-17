@@ -41,7 +41,7 @@ pub async fn run_with_emulator_async(
 
     command.arg(&file_path).current_dir(target_path);
 
-    if emulator.arguments.len() > 0 {
+    if !emulator.arguments.is_empty() {
         // TODO: should use command.args() instead and emulator arguments should be split into separate strings
         command.arg(&emulator.arguments);
     }

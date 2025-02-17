@@ -35,7 +35,8 @@ pub struct AddReleaseTab {
     files: Vec<CollectionFile>,
     settings: Settings,
     file_path_builder: FilePathBuilder,
-    can_cancel: bool,
+    is_saved: bool,
+    can_save: bool,
     selected_file: HashMap<ObjectId, String>,
 }
 
@@ -111,9 +112,16 @@ impl AddReleaseTab {
             settings,
             file_path_builder,
             release,
-            can_cancel: true,
+            is_saved: false,
+            can_save: false,
             selected_file: HashMap::new(),
         }
+    }
+
+    fn set_can_save(&mut self) {
+        self.can_save = !self.release.name.is_empty()
+            && self.release.system_id.is_some()
+            && !self.selected_games.is_empty();
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -178,6 +186,7 @@ impl AddReleaseTab {
             }
             Message::ReleaseNameUpdated(name) => {
                 self.release.name = name;
+                self.set_can_save();
                 Task::none()
             }
             Message::SystemSelected(system) => {
@@ -185,6 +194,7 @@ impl AddReleaseTab {
                 self.release.system_id = Some(system.id());
                 self.file_select_widget
                     .update(file_select_widget::Message::SetSystemId(system_id));
+                self.set_can_save();
                 Task::none()
             }
             Message::DeleteFile(id) => {
@@ -198,7 +208,7 @@ impl AddReleaseTab {
                     let db = DatabaseWithPolo::get_instance();
                     match db.update_release(&self.release) {
                         Ok(_) => {
-                            self.can_cancel = false;
+                            self.is_saved = true;
                         }
                         Err(err) => {
                             eprintln!("Failed to update release: {}", err);
@@ -222,7 +232,7 @@ impl AddReleaseTab {
                 Task::none()
             }
             Message::Cancel => {
-                if self.can_cancel {
+                if !self.is_saved {
                     self.release = Release::default();
                     self.selected_games.clear();
                     self.selected_game = None;
@@ -236,20 +246,27 @@ impl AddReleaseTab {
                 Task::none()
             }
             Message::Save => {
-                let db = DatabaseWithPolo::get_instance();
-
-                if self.release.has_id() {
-                    if let Err(err) = db.update_release(&self.release) {
-                        // TODO: show error to user
-                        eprintln!("Failed to update release: {}", err);
-                    }
-                } else if let Err(err) = db.add_release(&self.release) {
-                    // TODO: show error to user
-                    eprintln!("Failed to add release: {}", err);
-                }
-
+                self.save_release();
                 Task::none()
             }
+        }
+    }
+
+    fn save_release(&mut self) {
+        let db = DatabaseWithPolo::get_instance();
+
+        if self.release.has_id() {
+            if let Err(err) = db.update_release(&self.release) {
+                // TODO: show error to user
+                eprintln!("Failed to update release: {}", err);
+            } else {
+                self.is_saved = true;
+            }
+        } else if let Err(err) = db.add_release(&self.release) {
+            // TODO: show error to user
+            eprintln!("Failed to add release: {}", err);
+        } else {
+            self.is_saved = true;
         }
     }
 
@@ -282,15 +299,20 @@ impl AddReleaseTab {
             row![].into()
         };
 
-        let file_select = self.file_select_widget.view().map(Message::FileSelect);
+        let file_select = if self.is_saved {
+            self.file_select_widget.view().map(Message::FileSelect)
+        } else {
+            row![].into()
+        };
+
         let emulator_files_list = self.create_emulator_files_list();
         let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
         let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
 
         let cancel_button =
-            button("Cancel").on_press_maybe(self.can_cancel.then_some(Message::Cancel));
+            button("Cancel").on_press_maybe((!self.is_saved).then_some(Message::Cancel));
 
-        let save_button = button("Save").on_press(Message::Save);
+        let save_button = button("Save").on_press_maybe(self.can_save.then_some(Message::Save));
 
         column![
             release_name_input,

@@ -116,12 +116,6 @@ pub struct Collection {
     pub settings: Settings,
 }
 
-#[derive(Debug, Clone)]
-pub enum FolderType {
-    Source,
-    Destination,
-}
-
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
     pub id: String,

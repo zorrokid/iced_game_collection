@@ -19,13 +19,10 @@ impl SettingsTab {
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
-        if let Message::SettingsWidget(message) = message {
-            self.settings_widget
-                .update(message)
-                .map(Message::SettingsWidget)
-        } else {
-            Task::none()
-        }
+        let Message::SettingsWidget(message) = message;
+        self.settings_widget
+            .update(message)
+            .map(Message::SettingsWidget)
     }
 
     pub fn view(&self) -> iced::Element<Message> {
