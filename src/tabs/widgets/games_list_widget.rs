@@ -1,6 +1,6 @@
 use bson::oid::ObjectId;
 use iced::{
-    widget::{button, row, text, Column},
+    widget::{button, column, row, text, Column},
     Element,
 };
 
@@ -17,10 +17,12 @@ pub struct GamesList {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewGame(ObjectId),
+    Refresh,
 }
 
 pub enum Action {
     ViewGame(ObjectId),
+    None,
 }
 
 impl GamesList {
@@ -44,6 +46,14 @@ impl GamesList {
                 println!("ViewGame message received with id: {:?}", id);
                 Action::ViewGame(id)
             }
+            Message::Refresh => {
+                let db = DatabaseWithPolo::get_instance();
+                self.games = get_games_as_list_model(db).unwrap_or_else(|err| {
+                    println!("Failed to get games list {:?}", err);
+                    vec![]
+                });
+                Action::None
+            }
         }
     }
 
@@ -55,6 +65,7 @@ impl GamesList {
             ]
             .into()
         });
-        Column::with_children(games.collect::<Vec<Element<Message>>>()).into()
+        let games_list = Column::with_children(games.collect::<Vec<Element<Message>>>());
+        column![games_list].into()
     }
 }

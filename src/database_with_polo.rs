@@ -189,6 +189,7 @@ impl DatabaseWithPolo {
         {
             Ok(result) => {
                 if let Some(oid) = result.inserted_id.as_object_id() {
+                    println!("inserted id: {:?}", oid);
                     Ok(oid)
                 } else {
                     Err(Error::DbError("Error getting inserted id".to_string()))
@@ -424,6 +425,11 @@ impl DatabaseWithPolo {
         let game_ids = &release.games;
         let file_ids = &release.files;
 
+        println!("game_ids: {:?}", game_ids);
+        println!("file_ids: {:?}", file_ids);
+
+        println!("Starting transaction");
+
         let transaction = self
             .db
             .start_transaction()
@@ -434,6 +440,7 @@ impl DatabaseWithPolo {
 
         match release_insert_result {
             Ok(release_id) => {
+                println!("release_id: {:?}", release_id);
                 if let Err(e) =
                     self.update_release_references(&release_id, file_ids, game_ids, &transaction)
                 {
@@ -442,6 +449,7 @@ impl DatabaseWithPolo {
                         .map_err(|e| Error::DbError(e.to_string()))?;
                     return Err(e);
                 }
+                println!("Starting commit");
                 transaction
                     .commit()
                     .map_err(|e| Error::DbError(e.to_string()))?;
@@ -581,6 +589,8 @@ impl DatabaseWithPolo {
         release_id: &ObjectId,
         transaction: &Transaction,
     ) -> Result<(), Error> {
+        println!("add_or_update_releases_by_game");
+
         let current_releases_by_game = transaction
             .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
             .find_one(doc! {"_id":  game_id})
@@ -589,6 +599,7 @@ impl DatabaseWithPolo {
         match current_releases_by_game {
             Some(mut releases_by_game) => {
                 releases_by_game.release_ids.push(*release_id);
+                println!("releases_by_game: {:?}", releases_by_game);
                 transaction
                     .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
                     .update_one(
@@ -604,6 +615,7 @@ impl DatabaseWithPolo {
                     _id: *game_id,
                     release_ids: vec![*release_id],
                 };
+                println!("releases_by_game: {:?}", releases_by_game);
                 transaction
                     .collection::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION)
                     .insert_one(&releases_by_game)

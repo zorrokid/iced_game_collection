@@ -25,7 +25,6 @@ pub struct AddReleaseTab {
     release: Release,
     games: Vec<Game>,
     selected_game: Option<Game>,
-    selected_games: Vec<ObjectId>,
     add_game_widget: add_game_widget::AddGame,
     add_system_widget: add_system_widget::AddSystem,
     file_select_widget: file_select_widget::FileSelect,
@@ -106,7 +105,6 @@ impl AddReleaseTab {
             adding_game: false,
             adding_system: false,
             selected_game: None,
-            selected_games: vec![],
             systems,
             files,
             settings,
@@ -121,7 +119,7 @@ impl AddReleaseTab {
     fn set_can_save(&mut self) {
         self.can_save = !self.release.name.is_empty()
             && self.release.system_id.is_some()
-            && !self.selected_games.is_empty();
+            && !self.release.games.is_empty();
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -177,11 +175,11 @@ impl AddReleaseTab {
             Message::GameSelected(game) => {
                 let game_id = game.id();
                 self.selected_game = Some(game);
-                self.selected_games.push(game_id);
+                self.release.games.push(game_id);
                 Task::none()
             }
             Message::RemoveGame(remove_id) => {
-                self.selected_games.retain(|id| *id != remove_id);
+                self.release.games.retain(|id| *id != remove_id);
                 Task::none()
             }
             Message::ReleaseNameUpdated(name) => {
@@ -234,7 +232,6 @@ impl AddReleaseTab {
             Message::Cancel => {
                 if !self.is_saved {
                     self.release = Release::default();
-                    self.selected_games.clear();
                     self.selected_game = None;
                     self.adding_game = false;
                     self.adding_system = false;
@@ -260,12 +257,14 @@ impl AddReleaseTab {
                 // TODO: show error to user
                 eprintln!("Failed to update release: {}", err);
             } else {
+                println!("Release updated");
                 self.is_saved = true;
             }
         } else if let Err(err) = db.add_release(&self.release) {
             // TODO: show error to user
             eprintln!("Failed to add release: {}", err);
         } else {
+            println!("Release added");
             self.is_saved = true;
         }
     }
@@ -374,7 +373,7 @@ impl AddReleaseTab {
         let selected_games_list = self
             .games
             .iter()
-            .filter(|game| self.selected_games.contains(&game.id()))
+            .filter(|game| self.release.games.contains(&game.id()))
             .map(|game| {
                 row![
                     text(&game.name),

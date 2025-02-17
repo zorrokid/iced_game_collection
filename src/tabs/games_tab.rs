@@ -1,4 +1,7 @@
-use iced::{widget::row, Task};
+use iced::{
+    widget::{button, column, row},
+    Task,
+};
 
 use super::widgets::{
     games_list_widget::{self, GamesList},
@@ -20,6 +23,7 @@ pub enum Message {
     ReleaseSelected(releases_list_widget::Message),
     ShowReleaseDetails(release_details_widget::Message),
     ViewImage(image_viewer_widget::Message),
+    Refresh,
 }
 
 impl GamesTab {
@@ -41,6 +45,10 @@ impl GamesTab {
                         println!("Game selected message received with game id: {:?}", game_id);
                         self.releases_list
                             .update(releases_list_widget::Message::GameSelected(game_id));
+                        Task::none()
+                    }
+                    _ => {
+                        self.games_list.update(message);
                         Task::none()
                     }
                 }
@@ -89,16 +97,27 @@ impl GamesTab {
                 }
                 release_details_widget::Action::None => Task::none(),
             },
+            Message::Refresh => {
+                self.games_list.update(games_list_widget::Message::Refresh);
+                self.releases_list
+                    .update(releases_list_widget::Message::Refresh);
+                Task::none()
+            }
+
             _ => Task::none(),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        row![
-            self.games_list.view().map(Message::GameSelected),
-            self.releases_list.view().map(Message::ReleaseSelected),
-            self.release_details.view().map(Message::ShowReleaseDetails),
-            self.image_viewer.view().map(Message::ViewImage),
+        let refresh_button = button("Refresh").on_press(Message::Refresh);
+        column![
+            row![
+                self.games_list.view().map(Message::GameSelected),
+                self.releases_list.view().map(Message::ReleaseSelected),
+                self.release_details.view().map(Message::ShowReleaseDetails),
+                self.image_viewer.view().map(Message::ViewImage),
+            ],
+            refresh_button,
         ]
         .into()
     }

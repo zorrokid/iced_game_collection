@@ -6,7 +6,7 @@ use iced::{
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
-    model::model::Game,
+    model::model::{Game, HasOid},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 
@@ -21,6 +21,7 @@ pub enum Message {
     ViewRelease(ObjectId),
     EditRelease(ObjectId),
     DeleteRelease(ObjectId),
+    Refresh,
 }
 
 pub enum Action {
@@ -70,6 +71,17 @@ impl ReleasesList {
                 }
             }
             Message::EditRelease(id) => Action::EditRelease(id),
+            Message::Refresh => {
+                if let Some(game) = &self.game {
+                    let db = DatabaseWithPolo::get_instance();
+                    self.releases =
+                        get_releases_in_list_model(db, &game.id()).unwrap_or_else(|err| {
+                            println!("Failed to get releases list {:?}", err);
+                            vec![]
+                        });
+                }
+                Action::None
+            }
         }
     }
 
