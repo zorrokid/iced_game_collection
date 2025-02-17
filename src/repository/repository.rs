@@ -4,7 +4,7 @@ use crate::{
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Franchise, Game, Release, ReleasesByGame, System},
+        model::{Franchise, Game, Release, ReleasesByFile, ReleasesByGame, System},
     },
 };
 
@@ -28,6 +28,10 @@ pub trait FranchisReadRepository {
 pub trait CollectionFilesReadRepository {
     fn get_collection_files(&self, ids: &Vec<ObjectId>) -> Result<Vec<CollectionFile>, Error>;
     fn is_collection_file_in_release(&self, collection_file_id: &ObjectId) -> Result<bool, Error>;
+    fn get_releases_by_file(
+        &self,
+        collection_file_id: &ObjectId,
+    ) -> Result<Option<ReleasesByFile>, Error>;
 }
 
 pub trait SystemReadRepository {

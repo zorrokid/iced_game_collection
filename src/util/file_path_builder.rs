@@ -46,6 +46,10 @@ impl FilePathBuilder {
         path.push(file_type.directory());
         path
     }
+
+    pub fn get_collection_root_dir(&self) -> &String {
+        &self.collection_root_dir
+    }
 }
 
 #[cfg(test)]

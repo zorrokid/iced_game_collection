@@ -818,6 +818,12 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
             None => Ok(false),
         }
     }
+    fn get_releases_by_file(
+        &self,
+        collection_file_id: &ObjectId,
+    ) -> Result<Option<ReleasesByFile>, Error> {
+        self.get_with_id(RELEASES_BY_FILES_COLLECTION, collection_file_id)
+    }
 }
 
 impl SystemReadRepository for DatabaseWithPolo {

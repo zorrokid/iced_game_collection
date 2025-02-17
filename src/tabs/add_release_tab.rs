@@ -1,25 +1,24 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use bson::oid::ObjectId;
 use iced::{
-    widget::{button, column, container, image, pick_list, row, text, text_input, Column},
-    Element, Task,
+    widget::{button, column, container, pick_list, row, text, text_input, Column},
+    Task,
 };
 
 use crate::{
     database_with_polo::DatabaseWithPolo,
     error::Error,
     model::{
-        collection_file::{CollectionFile, CollectionFileType},
+        collection_file::CollectionFile,
         model::{Game, HasOid, Release, Settings, System},
     },
     repository::repository::{
         CollectionFilesReadRepository as _, ReleaseReadRepository, SystemReadRepository,
     },
-    util::{file_path_builder::FilePathBuilder, image::get_thumbnail_path},
 };
 
-use super::widgets::{add_game_widget, add_system_widget, file_select_widget};
+use super::widgets::{add_game_widget, add_system_widget, file_select_widget, files_list_widget};
 
 pub struct AddReleaseTab {
     release: Release,
@@ -28,15 +27,14 @@ pub struct AddReleaseTab {
     add_game_widget: add_game_widget::AddGame,
     add_system_widget: add_system_widget::AddSystem,
     file_select_widget: file_select_widget::FileSelect,
+    files_list: files_list_widget::FilesList,
     adding_game: bool,
     adding_system: bool,
     systems: Vec<System>,
     files: Vec<CollectionFile>,
     settings: Settings,
-    file_path_builder: FilePathBuilder,
     is_saved: bool,
     can_save: bool,
-    selected_file: HashMap<ObjectId, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +42,7 @@ pub enum Message {
     AddGame(add_game_widget::Message),
     AddSystem(add_system_widget::Message),
     FileSelect(file_select_widget::Message),
+    FilesList(files_list_widget::Message),
     GameSelected(Game),
     RemoveGame(ObjectId),
     StartAddingGame,
@@ -51,9 +50,8 @@ pub enum Message {
     ReleaseNameUpdated(String),
     SystemSelected(System),
     ViewImage(PathBuf),
-    DeleteFile(ObjectId),
-    FileDeleted(Result<(), Error>, ObjectId),
-    FileSelected(ObjectId, String),
+    //DeleteFile(ObjectId),
+    //FileDeleted(Result<(), Error>, ObjectId),
     Cancel,
     Save,
 }
@@ -70,7 +68,6 @@ impl AddReleaseTab {
             vec![]
         });
         let settings = db.get_settings().unwrap_or_default();
-        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
 
         let release = match release_id {
             Some(id) => match db.get_release(&id) {
@@ -101,6 +98,7 @@ impl AddReleaseTab {
             file_select_widget: file_select_widget::FileSelect::new(
                 settings.collection_root_dir.clone(),
             ),
+            files_list: files_list_widget::FilesList::new(settings.collection_root_dir.clone()),
             games,
             adding_game: false,
             adding_system: false,
@@ -108,11 +106,9 @@ impl AddReleaseTab {
             systems,
             files,
             settings,
-            file_path_builder,
             release,
             is_saved: false,
             can_save: false,
-            selected_file: HashMap::new(),
         }
     }
 
@@ -156,7 +152,14 @@ impl AddReleaseTab {
                         // do nothing
                     }
                     file_select_widget::Action::AddFile(file_id) => {
-                        self.release.files.push(file_id);
+                        println!("Adding file to release: {:?}", file_id);
+                        if let Some(system_id) = self.release.system_id {
+                            self.release.files.push(file_id);
+                            self.files_list.update(files_list_widget::Message::SetFiles(
+                                self.release.files.clone(),
+                                system_id,
+                            ));
+                        };
                     }
                     file_select_widget::Action::Run(task) => {
                         return task.map(Message::FileSelect);
@@ -195,7 +198,7 @@ impl AddReleaseTab {
                 self.set_can_save();
                 Task::none()
             }
-            Message::DeleteFile(id) => {
+            /*Message::DeleteFile(id) => {
                 if let Some(file_to_be_deleted) = self.files.iter().find(|f| f.id() == id).cloned()
                 {
                     // TODO do we need to maintain both files (CollectionFile) and release.files
@@ -212,23 +215,19 @@ impl AddReleaseTab {
                             eprintln!("Failed to update release: {}", err);
                         }
                     }
-                    self.file_select_widget
-                        .update(file_select_widget::Message::DeleteFile(file_to_be_deleted));
+                    self.files_list
+                        .update(files_list_widget::Message::DeleteFile(file_to_be_deleted));
                 }
                 Task::none()
-            }
+            }*/
             Message::ViewImage(_file_path) => {
                 // TODO
                 Task::none()
             }
-            Message::FileSelected(id, file) => {
-                self.selected_file.insert(id, file);
-                Task::none()
-            }
-            Message::FileDeleted(_result, _id) => {
+            /*Message::FileDeleted(_result, _id) => {
                 // TODO
                 Task::none()
-            }
+            }*/
             Message::Cancel => {
                 if !self.is_saved {
                     self.release = Release::default();
@@ -236,7 +235,6 @@ impl AddReleaseTab {
                     self.adding_game = false;
                     self.adding_system = false;
                     self.files.clear();
-                    self.selected_file.clear();
                     self.file_select_widget
                         .update(file_select_widget::Message::Reset);
                 }
@@ -244,6 +242,27 @@ impl AddReleaseTab {
             }
             Message::Save => {
                 self.save_release();
+                Task::none()
+            }
+            Message::FilesList(message) => {
+                match self.files_list.update(message) {
+                    files_list_widget::Action::None => {}
+                    files_list_widget::Action::RemoveFile(id) => {
+                        if let Some(system_id) = self.release.system_id {
+                            self.release.files.retain(|f| *f != id);
+                            self.save_release();
+                            self.files_list
+                                .update(files_list_widget::Message::FileRemoved(id, system_id));
+                        }
+                    }
+                    files_list_widget::Action::ViewImage(_file_path) => {
+                        // TODO
+                    }
+                    files_list_widget::Action::Run(task) => {
+                        return task.map(Message::FilesList);
+                    }
+                }
+
                 Task::none()
             }
         }
@@ -304,15 +323,12 @@ impl AddReleaseTab {
             row![].into()
         };
 
-        let emulator_files_list = self.create_emulator_files_list();
-        let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
-        let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
-
         let cancel_button =
             button("Cancel").on_press_maybe((!self.is_saved).then_some(Message::Cancel));
 
         let save_button = button("Save").on_press_maybe(self.can_save.then_some(Message::Save));
 
+        let files_list = self.files_list.view().map(Message::FilesList);
         column![
             release_name_input,
             games_row,
@@ -321,9 +337,7 @@ impl AddReleaseTab {
             systems_row,
             add_system_row,
             file_select,
-            emulator_files_list,
-            scan_files_list,
-            screenshot_files_list,
+            files_list,
             row![cancel_button, save_button],
         ]
         .into()
@@ -388,66 +402,5 @@ impl AddReleaseTab {
             Column::with_children(selected_games_list)
         ]
         .into()
-    }
-
-    fn create_files_list(&self, file_type: CollectionFileType) -> Element<Message> {
-        let files_list = self
-            .files
-            .iter()
-            .filter(|f| f.collection_file_type == file_type)
-            .filter_map(|file| {
-                if let Some(system_id) = self.release.system_id {
-                    if let Ok(thumb_path) =
-                        get_thumbnail_path(file, &self.settings.collection_root_dir, &system_id)
-                    {
-                        if let Ok(file_path) =
-                            self.file_path_builder.build_file_path(&system_id, file)
-                        {
-                            let image = image(thumb_path);
-                            let view_image_button =
-                                button(image).on_press(Message::ViewImage(file_path));
-                            let delete_button =
-                                button("Delete").on_press(Message::DeleteFile(file.id()));
-                            return Some(row![view_image_button, delete_button].into());
-                        }
-                    }
-                }
-
-                None
-            })
-            .collect::<Vec<iced::Element<Message>>>();
-        Column::with_children(files_list).into()
-    }
-
-    fn create_emulator_files_list(&self) -> Element<Message> {
-        let files_list = self
-            .files
-            .iter()
-            .filter(|f| {
-                f.collection_file_type == CollectionFileType::Rom
-                    || f.collection_file_type == CollectionFileType::DiskImage
-                    || f.collection_file_type == CollectionFileType::TapeImage
-            })
-            .map(|file| {
-                let container_filename = text(file.to_string());
-                let content_files: Vec<String> = if let Some(files) = &file.files {
-                    files.iter().map(|file| file.name.clone()).collect()
-                } else {
-                    vec![]
-                };
-                let file_picker = pick_list(
-                    content_files,
-                    if self.selected_file.contains_key(&file.id()) {
-                        Some(self.selected_file.get(&file.id()).unwrap())
-                    } else {
-                        None
-                    },
-                    move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
-                );
-                let delete_button = button("Delete").on_press(Message::DeleteFile(file.id()));
-                row![container_filename, file_picker, delete_button].into()
-            })
-            .collect::<Vec<iced::Element<Message>>>();
-        Column::with_children(files_list).into()
     }
 }

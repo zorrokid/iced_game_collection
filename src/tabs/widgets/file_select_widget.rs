@@ -7,11 +7,8 @@ use iced::{
 use crate::{
     database_with_polo::DatabaseWithPolo,
     error::Error,
-    files::{copy_file, delete_file, pick_file, PickedFile},
-    model::{
-        collection_file::{CollectionFile, CollectionFileType},
-        model::HasOid,
-    },
+    files::{copy_file, pick_file, PickedFile},
+    model::collection_file::{CollectionFile, CollectionFileType},
     util::file_path_builder::FilePathBuilder,
 };
 
@@ -28,8 +25,6 @@ pub enum Message {
     FilePicked(Result<PickedFile, Error>),
     FileCopied(Result<ObjectId, Error>),
     SetSystemId(ObjectId),
-    DeleteFile(CollectionFile),
-    FileDeleted(Result<(), Error>, ObjectId),
     Reset,
 }
 
@@ -37,8 +32,6 @@ pub enum Action {
     None,
     Run(Task<Message>),
     AddFile(ObjectId),
-    //ViewImage(PathBuf),
-    //DeleteFile(ObjectId),
 }
 
 impl FileSelect {
@@ -117,44 +110,6 @@ impl FileSelect {
                 self.system_id = Some(system_id);
                 Action::None
             }
-            Message::DeleteFile(file) => {
-                // TODO: maybe file could be used in multiple releases
-                // - add a reference list
-                // - check if file has references to releases
-                // - delete file only if it's not used in any release
-                if let Some(system_id) = self.system_id {
-                    if let Ok(file_path) = self.file_path_builder.build_file_path(&system_id, &file)
-                    {
-                        // TODO: remove also thumbnail if exists
-                        return Action::Run(Task::perform(
-                            delete_file(file_path.clone()),
-                            move |result| Message::FileDeleted(result, file.id()),
-                        ));
-                    }
-                }
-                Action::None
-            }
-            Message::FileDeleted(result, id) => match result {
-                Ok(_) => {
-                    // File was deleted from disk, now delete from database
-                    let db = DatabaseWithPolo::get_instance();
-                    match db.delete_collection_file(&id) {
-                        Ok(_) => {
-                            println!("File deleted {:?}", id);
-                        }
-                        Err(err) => {
-                            // TODO: show message to user
-                            println!("Failed to delete file {:?}", err);
-                        }
-                    };
-                    Action::None
-                }
-                Err(err) => {
-                    println!("Failed to delete file {:?}", err);
-                    // TODO: show message to user
-                    Action::None
-                }
-            },
             Message::Reset => {
                 self.selected_file_type = None;
                 self.system_id = None;
