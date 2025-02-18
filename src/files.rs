@@ -206,7 +206,7 @@ pub fn is_zip_file_sync(file_path: &SyncPath) -> Result<bool, Error> {
     const ZIP_MAGIC_NUMBER: [u8; 4] = [0x50, 0x4B, 0x03, 0x04];
 
     let mut file = File::open(file_path)
-        .map_err(|_| Error::IoError(format!("Failed opening file {:?}.", file_path.file_name())))?;
+        .map_err(|_| Error::IoError(format!("Failed opening file {:?}.", file_path)))?;
     let mut buffer = [0; 4];
     file.read_exact(&mut buffer).map_err(|err| {
         Error::IoError(format!(

@@ -2,6 +2,7 @@ use crate::emulator_runner::{
     process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions,
 };
 use crate::error::Error;
+use crate::model::collection_file::CollectionFile;
 use crate::model::model::HasOid;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
@@ -80,13 +81,25 @@ impl ReleaseDetails {
             }
             Message::ViewImage(path) => return Action::ImageSelected(path),
             Message::FileSelected(id, file) => {
+                println!("File selected: {:?} {:?}", id, file);
                 self.selected_file.insert(id, file);
             }
             Message::RunWithEmulator(emulator, selected_file_name, selcted_file_type) => {
+                println!(
+                    "Run with emulator: {:?} {:?} {:?}",
+                    emulator, selected_file_name, selcted_file_type
+                );
                 if let Some(release) = &self.release {
+                    let filtered_files = release
+                        .files
+                        .iter()
+                        .cloned()
+                        .filter(|f| f.collection_file_type == selcted_file_type)
+                        .collect::<Vec<CollectionFile>>();
+
                     let options = EmulatorRunOptions {
                         emulator,
-                        files: release.files.clone(),
+                        files: filtered_files,
                         selected_file_name,
                         source_path: self
                             .file_path_builder
@@ -146,6 +159,7 @@ impl ReleaseDetails {
         selected_games_title.into()
     }
 
+    // TODO: use files_list_widget
     fn create_files_list(&self, file_type: &CollectionFileType) -> Element<Message> {
         if let Some(release) = &self.release {
             let scan_files_list = release
