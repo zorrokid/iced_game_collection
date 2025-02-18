@@ -247,12 +247,13 @@ impl AddReleaseTab {
             Message::FilesList(message) => {
                 match self.files_list.update(message) {
                     files_list_widget::Action::None => {}
-                    files_list_widget::Action::RemoveFile(id) => {
+                    files_list_widget::Action::RemoveFileReference(id) => {
                         if let Some(system_id) = self.release.system_id {
                             self.release.files.retain(|f| *f != id);
                             self.save_release();
-                            self.files_list
-                                .update(files_list_widget::Message::FileRemoved(id, system_id));
+                            self.files_list.update(
+                                files_list_widget::Message::FileReferenceRemoved(id, system_id),
+                            );
                         }
                     }
                     files_list_widget::Action::ViewImage(_file_path) => {

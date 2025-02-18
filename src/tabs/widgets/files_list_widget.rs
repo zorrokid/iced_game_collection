@@ -28,18 +28,16 @@ pub struct FilesList {
 #[derive(Debug, Clone)]
 pub enum Message {
     FileSelected(ObjectId, String),
-    RemoveFile(ObjectId),
-    FileRemoved(ObjectId, ObjectId),
-    Refresh,
+    StartRemoveFile(ObjectId),
+    FileReferenceRemoved(ObjectId, ObjectId),
     SetFiles(Vec<ObjectId>, ObjectId),
     ViewImage(PathBuf),
-    //DeleteFile(CollectionFile),
     FileDeleted(Result<(), Error>, ObjectId),
 }
 
 pub enum Action {
     ViewImage(PathBuf),
-    RemoveFile(ObjectId),
+    RemoveFileReference(ObjectId),
     Run(Task<Message>),
     None,
 }
@@ -61,13 +59,9 @@ impl FilesList {
                 self.selected_file.insert(id, file);
                 Action::None
             }
-            Message::RemoveFile(id) => {
+            Message::StartRemoveFile(id) => {
                 println!("Remove file: {:?}", id);
-                Action::RemoveFile(id)
-            }
-            Message::Refresh => {
-                println!("Refresh files list");
-                Action::None
+                Action::RemoveFileReference(id)
             }
             Message::SetFiles(ids, system_id) => {
                 let db = DatabaseWithPolo::get_instance();
@@ -81,15 +75,15 @@ impl FilesList {
                 Action::None
             }
             Message::ViewImage(path) => Action::ViewImage(path),
-            Message::FileRemoved(file_id, system_id) => {
+            // TODO: this could be somewhere else:
+            Message::FileReferenceRemoved(file_id, system_id) => {
                 let file = self.files.iter().find(|f| f.id() == file_id);
                 if let Some(file) = file {
-                    let file_path = self.file_path_builder.build_file_path(&system_id, &file);
+                    let file_path = self.file_path_builder.build_file_path(&system_id, file);
                     let db = DatabaseWithPolo::get_instance();
-                    let file_references = db.get_releases_by_file(&file_id);
-                    match file_references {
-                        Ok(releases) => {
-                            if releases.is_none() {
+                    match db.is_collection_file_in_release(&file_id) {
+                        Ok(is_in_release) => {
+                            if !is_in_release {
                                 if let Ok(file_path) = file_path {
                                     // TODO: remove also thumbnail if exists
                                     return Action::Run(Task::perform(
@@ -107,6 +101,7 @@ impl FilesList {
                 }
                 Action::None
             }
+            // TODO: this could be somewhere else:
             Message::FileDeleted(result, id) => match result {
                 Ok(_) => {
                     // File was deleted from disk, now delete from database
@@ -148,7 +143,7 @@ impl FilesList {
                 if let Some(system_id) = self.system_id {
                     if let Ok(thumb_path) = get_thumbnail_path(
                         file,
-                        &self.file_path_builder.get_collection_root_dir(),
+                        self.file_path_builder.get_collection_root_dir(),
                         &system_id,
                     ) {
                         if let Ok(file_path) =
@@ -158,7 +153,7 @@ impl FilesList {
                             let view_image_button =
                                 button(image).on_press(Message::ViewImage(file_path));
                             let delete_button =
-                                button("Delete").on_press(Message::RemoveFile(file.id()));
+                                button("Delete").on_press(Message::StartRemoveFile(file.id()));
                             return Some(row![view_image_button, delete_button].into());
                         }
                     }
@@ -195,7 +190,7 @@ impl FilesList {
                     },
                     move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
                 );
-                let delete_button = button("Remove").on_press(Message::RemoveFile(file.id()));
+                let delete_button = button("Remove").on_press(Message::StartRemoveFile(file.id()));
                 row![container_filename, file_picker, delete_button].into()
             })
             .collect::<Vec<iced::Element<Message>>>();

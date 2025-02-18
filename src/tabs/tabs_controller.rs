@@ -44,7 +44,13 @@ impl TabsController {
         match message {
             Message::Home(message) => self.home_tab.update(message).map(Message::Home),
             Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
-            Message::Games(message) => self.games_tab.update(message).map(Message::Games),
+            Message::Games(message) => {
+                if let games_tab::Message::EditRelease(id) = message {
+                    self.add_release_tab = add_release_tab::AddReleaseTab::new(Some(id));
+                    self.current_tab = Tab::AddRelease;
+                }
+                self.games_tab.update(message).map(Message::Games)
+            }
             Message::AddRelease(message) => self
                 .add_release_tab
                 .update(message)

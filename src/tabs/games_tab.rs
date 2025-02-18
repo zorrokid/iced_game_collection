@@ -1,3 +1,4 @@
+use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, row},
     Task,
@@ -24,6 +25,7 @@ pub enum Message {
     ShowReleaseDetails(release_details_widget::Message),
     ViewImage(image_viewer_widget::Message),
     Refresh,
+    EditRelease(ObjectId),
 }
 
 impl GamesTab {
@@ -79,8 +81,7 @@ impl GamesTab {
                             "Edit release message received with release id: {:?}",
                             release_id
                         );
-                        // TODO: send action to TabsController to open edit release screen
-                        Task::none()
+                        Task::done(Message::EditRelease(release_id))
                     }
                     _ => {
                         self.releases_list.update(message);
