@@ -73,8 +73,10 @@ impl TabsController {
     }
 
     pub fn switch_to_tab(&mut self, tab: Tab) -> Task<Message> {
-        if tab == Tab::AddRelease {
-            self.add_release_tab = add_release_tab::AddReleaseTab::new(None);
+        match tab {
+            Tab::Games => self.games_tab = games_tab::GamesTab::new(),
+            Tab::AddRelease => self.add_release_tab = add_release_tab::AddReleaseTab::new(None),
+            _ => {}
         }
         self.current_tab = tab;
         Task::none()

@@ -54,7 +54,6 @@ pub enum Message {
     //FileDeleted(Result<(), Error>, ObjectId),
     Cancel,
     Save,
-    Reset,
 }
 
 impl AddReleaseTab {
@@ -270,16 +269,6 @@ impl AddReleaseTab {
                     }
                 }
 
-                Task::none()
-            }
-            Message::Reset => {
-                self.release = Release::default();
-                self.selected_game = None;
-                self.adding_game = false;
-                self.adding_system = false;
-                self.files.clear();
-                self.file_select_widget
-                    .update(file_select_widget::Message::Reset);
                 Task::none()
             }
         }
