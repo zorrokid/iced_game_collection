@@ -54,6 +54,7 @@ pub enum Message {
     //FileDeleted(Result<(), Error>, ObjectId),
     Cancel,
     Save,
+    Reset,
 }
 
 impl AddReleaseTab {
@@ -98,7 +99,10 @@ impl AddReleaseTab {
             file_select_widget: file_select_widget::FileSelect::new(
                 settings.collection_root_dir.clone(),
             ),
-            files_list: files_list_widget::FilesList::new(settings.collection_root_dir.clone()),
+            files_list: files_list_widget::FilesList::new(
+                settings.collection_root_dir.clone(),
+                release.files.clone(),
+            ),
             games,
             adding_game: false,
             adding_system: false,
@@ -107,8 +111,9 @@ impl AddReleaseTab {
             files,
             settings,
             release,
-            is_saved: false,
-            can_save: false,
+            // TODO: add a "dirty" flag to check if there are unsaved changes
+            is_saved: release_id.is_some(),
+            can_save: release_id.is_some(),
         }
     }
 
@@ -119,6 +124,7 @@ impl AddReleaseTab {
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
+        println!("AddReleaseTab::update: {:?}", message);
         match message {
             Message::AddGame(message) => {
                 match self.add_game_widget.update(message) {
@@ -264,6 +270,16 @@ impl AddReleaseTab {
                     }
                 }
 
+                Task::none()
+            }
+            Message::Reset => {
+                self.release = Release::default();
+                self.selected_game = None;
+                self.adding_game = false;
+                self.adding_system = false;
+                self.files.clear();
+                self.file_select_widget
+                    .update(file_select_widget::Message::Reset);
                 Task::none()
             }
         }

@@ -22,6 +22,7 @@ impl TitleBar {
     }
 
     pub fn update(&mut self, message: Message) {
+        println!("TitleBar update: {:?}", message);
         match message {
             Message::TabSelected(index) => {
                 self.active_tab = index;

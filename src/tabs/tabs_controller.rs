@@ -4,7 +4,7 @@ use crate::error::Error;
 
 use super::{add_release_tab, games_tab, home_tab, settings_tab};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tab {
     Home,
     Settings,
@@ -51,10 +51,15 @@ impl TabsController {
                 }
                 self.games_tab.update(message).map(Message::Games)
             }
-            Message::AddRelease(message) => self
-                .add_release_tab
-                .update(message)
-                .map(Message::AddRelease),
+            Message::AddRelease(message) => {
+                println!(
+                    "tabs_controller: Add release message received: {:?}",
+                    message
+                );
+                self.add_release_tab
+                    .update(message)
+                    .map(Message::AddRelease)
+            }
         }
     }
 
@@ -68,6 +73,9 @@ impl TabsController {
     }
 
     pub fn switch_to_tab(&mut self, tab: Tab) -> Task<Message> {
+        if tab == Tab::AddRelease {
+            self.add_release_tab = add_release_tab::AddReleaseTab::new(None);
+        }
         self.current_tab = tab;
         Task::none()
     }

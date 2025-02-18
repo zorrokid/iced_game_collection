@@ -147,6 +147,10 @@ impl IcedGameCollection {
     }
 
     fn update_tabs_controller(&mut self, message: tabs::tabs_controller::Message) -> Task<Message> {
+        println!(
+            "main, update_tabs_controller received message: {:?}",
+            message,
+        );
         self.tabs_controller
             .update(message)
             .map(Message::TabsController)
