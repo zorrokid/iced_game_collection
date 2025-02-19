@@ -9,6 +9,7 @@ pub struct ImageViewer {
 #[derive(Debug, Clone)]
 pub enum Message {
     ImageSelected(PathBuf),
+    Clear,
 }
 
 impl ImageViewer {
@@ -20,6 +21,9 @@ impl ImageViewer {
         match message {
             Message::ImageSelected(path) => {
                 self.image_path = Some(path);
+            }
+            Message::Clear => {
+                self.image_path = None;
             }
         }
     }

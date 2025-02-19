@@ -47,6 +47,9 @@ impl GamesTab {
                         println!("Game selected message received with game id: {:?}", game_id);
                         self.releases_list
                             .update(releases_list_widget::Message::GameSelected(game_id));
+                        self.image_viewer
+                            .update(image_viewer_widget::Message::Clear);
+                        self.release_details = ReleaseDetails::new();
                         Task::none()
                     }
                     _ => {
@@ -65,22 +68,17 @@ impl GamesTab {
                         );
                         self.release_details
                             .update(release_details_widget::Message::ReleaseSelected(release_id));
+                        self.image_viewer
+                            .update(image_viewer_widget::Message::Clear);
                         Task::none()
                     }
                     releases_list_widget::Message::GameSelected(game_id) => {
-                        println!(
-                            "Release selected message received with game id: {:?}",
-                            game_id
-                        );
+                        println!("Game selected message received with game id: {:?}", game_id);
                         self.releases_list
                             .update(releases_list_widget::Message::GameSelected(game_id));
                         Task::none()
                     }
                     releases_list_widget::Message::EditRelease(release_id) => {
-                        println!(
-                            "Edit release message received with release id: {:?}",
-                            release_id
-                        );
                         Task::done(Message::EditRelease(release_id))
                     }
                     _ => {
