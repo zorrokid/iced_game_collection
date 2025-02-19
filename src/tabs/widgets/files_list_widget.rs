@@ -18,21 +18,23 @@ use crate::{
     util::{file_path_builder::FilePathBuilder, image::get_thumbnail_path},
 };
 
+use super::emulator_files_list_widget::{self, EmulatorFilesList};
+
 pub struct FilesList {
     files: Vec<CollectionFile>,
     system_id: Option<ObjectId>,
     file_path_builder: FilePathBuilder,
-    selected_file: HashMap<ObjectId, String>,
+    emulator_files_list: EmulatorFilesList,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FileSelected(ObjectId, String),
     StartRemoveFile(ObjectId),
     FileReferenceRemoved(ObjectId, ObjectId),
     SetFiles(Vec<ObjectId>, ObjectId),
     ViewImage(PathBuf),
     FileDeleted(Result<(), Error>, ObjectId),
+    EmulatorFilesList(super::emulator_files_list_widget::Message),
 }
 
 pub enum Action {
@@ -54,20 +56,15 @@ impl FilesList {
             vec![]
         });
         Self {
-            files,
+            files: files.clone(),
             file_path_builder: FilePathBuilder::new(collection_root_dir),
             system_id,
-            selected_file: HashMap::new(),
+            emulator_files_list: EmulatorFilesList::new(system_id, files),
         }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::FileSelected(id, file) => {
-                println!("File selected: {:?}", id);
-                self.selected_file.insert(id, file);
-                Action::None
-            }
             Message::StartRemoveFile(id) => {
                 println!("Remove file: {:?}", id);
                 Action::RemoveFileReference(id)
@@ -132,11 +129,26 @@ impl FilesList {
                     Action::None
                 }
             },
+            Message::EmulatorFilesList(message) => {
+                match self.emulator_files_list.update(message) {
+                    emulator_files_list_widget::Action::Run(task) => {
+                        Action::Run(task.map(Message::EmulatorFilesList))
+                    }
+                    emulator_files_list_widget::Action::RemoveFileReference(_id) => {
+                        // TODO
+                        Action::None
+                    }
+                    emulator_files_list_widget::Action::None => Action::None,
+                }
+            }
         }
     }
 
     pub fn view(&self) -> Element<Message> {
-        let emulator_files_list = self.create_emulator_files_list();
+        let emulator_files_list = self
+            .emulator_files_list
+            .view()
+            .map(Message::EmulatorFilesList);
         let scan_files_list = self.create_files_list(CollectionFileType::CoverScan);
         let screenshot_files_list = self.create_files_list(CollectionFileType::Screenshot);
 
@@ -170,38 +182,6 @@ impl FilesList {
                 }
 
                 None
-            })
-            .collect::<Vec<iced::Element<Message>>>();
-        Column::with_children(files_list).into()
-    }
-
-    fn create_emulator_files_list(&self) -> Element<Message> {
-        let files_list = self
-            .files
-            .iter()
-            .filter(|f| {
-                f.collection_file_type == CollectionFileType::Rom
-                    || f.collection_file_type == CollectionFileType::DiskImage
-                    || f.collection_file_type == CollectionFileType::TapeImage
-            })
-            .map(|file| {
-                let container_filename = text(file.to_string());
-                let content_files: Vec<String> = if let Some(files) = &file.files {
-                    files.iter().map(|file| file.name.clone()).collect()
-                } else {
-                    vec![]
-                };
-                let file_picker = pick_list(
-                    content_files,
-                    if self.selected_file.contains_key(&file.id()) {
-                        Some(self.selected_file.get(&file.id()).unwrap())
-                    } else {
-                        None
-                    },
-                    move |selected_file_name| Message::FileSelected(file.id(), selected_file_name),
-                );
-                let delete_button = button("Remove").on_press(Message::StartRemoveFile(file.id()));
-                row![container_filename, file_picker, delete_button].into()
             })
             .collect::<Vec<iced::Element<Message>>>();
         Column::with_children(files_list).into()

@@ -1,44 +1,35 @@
-use crate::emulator_runner::{
-    process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions,
-};
-use crate::error::Error;
-use crate::model::collection_file::CollectionFile;
 use crate::model::model::HasOid;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::ReleaseViewModel;
 use crate::{
-    model::{
-        collection_file::{CollectionFileType, GetFileExtensions},
-        model::{Emulator, Settings},
-    },
+    model::{collection_file::CollectionFileType, model::Settings},
     view_model::release_view_model::get_release_view_model,
 };
 use bson::oid::ObjectId;
-use iced::widget::{button, image, pick_list, Column};
+use iced::widget::{button, image, Column};
 use iced::Element;
 use iced::{
     widget::{column, row, text},
     Task,
 };
 use std::path::PathBuf;
-use std::{collections::HashMap, env, vec};
+use std::vec;
+
+use super::emulator_files_list_widget::{self, EmulatorFilesList};
 
 pub struct ReleaseDetails {
     release: Option<ReleaseViewModel>,
-    selected_file: HashMap<ObjectId, String>,
-    emulators: Vec<Emulator>,
     settings: Settings,
     file_path_builder: FilePathBuilder,
+    emulator_files_list: EmulatorFilesList,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ReleaseSelected(ObjectId),
     ViewImage(PathBuf),
-    RunWithEmulator(Emulator, String, CollectionFileType),
-    FileSelected(ObjectId, String),
-    FinishedRunningWithEmulator(Result<(), Error>),
+    EmulatorFilesList(emulator_files_list_widget::Message),
 }
 
 pub enum Action {
@@ -50,10 +41,6 @@ pub enum Action {
 impl ReleaseDetails {
     pub fn new() -> Self {
         let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
-        let emulators = db.get_emulators().unwrap_or_else(|err| {
-            println!("Failed to get emulators {:?}", err);
-            vec![]
-        });
         let settings = db.get_settings().unwrap_or_else(|err| {
             println!("Failed to get settings {:?}", err);
             Settings::default()
@@ -62,10 +49,9 @@ impl ReleaseDetails {
 
         Self {
             release: None,
-            selected_file: HashMap::new(),
-            emulators,
             settings,
             file_path_builder,
+            emulator_files_list: EmulatorFilesList::new(None, vec![]),
         }
     }
 
@@ -78,60 +64,36 @@ impl ReleaseDetails {
                     None
                 });
                 self.release = release;
+                if let Some(release) = &self.release {
+                    self.emulator_files_list
+                        .update(emulator_files_list_widget::Message::SetFiles(
+                            release.files.clone(),
+                            release.system.id(),
+                        ));
+                }
             }
             Message::ViewImage(path) => return Action::ImageSelected(path),
-            Message::FileSelected(id, file) => {
-                println!("File selected: {:?} {:?}", id, file);
-                self.selected_file.insert(id, file);
-            }
-            Message::RunWithEmulator(emulator, selected_file_name, selcted_file_type) => {
-                println!(
-                    "Run with emulator: {:?} {:?} {:?}",
-                    emulator, selected_file_name, selcted_file_type
-                );
-                if let Some(release) = &self.release {
-                    let filtered_files = release
-                        .files
-                        .iter()
-                        .cloned()
-                        .filter(|f| f.collection_file_type == selcted_file_type)
-                        .collect::<Vec<CollectionFile>>();
-
-                    let options = EmulatorRunOptions {
-                        emulator,
-                        files: filtered_files,
-                        selected_file_name,
-                        source_path: self
-                            .file_path_builder
-                            .build_target_directory(&release.system.id(), &selcted_file_type),
-                        target_path: env::temp_dir(),
-                    };
-                    match process_files_for_emulator(&options) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            println!("Failed to process files for emulator {:?}", e);
-                            return Action::None;
-                        }
+            Message::EmulatorFilesList(message) => {
+                match self.emulator_files_list.update(message) {
+                    emulator_files_list_widget::Action::Run(task) => {
+                        return Action::Run(task.map(Message::EmulatorFilesList));
                     }
-                    return Action::Run(Task::perform(
-                        run_with_emulator_async(options),
-                        Message::FinishedRunningWithEmulator,
-                    ));
-                }
+                    emulator_files_list_widget::Action::RemoveFileReference(_id) => {
+                        // TODO
+                    }
+                    emulator_files_list_widget::Action::None => {}
+                };
             }
-            Message::FinishedRunningWithEmulator(result) => match result {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Failed to run with emulator {:?}", e);
-                }
-            },
         }
         Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let selected_games_list = self.create_selected_games_list();
-        let emulator_files_list = self.create_emulator_files_list();
+        let emulator_files_list = self
+            .emulator_files_list
+            .view()
+            .map(Message::EmulatorFilesList);
         let scan_files_list = self.create_files_list(&CollectionFileType::CoverScan);
         let screenshot_files_list = self.create_files_list(&CollectionFileType::Screenshot);
 
@@ -188,99 +150,6 @@ impl ReleaseDetails {
                 .collect::<Vec<iced::Element<Message>>>();
 
             Column::with_children(scan_files_list).into()
-        } else {
-            Column::new().into()
-        }
-    }
-
-    fn create_emulator_files_list(&self) -> Element<Message> {
-        if let Some(release) = &self.release {
-            let emulators_for_system = self
-                .emulators
-                .iter()
-                .filter(|emulator| {
-                    emulator
-                        .system_id
-                        .map_or(false, |system_id| system_id == release.system.id())
-                })
-                .collect::<Vec<&Emulator>>();
-
-            // TODO: get file types supported by emulators for the selected system
-
-            let files_list = release
-                .files
-                .iter()
-                .filter(|f| {
-                    // TODO: emulator should know it's supported file types and we would filter by the file types supported by emulator
-                    f.collection_file_type == CollectionFileType::Rom
-                        || f.collection_file_type == CollectionFileType::DiskImage
-                        || f.collection_file_type == CollectionFileType::TapeImage
-                })
-                .map(|file| {
-                    let container_filename = text(file.to_string());
-                    let content_files: Vec<String> = if let Some(files) = &file.files {
-                        files.iter().map(|file| file.name.clone()).collect()
-                    } else {
-                        vec![]
-                    };
-                    let file_picker = pick_list(
-                        content_files,
-                        if self.selected_file.contains_key(&file.id()) {
-                            Some(self.selected_file.get(&file.id()).unwrap())
-                        } else {
-                            None
-                        },
-                        move |selected_file_name| {
-                            Message::FileSelected(file.id(), selected_file_name)
-                        },
-                    );
-                    let emulator_buttons = emulators_for_system
-                        .iter()
-                        .filter(|e| {
-                            e.supported_file_type_extensions.is_empty()
-                                || e.supported_file_type_extensions.contains(
-                                    &file
-                                        .original_file_name
-                                        .split('.')
-                                        .last()
-                                        .unwrap()
-                                        .to_string(),
-                                )
-                                || file.get_file_extensions().into_iter().any(|extension| {
-                                    e.supported_file_type_extensions.contains(&extension)
-                                })
-                        })
-                        .map(|emulator| {
-                            button(emulator.name.as_str())
-                                .on_press_maybe({
-                                    let selected_file = self.selected_file.get(&file.id());
-                                    match (selected_file, emulator.extract_files) {
-                                        (Some(file_name), true) => Some(Message::RunWithEmulator(
-                                            (*emulator).clone(),
-                                            file_name.clone(),
-                                            file.collection_file_type.clone(),
-                                        )),
-                                        (_, false) => Some(Message::RunWithEmulator(
-                                            (*emulator).clone(),
-                                            file.clone().original_file_name,
-                                            file.collection_file_type.clone(),
-                                        )),
-                                        (_, _) => None,
-                                    }
-                                })
-                                .into()
-                        })
-                        .collect::<Vec<iced::Element<Message>>>();
-                    row![
-                        container_filename,
-                        file_picker,
-                        Column::with_children(emulator_buttons)
-                    ]
-                    .into()
-                })
-                .collect::<Vec<iced::Element<Message>>>();
-
-            Column::with_children(files_list).into()
         } else {
             Column::new().into()
         }

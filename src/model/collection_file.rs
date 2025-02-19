@@ -60,6 +60,10 @@ pub trait GetFileExtensions {
     fn get_file_extensions(&self) -> Vec<String>;
 }
 
+pub trait GetFileExtension {
+    fn get_file_extension(&self) -> String;
+}
+
 pub trait GetCollectionFileName {
     fn get_collection_file_name(&self) -> String;
 }
@@ -75,22 +79,30 @@ pub struct CollectionFile {
 
 impl_has_oid!(CollectionFile);
 
+fn get_file_extension(file_name: &str) -> String {
+    file_name
+        .split('.')
+        .last()
+        .unwrap()
+        .to_string()
+        .to_lowercase()
+}
+
 impl GetFileExtensions for CollectionFile {
     fn get_file_extensions(&self) -> Vec<String> {
         match &self.files {
             Some(files) => files
                 .iter()
-                .map(|file| {
-                    file.name
-                        .split('.')
-                        .last()
-                        .unwrap()
-                        .to_string()
-                        .to_lowercase()
-                })
+                .map(|file| get_file_extension(file.name.as_str()))
                 .collect::<Vec<String>>(),
             None => vec![],
         }
+    }
+}
+
+impl GetFileExtension for CollectionFile {
+    fn get_file_extension(&self) -> String {
+        get_file_extension(self.original_file_name.as_str())
     }
 }
 
