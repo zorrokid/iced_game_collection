@@ -43,7 +43,11 @@ pub enum Action {
 }
 
 impl FilesList {
-    pub fn new(collection_root_dir: String, file_ids: Vec<ObjectId>) -> Self {
+    pub fn new(
+        collection_root_dir: String,
+        file_ids: Vec<ObjectId>,
+        system_id: Option<ObjectId>,
+    ) -> Self {
         let db = DatabaseWithPolo::get_instance();
         let files = db.get_collection_files(&file_ids).unwrap_or_else(|err| {
             println!("Failed to get files {:?}", err);
@@ -52,7 +56,7 @@ impl FilesList {
         Self {
             files,
             file_path_builder: FilePathBuilder::new(collection_root_dir),
-            system_id: None,
+            system_id,
             selected_file: HashMap::new(),
         }
     }
@@ -140,6 +144,7 @@ impl FilesList {
     }
 
     fn create_files_list(&self, file_type: CollectionFileType) -> Element<Message> {
+        println!("Create files list: {:?}", file_type);
         let files_list = self
             .files
             .iter()

@@ -101,6 +101,7 @@ impl AddReleaseTab {
             files_list: files_list_widget::FilesList::new(
                 settings.collection_root_dir.clone(),
                 release.files.clone(),
+                release.system_id,
             ),
             games,
             adding_game: false,
