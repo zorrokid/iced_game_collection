@@ -59,6 +59,10 @@ impl GamesReadRepository for MockRepository {
                 .collect(),
         }))
     }
+
+    fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
+        Ok(self.games.get(id).cloned())
+    }
 }
 
 impl CollectionFilesReadRepository for MockRepository {
@@ -86,7 +90,7 @@ impl SystemReadRepository for MockRepository {
             .values()
             .any(|release| release.system_id == Some(*system_id)))
     }
-    fn get_all_systems(&self) -> Result<Vec<System>, Error> {
+    fn get_systems(&self) -> Result<Vec<System>, Error> {
         Ok(self.systems.values().cloned().collect())
     }
 }

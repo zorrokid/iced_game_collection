@@ -14,7 +14,8 @@ use crate::{
         model::{Game, HasOid, Release, Settings, System},
     },
     repository::repository::{
-        CollectionFilesReadRepository as _, ReleaseReadRepository, SystemReadRepository,
+        CollectionFilesReadRepository as _, GamesReadRepository as _, ReleaseReadRepository,
+        ReleaseWriteRepository, SettingsReadRepository, SystemReadRepository,
     },
 };
 
@@ -63,7 +64,7 @@ impl AddReleaseTab {
             println!("Failed to get games {:?}", err);
             vec![]
         });
-        let systems = db.get_all_systems().unwrap_or_else(|err| {
+        let systems = db.get_systems().unwrap_or_else(|err| {
             println!("Failed to get systems {:?}", err);
             vec![]
         });
@@ -97,6 +98,7 @@ impl AddReleaseTab {
             add_system_widget: add_system_widget::AddSystem::new(),
             file_select_widget: file_select_widget::FileSelect::new(
                 settings.collection_root_dir.clone(),
+                release.system_id,
             ),
             files_list: files_list_widget::FilesList::new(
                 settings.collection_root_dir.clone(),

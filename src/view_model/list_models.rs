@@ -65,7 +65,7 @@ pub fn get_systems_in_list_model<R>(repository: &R) -> Result<Vec<SystemListMode
 where
     R: SystemReadRepository,
 {
-    let systems = repository.get_all_systems()?;
+    let systems = repository.get_systems()?;
     let mut list_models: Vec<SystemListModel> = systems.iter().map(SystemListModel::from).collect();
     for system in &mut list_models {
         system.can_delete = !repository.is_system_in_release(&system.id)?;

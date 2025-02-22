@@ -16,8 +16,10 @@ use crate::{
         },
     },
     repository::repository::{
-        CollectionFilesReadRepository, FranchisReadRepository, GamesReadRepository,
-        ReleaseReadRepository, SystemReadRepository,
+        CollectionFileWriteRepository, CollectionFilesReadRepository, EmulatorReadRepository,
+        EmulatorWriteRepository, FranchisReadRepository, GamesReadRepository, GamesWriteRepository,
+        ReleaseReadRepository, ReleaseWriteRepository, SettingsReadRepository,
+        SettingsWriteRepository, SystemReadRepository, SystemWriteRepository,
     },
 };
 
@@ -48,130 +50,6 @@ impl DatabaseWithPolo {
             static ref INSTANCE: DatabaseWithPolo = DatabaseWithPolo::new(COLLECTION_DATABASE_NAME);
         }
         &INSTANCE
-    }
-
-    pub fn add_system(&self, system: &System) -> Result<ObjectId, Error> {
-        self.add_item(SYSTEM_COLLECTION, system)
-    }
-
-    pub fn add_game(&self, game: &Game) -> Result<ObjectId, Error> {
-        self.add_item(GAME_COLLECTION, game)
-    }
-
-    pub fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
-        self.add_item(EMULATOR_COLLECTION, emulator)
-    }
-
-    pub fn add_collection_file(&self, collection_file: &CollectionFile) -> Result<ObjectId, Error> {
-        self.add_item(COLLECTION_FILE_COLLECTION, collection_file)
-    }
-
-    pub fn delete_collection_file(&self, id: &ObjectId) -> Result<(), Error> {
-        if self.is_collection_file_in_release(id)? {
-            Err(Error::DbError(
-                "Collection file cannot be deleted because it is used in a release".to_string(),
-            ))
-        } else {
-            self.delete_item::<CollectionFile>(COLLECTION_FILE_COLLECTION, id)
-        }
-    }
-
-    pub fn add_or_update_settings(&self, settings: &Settings) -> Result<String, Error> {
-        let filter = doc! {"id": SETTINGS_ID};
-        let update_doc = doc! {
-            "$set": {
-                "collection_root_dir": &settings.collection_root_dir,
-            }
-        };
-        match self
-            .db
-            .collection::<Settings>(SETTINGS_COLLECTION)
-            .update_one_with_options(
-                filter,
-                update_doc,
-                UpdateOptions::builder().upsert(true).build(),
-            ) {
-            Ok(_) => Ok(SETTINGS_ID.to_string()),
-            Err(e) => Err(Error::DbError(format!("Error updating settings: {}", e))),
-        }
-    }
-
-    pub fn update_system(&self, system: &System) -> Result<ObjectId, Error> {
-        let update_doc = doc! {
-            "$set": {
-                "name": &system.name,
-                "notes": &system.notes,
-            }
-        };
-
-        self.update_item(SYSTEM_COLLECTION, system, update_doc)
-    }
-
-    pub fn update_game(&self, game: &Game) -> Result<ObjectId, Error> {
-        let update_doc = doc! {
-            "$set": {
-                "name": &game.name,
-            }
-        };
-
-        self.update_item(GAME_COLLECTION, game, update_doc)
-    }
-
-    pub fn update_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
-        let update_doc = doc! {
-            "$set": {
-                "name": &emulator.name,
-                "executable": &emulator.executable,
-                "arguments": &emulator.arguments,
-                "system_id": &emulator.system_id,
-                "extract_files": emulator.extract_files,
-                "supported_file_type_extensions": emulator.supported_file_type_extensions.clone(),
-                "notes": &emulator.notes
-            }
-        };
-
-        self.update_item(EMULATOR_COLLECTION, emulator, update_doc)
-    }
-
-    pub fn get_systems(&self) -> Result<Vec<System>, Error> {
-        self.get_all_items(SYSTEM_COLLECTION)
-    }
-
-    pub fn get_all_games(&self) -> Result<Vec<Game>, Error> {
-        self.get_all_items(GAME_COLLECTION)
-    }
-
-    pub fn get_emulators(&self) -> Result<Vec<Emulator>, Error> {
-        self.get_all_items(EMULATOR_COLLECTION)
-    }
-
-    pub fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
-        self.get_with_id(GAME_COLLECTION, id)
-    }
-
-    pub fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
-        self.get_with_id(EMULATOR_COLLECTION, id)
-    }
-
-    pub fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
-        self.get_with_id(SYSTEM_COLLECTION, id)
-    }
-
-    pub fn get_settings(&self) -> Result<Settings, Error> {
-        let settings = self.get_with_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
-
-        // if settings does not exist, create default settings
-        match settings {
-            Some(settings) => Ok(settings),
-            None => {
-                let default_settings = Settings {
-                    id: SETTINGS_ID.to_string(),
-                    collection_root_dir: "".to_string(),
-                };
-                self.add_or_update_settings(&default_settings)?;
-                Ok(default_settings)
-            }
-        }
     }
 
     fn add_item_in_transaction<T>(
@@ -303,66 +181,6 @@ impl DatabaseWithPolo {
         Ok(res)
     }
 
-    pub fn delete_emulator(&self, id: &ObjectId) -> Result<(), Error> {
-        self.delete_item::<Emulator>(EMULATOR_COLLECTION, id)
-    }
-
-    pub fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
-        if self.is_game_in_release(id)? {
-            Err(Error::DbError(
-                "Game cannot be deleted because it is used in a release".to_string(),
-            ))
-        } else {
-            self.delete_item::<Game>(GAME_COLLECTION, id)
-        }
-    }
-
-    pub fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
-        if self.is_system_in_release(id)? {
-            Err(Error::DbError(
-                "System cannot be deleted because it is used in a release".to_string(),
-            ))
-        } else {
-            self.delete_item::<System>(SYSTEM_COLLECTION, id)
-        }
-    }
-
-    pub fn delete_release(&self, id: &ObjectId) -> Result<(), Error> {
-        let release = self.get_release(id)?.expect("Release not found");
-
-        // files need to be deleted before release can be deleted
-        if release.files.is_empty() {
-            let transaction = self
-                .db
-                .start_transaction()
-                .map_err(|e| Error::DbError(e.to_string()))?;
-
-            if let Err(err) = self.delete_release_from_games(&release, &transaction) {
-                transaction
-                    .rollback()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                return Err(err);
-            }
-
-            if let Err(err) = self.delete_item::<Release>(RELEASE_COLLECTION, id) {
-                transaction
-                    .rollback()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                return Err(err);
-            }
-
-            transaction
-                .commit()
-                .map_err(|e| Error::DbError(e.to_string()))?;
-
-            Ok(())
-        } else {
-            Err(Error::DbError(
-                "Release cannot be deleted because it has files".to_string(),
-            ))
-        }
-    }
-
     fn delete_release_from_games(
         &self,
         release: &Release,
@@ -416,129 +234,6 @@ impl DatabaseWithPolo {
         {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::DbError(format!("Error deleting item: {}", e))),
-        }
-    }
-
-    /// Adds a release to the database. Also updates the references to the release in the games and
-    /// files collections.
-    pub fn add_release(&self, release: &Release) -> Result<ObjectId, Error> {
-        let game_ids = &release.games;
-        let file_ids = &release.files;
-
-        println!("game_ids: {:?}", game_ids);
-        println!("file_ids: {:?}", file_ids);
-
-        println!("Starting transaction");
-
-        let transaction = self
-            .db
-            .start_transaction()
-            .map_err(|e| Error::DbError(e.to_string()))?;
-
-        let release_insert_result =
-            self.add_item_in_transaction(RELEASE_COLLECTION, release, &transaction);
-
-        match release_insert_result {
-            Ok(release_id) => {
-                println!("release_id: {:?}", release_id);
-                if let Err(e) =
-                    self.update_release_references(&release_id, file_ids, game_ids, &transaction)
-                {
-                    transaction
-                        .rollback()
-                        .map_err(|e| Error::DbError(e.to_string()))?;
-                    return Err(e);
-                }
-                println!("Starting commit");
-                transaction
-                    .commit()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                Ok(release_id)
-            }
-            Err(e) => {
-                transaction
-                    .rollback()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                Err(Error::DbError(e.to_string()))
-            }
-        }
-    }
-
-    pub fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
-        let current_release = self
-            .get_release(&release.id())?
-            .expect("Existing version of release not found");
-
-        let transaction = self
-            .db
-            .start_transaction()
-            .map_err(|e| Error::DbError(e.to_string()))?;
-
-        let games_in_curent_release = &current_release.games;
-        let games_in_updated_release = &release.games;
-
-        let removed_games = games_in_curent_release
-            .iter()
-            .filter(|game_id| !games_in_updated_release.contains(game_id))
-            .collect::<Vec<&ObjectId>>();
-
-        let new_games = games_in_updated_release
-            .iter()
-            .filter(|game_id| !games_in_curent_release.contains(game_id))
-            .collect::<Vec<&ObjectId>>();
-
-        let files_in_current_release = &current_release.files;
-        let files_in_updated_release = &release.files;
-
-        let removed_files = files_in_current_release
-            .iter()
-            .filter(|file_id| !files_in_updated_release.contains(file_id))
-            .collect::<Vec<&ObjectId>>();
-
-        let new_files = files_in_updated_release
-            .iter()
-            .filter(|file_id| !files_in_current_release.contains(file_id))
-            .collect::<Vec<&ObjectId>>();
-
-        if let Err(e) = self.update_release_references_2(
-            &release.id(),
-            &new_files,
-            &new_games,
-            &removed_files,
-            &removed_games,
-            &transaction,
-        ) {
-            transaction
-                .rollback()
-                .map_err(|e| Error::DbError(e.to_string()))?;
-            return Err(e);
-        }
-
-        let update_doc = doc! {
-            "$set": {
-                "name": &release.name,
-                "system_id": &release.system_id,
-                "games": &release.games,
-                "files": &release.files,
-            }
-        };
-
-        match transaction
-            .collection::<Release>(RELEASE_COLLECTION)
-            .update_one(doc! {"_id": release.id()}, update_doc)
-        {
-            Ok(_) => {
-                transaction
-                    .commit()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                Ok(release.id())
-            }
-            Err(e) => {
-                transaction
-                    .rollback()
-                    .map_err(|e| Error::DbError(e.to_string()))?;
-                Err(Error::DbError(e.to_string()))
-            }
         }
     }
 
@@ -770,7 +465,171 @@ impl ReleaseReadRepository for DatabaseWithPolo {
     }
 }
 
+impl ReleaseWriteRepository for DatabaseWithPolo {
+    /// Adds a release to the database. Also updates the references to the release in the games and
+    /// files collections.
+
+    fn add_release(&self, release: &Release) -> Result<ObjectId, Error> {
+        let game_ids = &release.games;
+        let file_ids = &release.files;
+
+        println!("game_ids: {:?}", game_ids);
+        println!("file_ids: {:?}", file_ids);
+
+        println!("Starting transaction");
+
+        let transaction = self
+            .db
+            .start_transaction()
+            .map_err(|e| Error::DbError(e.to_string()))?;
+
+        let release_insert_result =
+            self.add_item_in_transaction(RELEASE_COLLECTION, release, &transaction);
+
+        match release_insert_result {
+            Ok(release_id) => {
+                println!("release_id: {:?}", release_id);
+                if let Err(e) =
+                    self.update_release_references(&release_id, file_ids, game_ids, &transaction)
+                {
+                    transaction
+                        .rollback()
+                        .map_err(|e| Error::DbError(e.to_string()))?;
+                    return Err(e);
+                }
+                println!("Starting commit");
+                transaction
+                    .commit()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                Ok(release_id)
+            }
+            Err(e) => {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                Err(Error::DbError(e.to_string()))
+            }
+        }
+    }
+    fn update_release(&self, release: &Release) -> Result<ObjectId, Error> {
+        let current_release = self
+            .get_release(&release.id())?
+            .expect("Existing version of release not found");
+
+        let transaction = self
+            .db
+            .start_transaction()
+            .map_err(|e| Error::DbError(e.to_string()))?;
+
+        let games_in_curent_release = &current_release.games;
+        let games_in_updated_release = &release.games;
+
+        let removed_games = games_in_curent_release
+            .iter()
+            .filter(|game_id| !games_in_updated_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        let new_games = games_in_updated_release
+            .iter()
+            .filter(|game_id| !games_in_curent_release.contains(game_id))
+            .collect::<Vec<&ObjectId>>();
+
+        let files_in_current_release = &current_release.files;
+        let files_in_updated_release = &release.files;
+
+        let removed_files = files_in_current_release
+            .iter()
+            .filter(|file_id| !files_in_updated_release.contains(file_id))
+            .collect::<Vec<&ObjectId>>();
+
+        let new_files = files_in_updated_release
+            .iter()
+            .filter(|file_id| !files_in_current_release.contains(file_id))
+            .collect::<Vec<&ObjectId>>();
+
+        if let Err(e) = self.update_release_references_2(
+            &release.id(),
+            &new_files,
+            &new_games,
+            &removed_files,
+            &removed_games,
+            &transaction,
+        ) {
+            transaction
+                .rollback()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+            return Err(e);
+        }
+
+        let update_doc = doc! {
+            "$set": {
+                "name": &release.name,
+                "system_id": &release.system_id,
+                "games": &release.games,
+                "files": &release.files,
+            }
+        };
+
+        match transaction
+            .collection::<Release>(RELEASE_COLLECTION)
+            .update_one(doc! {"_id": release.id()}, update_doc)
+        {
+            Ok(_) => {
+                transaction
+                    .commit()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                Ok(release.id())
+            }
+            Err(e) => {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                Err(Error::DbError(e.to_string()))
+            }
+        }
+    }
+    fn delete_release(&self, id: &ObjectId) -> Result<(), Error> {
+        let release = self.get_release(id)?.expect("Release not found");
+
+        // files need to be deleted before release can be deleted
+        if release.files.is_empty() {
+            let transaction = self
+                .db
+                .start_transaction()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+
+            if let Err(err) = self.delete_release_from_games(&release, &transaction) {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                return Err(err);
+            }
+
+            if let Err(err) = self.delete_item::<Release>(RELEASE_COLLECTION, id) {
+                transaction
+                    .rollback()
+                    .map_err(|e| Error::DbError(e.to_string()))?;
+                return Err(err);
+            }
+
+            transaction
+                .commit()
+                .map_err(|e| Error::DbError(e.to_string()))?;
+
+            Ok(())
+        } else {
+            Err(Error::DbError(
+                "Release cannot be deleted because it has files".to_string(),
+            ))
+        }
+    }
+}
+
 impl GamesReadRepository for DatabaseWithPolo {
+    fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
+        self.get_with_id(GAME_COLLECTION, id)
+    }
+
     fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error> {
         self.get_items_with_filter(GAME_COLLECTION, doc! {"_id": {"$in": ids}})
     }
@@ -788,6 +647,31 @@ impl GamesReadRepository for DatabaseWithPolo {
     }
     fn get_releases_by_game(&self, game_id: &ObjectId) -> Result<Option<ReleasesByGame>, Error> {
         self.get_with_id(RELEASES_BY_GAMES_COLLECTION, game_id)
+    }
+}
+
+impl GamesWriteRepository for DatabaseWithPolo {
+    fn add_game(&self, game: &Game) -> Result<ObjectId, Error> {
+        self.add_item(GAME_COLLECTION, game)
+    }
+    fn update_game(&self, game: &Game) -> Result<ObjectId, Error> {
+        let update_doc = doc! {
+            "$set": {
+                "name": &game.name,
+                "franchise_id": &game.franchise_id,
+            }
+        };
+
+        self.update_item(GAME_COLLECTION, game, update_doc)
+    }
+    fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
+        if self.is_game_in_release(id)? {
+            Err(Error::DbError(
+                "Game cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<Game>(GAME_COLLECTION, id)
+        }
     }
 }
 
@@ -820,6 +704,21 @@ impl CollectionFilesReadRepository for DatabaseWithPolo {
     }
 }
 
+impl CollectionFileWriteRepository for DatabaseWithPolo {
+    fn add_collection_file(&self, collection_file: &CollectionFile) -> Result<ObjectId, Error> {
+        self.add_item(COLLECTION_FILE_COLLECTION, collection_file)
+    }
+    fn delete_collection_file(&self, id: &ObjectId) -> Result<(), Error> {
+        if self.is_collection_file_in_release(id)? {
+            Err(Error::DbError(
+                "Collection file cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<CollectionFile>(COLLECTION_FILE_COLLECTION, id)
+        }
+    }
+}
+
 impl SystemReadRepository for DatabaseWithPolo {
     fn get_system(&self, id: &ObjectId) -> Result<Option<System>, Error> {
         self.get_with_id(SYSTEM_COLLECTION, id)
@@ -833,8 +732,107 @@ impl SystemReadRepository for DatabaseWithPolo {
             .map_err(|e| Error::DbError(format!("Error finding a release: {}", e)))?;
         Ok(release.is_some())
     }
-    fn get_all_systems(&self) -> Result<Vec<System>, Error> {
+    fn get_systems(&self) -> Result<Vec<System>, Error> {
         self.get_all_items(SYSTEM_COLLECTION)
+    }
+}
+
+impl SystemWriteRepository for DatabaseWithPolo {
+    fn add_system(&self, system: &System) -> Result<ObjectId, Error> {
+        self.add_item(SYSTEM_COLLECTION, system)
+    }
+    fn update_system(&self, system: &System) -> Result<ObjectId, Error> {
+        let update_doc = doc! {
+            "$set": {
+                "name": &system.name,
+                "notes": &system.notes,
+            }
+        };
+
+        self.update_item(SYSTEM_COLLECTION, system, update_doc)
+    }
+    fn delete_system(&self, id: &ObjectId) -> Result<(), Error> {
+        if self.is_system_in_release(id)? {
+            Err(Error::DbError(
+                "System cannot be deleted because it is used in a release".to_string(),
+            ))
+        } else {
+            self.delete_item::<System>(SYSTEM_COLLECTION, id)
+        }
+    }
+}
+
+impl EmulatorReadRepository for DatabaseWithPolo {
+    fn get_emulators(&self) -> Result<Vec<Emulator>, Error> {
+        self.get_all_items(EMULATOR_COLLECTION)
+    }
+    fn get_emulator(&self, id: &ObjectId) -> Result<Option<Emulator>, Error> {
+        self.get_with_id(EMULATOR_COLLECTION, id)
+    }
+}
+
+impl EmulatorWriteRepository for DatabaseWithPolo {
+    fn add_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
+        self.add_item(EMULATOR_COLLECTION, emulator)
+    }
+    fn update_emulator(&self, emulator: &Emulator) -> Result<ObjectId, Error> {
+        let update_doc = doc! {
+            "$set": {
+                "name": &emulator.name,
+                "executable": &emulator.executable,
+                "arguments": &emulator.arguments,
+                "system_id": &emulator.system_id,
+                "extract_files": emulator.extract_files,
+                "supported_file_type_extensions": emulator.supported_file_type_extensions.clone(),
+                "notes": &emulator.notes
+            }
+        };
+
+        self.update_item(EMULATOR_COLLECTION, emulator, update_doc)
+    }
+    fn delete_emulator(&self, id: &ObjectId) -> Result<(), Error> {
+        self.delete_item::<Emulator>(EMULATOR_COLLECTION, id)
+    }
+}
+
+impl SettingsReadRepository for DatabaseWithPolo {
+    fn get_settings(&self) -> Result<Settings, Error> {
+        let settings = self.get_with_filter(SETTINGS_COLLECTION, doc! {"id": SETTINGS_ID})?;
+
+        // if settings does not exist, create default settings
+        match settings {
+            Some(settings) => Ok(settings),
+            None => {
+                let default_settings = Settings {
+                    id: SETTINGS_ID.to_string(),
+                    collection_root_dir: "".to_string(),
+                };
+                self.add_or_update_settings(&default_settings)?;
+                Ok(default_settings)
+            }
+        }
+    }
+}
+
+impl SettingsWriteRepository for DatabaseWithPolo {
+    fn add_or_update_settings(&self, settings: &Settings) -> Result<String, Error> {
+        let filter = doc! {"id": SETTINGS_ID};
+        let update_doc = doc! {
+            "$set": {
+                "collection_root_dir": &settings.collection_root_dir,
+            }
+        };
+        match self
+            .db
+            .collection::<Settings>(SETTINGS_COLLECTION)
+            .update_one_with_options(
+                filter,
+                update_doc,
+                UpdateOptions::builder().upsert(true).build(),
+            ) {
+            Ok(_) => Ok(SETTINGS_ID.to_string()),
+            Err(e) => Err(Error::DbError(format!("Error updating settings: {}", e))),
+        }
     }
 }
 
@@ -848,7 +846,9 @@ mod tests {
             collection_file::{CollectionFile, CollectionFileType, FileInfo},
             model::{Game, Release, System},
         },
-        repository::repository::{GamesReadRepository, ReleaseReadRepository},
+        repository::repository::{
+            GamesReadRepository, ReleaseReadRepository, SystemWriteRepository as _,
+        },
     };
 
     fn create_test_system() -> System {

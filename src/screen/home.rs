@@ -1,6 +1,9 @@
 use iced::widget::{button, column, text};
 
-use crate::{database_with_polo::DatabaseWithPolo, error::Error, model::model::Settings};
+use crate::{
+    database_with_polo::DatabaseWithPolo, error::Error, model::model::Settings,
+    repository::repository::SettingsReadRepository,
+};
 
 pub struct Home {
     settings: Settings,

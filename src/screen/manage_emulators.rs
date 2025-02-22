@@ -1,6 +1,9 @@
 use crate::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::model::model::{Emulator, HasOid, System};
+use crate::repository::repository::{
+    EmulatorReadRepository, EmulatorWriteRepository, SystemReadRepository,
+};
 use iced::widget::{button, checkbox, column, pick_list, row, text, text_input, Column};
 use iced::Element;
 use polodb_core::bson::oid::ObjectId;

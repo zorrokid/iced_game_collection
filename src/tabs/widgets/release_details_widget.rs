@@ -1,4 +1,5 @@
 use crate::model::model::HasOid;
+use crate::repository::repository::SettingsReadRepository;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::ReleaseViewModel;

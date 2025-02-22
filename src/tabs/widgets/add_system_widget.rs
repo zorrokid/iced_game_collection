@@ -3,6 +3,7 @@ use iced::widget::{button, row, text_input};
 use crate::{
     database_with_polo::DatabaseWithPolo,
     model::model::{HasOid, System},
+    repository::repository::SystemWriteRepository,
 };
 
 pub struct AddSystem {

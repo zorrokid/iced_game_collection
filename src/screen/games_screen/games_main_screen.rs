@@ -7,6 +7,7 @@ use iced::{
 use crate::{
     database_with_polo::DatabaseWithPolo,
     error::Error,
+    repository::repository::GamesWriteRepository,
     view_model::list_models::{get_games_as_list_model, GameListModel},
 };
 

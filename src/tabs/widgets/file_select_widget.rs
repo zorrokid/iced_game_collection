@@ -9,6 +9,7 @@ use crate::{
     error::Error,
     files::{copy_file, pick_file, PickedFile},
     model::collection_file::{CollectionFile, CollectionFileType},
+    repository::repository::CollectionFileWriteRepository as _,
     util::file_path_builder::FilePathBuilder,
 };
 
@@ -35,12 +36,12 @@ pub enum Action {
 }
 
 impl FileSelect {
-    pub fn new(files_root_dir: String) -> Self {
+    pub fn new(files_root_dir: String, system_id: Option<ObjectId>) -> Self {
         let file_path_builder = FilePathBuilder::new(files_root_dir);
 
         Self {
             selected_file_type: None,
-            system_id: None,
+            system_id,
             file_path_builder,
         }
     }

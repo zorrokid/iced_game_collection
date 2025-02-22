@@ -8,6 +8,7 @@ use crate::model::{
     collection_file::{CollectionFileType, GetFileExtensions},
     model::{Emulator, Settings, System},
 };
+use crate::repository::repository::{EmulatorReadRepository, SettingsReadRepository};
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::{get_release_view_model, ReleaseViewModel};

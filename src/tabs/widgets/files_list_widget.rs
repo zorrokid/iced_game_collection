@@ -14,7 +14,7 @@ use crate::{
         collection_file::{CollectionFile, CollectionFileType},
         model::HasOid as _,
     },
-    repository::repository::CollectionFilesReadRepository,
+    repository::repository::{CollectionFileWriteRepository, CollectionFilesReadRepository},
     util::{file_path_builder::FilePathBuilder, image::get_thumbnail_path},
 };
 

@@ -41,6 +41,14 @@ All the files added to collection will be copied to sub directories under collec
     - system 2
         - ...
 
+TODO: is this necessary? why not copy all files to the root dir?
+- extract each file from archive to separate file
+- or maybe sometimes arhive has a file structure that is needed to be preserved?
+    - e.g. dos games?
+- but when considering disk, tape and rom images, they should be extracted to separate files?
+    - like with mame: merged and split sets
+- This can be done later.
+
 # Adding a release
 
 ## Picking files for a release

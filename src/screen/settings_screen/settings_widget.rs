@@ -6,7 +6,11 @@ use iced::{
 };
 
 use crate::{
-    database_with_polo::DatabaseWithPolo, error::Error, files::pick_folder, model::model::Settings,
+    database_with_polo::DatabaseWithPolo,
+    error::Error,
+    files::pick_folder,
+    model::model::Settings,
+    repository::repository::{SettingsReadRepository, SettingsWriteRepository},
 };
 
 #[derive(Debug, Clone)]

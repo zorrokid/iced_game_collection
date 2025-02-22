@@ -15,6 +15,7 @@ use crate::{
         },
         model::{Emulator, HasOid as _, Settings},
     },
+    repository::repository::{EmulatorReadRepository, SettingsReadRepository},
     util::file_path_builder::FilePathBuilder,
 };
 
