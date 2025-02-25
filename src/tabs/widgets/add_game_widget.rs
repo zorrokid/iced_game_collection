@@ -1,9 +1,9 @@
 use iced::widget::{button, column, pick_list, row, text_input};
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
+    database::database_with_polo::DatabaseWithPolo,
     model::model::{Franchise, Game, HasOid as _},
-    repository::repository::{FranchisReadRepository, GamesWriteRepository},
+    repository::{FranchisReadRepository, GamesWriteRepository},
 };
 
 use super::add_franchise_widget::{self, AddFranchise};

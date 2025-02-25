@@ -1,4 +1,4 @@
-use super::repository::{
+use crate::repository::{
     CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository, SystemReadRepository,
 };
 use crate::{

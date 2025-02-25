@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use serde::{Deserialize, Serialize};
 
 use polodb_core::bson::oid::ObjectId;
+use uuid::Uuid;
 
 use crate::impl_has_oid;
 

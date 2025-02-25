@@ -5,7 +5,7 @@ use iced::{
 };
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
+    database::database_with_polo::DatabaseWithPolo,
     view_model::list_models::{get_games_as_list_model, GameListModel},
 };
 

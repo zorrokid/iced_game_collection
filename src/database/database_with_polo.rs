@@ -15,7 +15,7 @@ use crate::{
             System,
         },
     },
-    repository::repository::{
+    repository::{
         CollectionFileWriteRepository, CollectionFilesReadRepository, EmulatorReadRepository,
         EmulatorWriteRepository, FranchisReadRepository, GamesReadRepository, GamesWriteRepository,
         ReleaseReadRepository, ReleaseWriteRepository, SettingsReadRepository,
@@ -846,9 +846,7 @@ mod tests {
             collection_file::{CollectionFile, CollectionFileType, FileInfo},
             model::{Game, Release, System},
         },
-        repository::repository::{
-            GamesReadRepository, ReleaseReadRepository, SystemWriteRepository as _,
-        },
+        repository::{GamesReadRepository, ReleaseReadRepository, SystemWriteRepository as _},
     };
 
     fn create_test_system() -> System {

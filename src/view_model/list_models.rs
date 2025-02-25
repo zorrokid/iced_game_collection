@@ -6,7 +6,7 @@ use bson::oid::ObjectId;
 use crate::{
     error::Error,
     model::model::{Game, HasOid, System},
-    repository::repository::{GamesReadRepository, ReleaseReadRepository, SystemReadRepository},
+    repository::{GamesReadRepository, ReleaseReadRepository, SystemReadRepository},
 };
 
 #[derive(Debug, Clone)]

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::{collections::HashMap, env, vec};
 
+use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::model::model::HasOid;
@@ -8,7 +9,7 @@ use crate::model::{
     collection_file::{CollectionFileType, GetFileExtensions},
     model::{Emulator, Settings, System},
 };
-use crate::repository::repository::{EmulatorReadRepository, SettingsReadRepository};
+use crate::repository::{EmulatorReadRepository, SettingsReadRepository};
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::{get_release_view_model, ReleaseViewModel};
@@ -44,7 +45,7 @@ pub enum Action {
 
 impl ViewRelease {
     pub fn new(release_id: ObjectId) -> Result<Self, Error> {
-        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let db = DatabaseWithPolo::get_instance();
         let release = get_release_view_model(&release_id, db)?;
         // TODO: get emulators for the system of the release
         let emulators = db.get_emulators()?;

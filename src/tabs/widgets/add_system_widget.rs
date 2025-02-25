@@ -1,9 +1,9 @@
 use iced::widget::{button, row, text_input};
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
+    database::database_with_polo::DatabaseWithPolo,
     model::model::{HasOid, System},
-    repository::repository::SystemWriteRepository,
+    repository::SystemWriteRepository,
 };
 
 pub struct AddSystem {

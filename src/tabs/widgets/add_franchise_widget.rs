@@ -1,8 +1,8 @@
 use iced::widget::{button, row, text_input};
 
 use crate::{
-    database_with_polo::DatabaseWithPolo, model::model::Franchise,
-    repository::repository::FranchisReadRepository,
+    database::database_with_polo::DatabaseWithPolo, model::model::Franchise,
+    repository::FranchisReadRepository,
 };
 
 pub struct AddFranchise {

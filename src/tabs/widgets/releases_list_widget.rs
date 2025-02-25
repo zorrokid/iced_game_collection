@@ -5,9 +5,9 @@ use iced::{
 };
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
+    database::database_with_polo::DatabaseWithPolo,
     model::model::{Game, HasOid},
-    repository::repository::{GamesReadRepository, ReleaseWriteRepository},
+    repository::{GamesReadRepository, ReleaseWriteRepository},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 
@@ -41,7 +41,7 @@ impl ReleasesList {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::GameSelected(game_id) => {
-                let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+                let db = DatabaseWithPolo::get_instance();
                 let releases = get_releases_in_list_model(db, &game_id);
                 let game = db.get_game(&game_id);
                 self.releases = releases.unwrap_or_else(|err| {

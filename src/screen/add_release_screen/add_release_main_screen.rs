@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::{collections::HashMap, vec};
 
-use crate::database_with_polo::DatabaseWithPolo;
+use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
@@ -9,7 +9,7 @@ use crate::model::{
     collection_file::{CollectionFile, CollectionFileType},
     model::{Game, Release, Settings, System},
 };
-use crate::repository::repository::{
+use crate::repository::{
     CollectionFileWriteRepository, CollectionFilesReadRepository, GamesReadRepository,
     SettingsReadRepository, SystemReadRepository,
 };
@@ -76,7 +76,7 @@ pub enum Action {
 // TODO: split files management to another sub screen
 impl AddReleaseMainScreen {
     pub fn new(release: Release) -> Result<Self, Error> {
-        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let db = DatabaseWithPolo::get_instance();
         let games = db.get_all_games()?;
         let systems = db.get_systems()?;
         let settings = db.get_settings()?;

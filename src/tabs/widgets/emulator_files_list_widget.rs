@@ -7,6 +7,7 @@ use iced::{
 };
 
 use crate::{
+    database::database_with_polo::DatabaseWithPolo,
     emulator_runner::{process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions},
     error::Error,
     model::{
@@ -15,7 +16,7 @@ use crate::{
         },
         model::{Emulator, HasOid as _, Settings},
     },
-    repository::repository::{EmulatorReadRepository, SettingsReadRepository},
+    repository::{EmulatorReadRepository, SettingsReadRepository},
     util::file_path_builder::FilePathBuilder,
 };
 
@@ -44,7 +45,7 @@ pub enum Action {
 
 impl EmulatorFilesList {
     pub fn new(system_id: Option<ObjectId>, files: Vec<CollectionFile>) -> Self {
-        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let db = DatabaseWithPolo::get_instance();
         let emulators = db.get_emulators().unwrap_or_else(|err| {
             println!("Failed to get emulators {:?}", err);
             vec![]

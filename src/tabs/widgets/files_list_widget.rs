@@ -7,14 +7,14 @@ use iced::{
 };
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
+    database::database_with_polo::DatabaseWithPolo,
     error::Error,
     files::delete_file,
     model::{
         collection_file::{CollectionFile, CollectionFileType},
         model::HasOid as _,
     },
-    repository::repository::{CollectionFileWriteRepository, CollectionFilesReadRepository},
+    repository::{CollectionFileWriteRepository, CollectionFilesReadRepository},
     util::{file_path_builder::FilePathBuilder, image::get_thumbnail_path},
 };
 

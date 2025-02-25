@@ -6,7 +6,7 @@ use crate::{
         collection_file::CollectionFile,
         model::{Game, HasOid, System},
     },
-    repository::repository::{
+    repository::{
         CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
         SystemReadRepository,
     },

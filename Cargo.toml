@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 async-process = "2.3.0"
-async-std = "1.13.0"
+async-std = { version = "1.13.0", features = ["attributes"] }
 bson = "2.13.0"
 iced = {version = "0.13", features = ["image"]}
 image = "0.25.5"
@@ -15,5 +15,7 @@ rfd = "0.15.0"
 serde =  {version="1.0.210", features = ["derive"]}
 serde_json = {version="1.0.128"}
 sha1 = "0.10.6"
-uuid = {version="1.11.0", features = ["v4"]}
+uuid = {version="1.11.0", features = ["v4", "serde", "fast-rng"]}
 zip = "2.2.0"
+sqlx = { version = "0.8", features = ["runtime-async-std", "sqlite", "migrate"] }
+dotenvy = "0.15.7"

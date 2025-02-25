@@ -1,5 +1,6 @@
+use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::model::model::HasOid;
-use crate::repository::repository::SettingsReadRepository;
+use crate::repository::SettingsReadRepository;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::ReleaseViewModel;
@@ -41,7 +42,7 @@ pub enum Action {
 
 impl ReleaseDetails {
     pub fn new() -> Self {
-        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let db = DatabaseWithPolo::get_instance();
         let settings = db.get_settings().unwrap_or_else(|err| {
             println!("Failed to get settings {:?}", err);
             Settings::default()
@@ -59,7 +60,7 @@ impl ReleaseDetails {
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ReleaseSelected(release_id) => {
-                let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+                let db = DatabaseWithPolo::get_instance();
                 let release = get_release_view_model(&release_id, db).unwrap_or_else(|err| {
                     println!("Failed to get release {:?}", err);
                     None

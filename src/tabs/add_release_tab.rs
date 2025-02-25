@@ -7,13 +7,12 @@ use iced::{
 };
 
 use crate::{
-    database_with_polo::DatabaseWithPolo,
-    error::Error,
+    database::database_with_polo::DatabaseWithPolo,
     model::{
         collection_file::CollectionFile,
         model::{Game, HasOid, Release, Settings, System},
     },
-    repository::repository::{
+    repository::{
         CollectionFilesReadRepository as _, GamesReadRepository as _, ReleaseReadRepository,
         ReleaseWriteRepository, SettingsReadRepository, SystemReadRepository,
     },

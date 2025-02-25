@@ -1,7 +1,8 @@
 use crate::{
+    database::database_with_polo::DatabaseWithPolo,
     error::Error,
     model::model::Game,
-    repository::repository::{GamesReadRepository, ReleaseWriteRepository},
+    repository::{GamesReadRepository, ReleaseWriteRepository},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 use bson::oid::ObjectId;
@@ -40,7 +41,7 @@ pub enum Action {
 
 impl ViewGame {
     pub fn new(game_id: ObjectId) -> Result<Self, Error> {
-        let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+        let db = DatabaseWithPolo::get_instance();
         let releases = get_releases_in_list_model(db, &game_id)?;
 
         let game = db.get_game(&game_id)?;
@@ -63,7 +64,7 @@ impl ViewGame {
             Message::EditRelease(id) => Action::EditRelease(id),
             Message::ViewRelease(id) => Action::ViewRelease(id),
             Message::DeleteRelease(id) => {
-                let db = crate::database_with_polo::DatabaseWithPolo::get_instance();
+                let db = DatabaseWithPolo::get_instance();
                 match db.delete_release(&id) {
                     Ok(_) => {
                         self.releases.retain(|release| release.id != id);
