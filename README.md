@@ -70,3 +70,11 @@ When multiple files are added for release, user can select which one to use as a
 ## PoloDB
 
 PoloDB requires libclang-dev to be installed.
+
+## sqlx
+
+Creating database: `sqlx database create`
+
+Add migration: `sqlx migrate add <name>`
+
+Run migrations: `sqlx migrate run`
