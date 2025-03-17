@@ -24,25 +24,25 @@ impl FilePathBuilder {
 
     pub fn build_file_path(
         &self,
-        system_id: &ObjectId,
+        system_id: i64,
         collection_file: &CollectionFile,
     ) -> Result<PathBuf, Error> {
         let mut path = PathBuf::from(&self.collection_root_dir);
 
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
-        path.push(system_id.to_hex());
-        path.push(collection_file.collection_file_type.directory());
+        path.push(system_id.to_string());
+        path.push(collection_file.file_type.directory());
         path.push(collection_file.get_id_string());
         Ok(path.with_extension(extension))
     }
 
     pub fn build_target_directory(
         &self,
-        system_id: &ObjectId,
+        system_id: i64,
         file_type: &CollectionFileType,
     ) -> PathBuf {
         let mut path = PathBuf::from(&self.collection_root_dir);
-        path.push(system_id.to_hex());
+        path.push(system_id.to_string());
         path.push(file_type.directory());
         path
     }
@@ -57,7 +57,7 @@ mod tests {
     use bson::oid::ObjectId;
 
     use super::*;
-    use crate::model::collection_file::{CollectionFileType, FileInfo};
+    use crate::model::collection_file::{ArchiveType, CollectionFileType};
     use std::path::PathBuf;
 
     #[test]
@@ -68,14 +68,15 @@ mod tests {
         let system_id = ObjectId::new();
 
         let collection_file = CollectionFile {
-            _id: Some(ObjectId::new()),
+            id: 1,
             original_file_name: "file.zip".to_string(),
-            is_zip: true,
-            files: Some(vec![FileInfo {
+            is_archive: true,
+            archive_type: ArchiveType::Zip,
+            /*files: Some(vec![FileInfo {
                 name: "file1".to_string(),
                 checksum: "checksum".to_string(),
-            }]),
-            collection_file_type: CollectionFileType::DiskImage,
+            }]),*/
+            file_type: CollectionFileType::DiskImage,
         };
 
         let result = file_path_builder.build_file_path(&system_id, &collection_file);

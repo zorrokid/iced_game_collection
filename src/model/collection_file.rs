@@ -3,8 +3,6 @@ use std::{
     path::Path,
 };
 
-use bson::{oid::ObjectId, to_bson};
-use polodb_core::bson::Bson;
 use serde::{Deserialize, Serialize};
 
 use crate::impl_has_oid;
@@ -20,6 +18,57 @@ pub enum CollectionFileType {
     Manual,
     CoverScan,
     MemorySnapshot,
+}
+
+impl Into<i64> for CollectionFileType {
+    fn into(self) -> i64 {
+        match self {
+            CollectionFileType::Rom => 1,
+            CollectionFileType::DiskImage => 2,
+            CollectionFileType::TapeImage => 3,
+            CollectionFileType::Screenshot => 4,
+            CollectionFileType::Manual => 5,
+            CollectionFileType::CoverScan => 6,
+            CollectionFileType::MemorySnapshot => 7,
+        }
+    }
+}
+
+impl From<i64> for CollectionFileType {
+    fn from(value: i64) -> Self {
+        match value {
+            1 => CollectionFileType::Rom,
+            2 => CollectionFileType::DiskImage,
+            3 => CollectionFileType::TapeImage,
+            4 => CollectionFileType::Screenshot,
+            5 => CollectionFileType::Manual,
+            6 => CollectionFileType::CoverScan,
+            7 => CollectionFileType::MemorySnapshot,
+            _ => panic!("Invalid CollectionFileType value"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ArchiveType {
+    Zip,
+}
+
+impl Into<i64> for ArchiveType {
+    fn into(self) -> i64 {
+        match self {
+            ArchiveType::Zip => 1,
+        }
+    }
+}
+
+impl From<i64> for ArchiveType {
+    fn from(value: i64) -> Self {
+        match value {
+            1 => ArchiveType::Zip,
+            _ => panic!("Invalid ArchiveType value"),
+        }
+    }
 }
 
 impl CollectionFileType {
@@ -70,11 +119,12 @@ pub trait GetCollectionFileName {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CollectionFile {
-    pub _id: Option<ObjectId>,
+    pub id: i64,
     pub original_file_name: String,
-    pub is_zip: bool,
-    pub files: Option<Vec<FileInfo>>,
-    pub collection_file_type: CollectionFileType,
+    pub is_archive: bool,
+    pub archive_type: ArchiveType,
+    //pub files: Option<Vec<FileInfo>>,
+    pub file_type: CollectionFileType,
 }
 
 impl_has_oid!(CollectionFile);
@@ -128,12 +178,6 @@ impl Display for CollectionFile {
     }
 }
 
-impl Into<Bson> for CollectionFile {
-    fn into(self) -> Bson {
-        to_bson(&self).unwrap_or(Bson::Null)
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -143,7 +187,7 @@ mod tests {
     fn test_get_file_extensions() {
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            _id: Some(ObjectId::new()),
+            id: Some(1),
             is_zip: true,
             files: Some(vec![FileInfo {
                 name: "game.rom".to_string(),
@@ -160,7 +204,7 @@ mod tests {
     fn test_get_collection_file_name() {
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            _id: Some(ObjectId::new()),
+            id: Some(1),
             is_zip: true,
             files: None,
             collection_file_type: CollectionFileType::Rom,

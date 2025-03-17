@@ -4,14 +4,17 @@ mod error;
 mod files;
 mod macros;
 mod model;
-mod repository;
 mod screen;
 mod tabs;
 mod title_bar;
 mod util;
 mod view_model;
 
+use std::sync::Arc;
+
 use bson::oid::ObjectId;
+use database::database_with_sqlx::get_db_pool;
+use database::repository_manager::RepositoryManager;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
 use error::Error;
 use iced::widget::column;
@@ -42,6 +45,7 @@ struct IcedGameCollection {
     screen: Screen,
     title_bar: TitleBar,
     tabs_controller: TabsController,
+    repositories: Option<Arc<RepositoryManager>>,
 }
 
 #[derive(Debug, Clone)]
@@ -57,6 +61,7 @@ enum Message {
     SettingsMain(settings_main::Message),
     TitleBar(title_bar::Message),
     TabsController(tabs::tabs_controller::Message),
+    RepositoriesLoaded(Result<Arc<RepositoryManager>, Error>),
 }
 
 impl IcedGameCollection {
@@ -68,14 +73,28 @@ impl IcedGameCollection {
 
         let controller = TabsController::new(None);
 
+        let task = Task::perform(
+            async {
+                match get_db_pool().await {
+                    Ok(pool) => {
+                        let repositories = Arc::new(RepositoryManager::new(pool));
+                        Ok(repositories)
+                    }
+                    Err(e) => Err(Error::DbError("Failed to load repositories.".to_string())),
+                }
+            },
+            Message::RepositoriesLoaded,
+        );
+
         if let Ok(tabs_controller) = controller {
             (
                 Self {
                     screen: home_screen,
                     title_bar: TitleBar::new(),
                     tabs_controller,
+                    repositories: None,
                 },
-                Task::none(),
+                task,
             )
         } else {
             panic!("Failed init the app");
@@ -97,6 +116,16 @@ impl IcedGameCollection {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::RepositoriesLoaded(repositories) => {
+                if let Ok(repositories) = repositories {
+                    self.repositories = Some(repositories);
+                } else {
+                    self.screen = Screen::Error(screen::Error::new(Error::DbError(
+                        "Failed to load repositories.".to_string(),
+                    )));
+                }
+                Task::none()
+            }
             Message::ManageSystems(message) => self.update_manage_systems(message),
             Message::ManageGames(message) => self.update_manage_games(message),
             Message::Home(message) => self.update_home(message),

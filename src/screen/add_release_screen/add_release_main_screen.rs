@@ -7,7 +7,7 @@ use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
 use crate::model::{
     collection_file::{CollectionFile, CollectionFileType},
-    model::{Game, Release, Settings, System},
+    model::{Release, Settings, SoftwareTitle, System},
 };
 use crate::repository::{
     CollectionFileWriteRepository, CollectionFilesReadRepository, GamesReadRepository,
@@ -21,8 +21,8 @@ use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMainScreen {
-    games: Vec<Game>,
-    selected_game: Option<Game>,
+    games: Vec<SoftwareTitle>,
+    selected_game: Option<SoftwareTitle>,
     release: Release,
     systems: Vec<System>,
     selected_file: HashMap<ObjectId, String>,
@@ -37,7 +37,7 @@ pub enum Message {
     ManageGames,
     ManageSystems,
     Back,
-    GameSelected(Game),
+    GameSelected(SoftwareTitle),
     NameChanged(String),
     SystemSelected(System),
     SelectFile,
@@ -57,7 +57,7 @@ pub enum Action {
     ManageGames,
     ManageSystems,
     Back,
-    GameSelected(Game),
+    GameSelected(SoftwareTitle),
     NameChanged(String),
     None,
     SystemSelected(System),
@@ -259,7 +259,7 @@ impl AddReleaseMainScreen {
             })
             .collect::<Vec<Element<Message>>>();
 
-        let available_games: Vec<Game> = self
+        let available_games: Vec<SoftwareTitle> = self
             .games
             .iter()
             .filter(|g| !self.release.games.contains(&g.id()))

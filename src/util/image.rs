@@ -6,13 +6,12 @@ use crate::{
 };
 
 use super::file_path_builder::FilePathBuilder;
-use bson::oid::ObjectId;
 use image;
 
 pub fn get_thumbnail_path(
     collection_file: &CollectionFile,
     collection_root_dir: &str,
-    system_id: &ObjectId,
+    system_id: i64,
 ) -> Result<PathBuf, Error> {
     let thumbnail_directory = Path::new(collection_root_dir).join("thumbnails");
     let file_path_builder = FilePathBuilder::new(collection_root_dir.to_string());

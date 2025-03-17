@@ -1,3 +1,12 @@
+pub mod collection_file_repository;
+pub mod database_error;
 pub mod database_with_polo;
 pub mod database_with_sqlx;
+pub mod emulator_repository;
+pub mod franchise_repository;
 pub mod mock_database;
+pub mod release_repository;
+pub mod repository_manager;
+pub mod setting_repository;
+pub mod software_title_repository;
+pub mod system_repository;

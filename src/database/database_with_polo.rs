@@ -1,4 +1,4 @@
-use bson::oid::ObjectId;
+/*use bson::oid::ObjectId;
 use lazy_static::lazy_static;
 use polodb_core::{
     bson::{doc, Document},
@@ -11,15 +11,16 @@ use crate::{
     model::{
         collection_file::CollectionFile,
         model::{
-            Emulator, Franchise, Game, HasOid, Release, ReleasesByFile, ReleasesByGame, Settings,
-            System,
+            Emulator, Franchise, HasOid, Release, ReleasesByFile, ReleasesByGame, Settings,
+            SoftwareTitle, System,
         },
     },
     repository::{
         CollectionFileWriteRepository, CollectionFilesReadRepository, EmulatorReadRepository,
-        EmulatorWriteRepository, FranchisReadRepository, GamesReadRepository, GamesWriteRepository,
+        EmulatorWriteRepository, FranchiseReadRepository, GamesReadRepository,
         ReleaseReadRepository, ReleaseWriteRepository, SettingsReadRepository,
-        SettingsWriteRepository, SystemReadRepository, SystemWriteRepository,
+        SettingsWriteRepository, SoftwareTitlesWriteRepository, SystemReadRepository,
+        SystemWriteRepository,
     },
 };
 
@@ -434,7 +435,7 @@ impl ReleaseReadRepository for DatabaseWithPolo {
     fn get_release(&self, id: &ObjectId) -> Result<Option<Release>, Error> {
         self.get_with_id(RELEASE_COLLECTION, id)
     }
-    fn get_releases_with_game(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
+    fn get_releases_with_software_title(&self, id: &ObjectId) -> Result<Vec<Release>, Error> {
         let releases_by_game =
             self.get_with_id::<ReleasesByGame>(RELEASES_BY_GAMES_COLLECTION, id)?;
 
@@ -626,14 +627,14 @@ impl ReleaseWriteRepository for DatabaseWithPolo {
 }
 
 impl GamesReadRepository for DatabaseWithPolo {
-    fn get_game(&self, id: &ObjectId) -> Result<Option<Game>, Error> {
+    fn get_game(&self, id: &ObjectId) -> Result<Option<SoftwareTitle>, Error> {
         self.get_with_id(GAME_COLLECTION, id)
     }
 
-    fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<Game>, Error> {
+    fn get_games(&self, ids: &Vec<ObjectId>) -> Result<Vec<SoftwareTitle>, Error> {
         self.get_items_with_filter(GAME_COLLECTION, doc! {"_id": {"$in": ids}})
     }
-    fn get_all_games(&self) -> Result<Vec<Game>, Error> {
+    fn get_all_games(&self) -> Result<Vec<SoftwareTitle>, Error> {
         self.get_all_items(GAME_COLLECTION)
     }
     fn is_game_in_release(&self, game_id: &ObjectId) -> Result<bool, Error> {
@@ -650,11 +651,11 @@ impl GamesReadRepository for DatabaseWithPolo {
     }
 }
 
-impl GamesWriteRepository for DatabaseWithPolo {
-    fn add_game(&self, game: &Game) -> Result<ObjectId, Error> {
+impl SoftwareTitlesWriteRepository for DatabaseWithPolo {
+    fn add_software_title(&self, game: &SoftwareTitle) -> Result<ObjectId, Error> {
         self.add_item(GAME_COLLECTION, game)
     }
-    fn update_game(&self, game: &Game) -> Result<ObjectId, Error> {
+    fn update_software_title(&self, game: &SoftwareTitle) -> Result<ObjectId, Error> {
         let update_doc = doc! {
             "$set": {
                 "name": &game.name,
@@ -664,18 +665,18 @@ impl GamesWriteRepository for DatabaseWithPolo {
 
         self.update_item(GAME_COLLECTION, game, update_doc)
     }
-    fn delete_game(&self, id: &ObjectId) -> Result<(), Error> {
+    fn delete_software_title(&self, id: &ObjectId) -> Result<(), Error> {
         if self.is_game_in_release(id)? {
             Err(Error::DbError(
                 "Game cannot be deleted because it is used in a release".to_string(),
             ))
         } else {
-            self.delete_item::<Game>(GAME_COLLECTION, id)
+            self.delete_item::<SoftwareTitle>(GAME_COLLECTION, id)
         }
     }
 }
 
-impl FranchisReadRepository for DatabaseWithPolo {
+impl FranchiseReadRepository for DatabaseWithPolo {
     fn get_all_franchises(&self) -> Result<Vec<Franchise>, Error> {
         self.get_all_items(FRANCHISE_COLLECTION)
     }
@@ -844,7 +845,7 @@ mod tests {
         database_with_polo::DatabaseWithPolo,
         model::{
             collection_file::{CollectionFile, CollectionFileType, FileInfo},
-            model::{Game, Release, System},
+            model::{Release, SoftwareTitle, System},
         },
         repository::{GamesReadRepository, ReleaseReadRepository, SystemWriteRepository as _},
     };
@@ -857,8 +858,8 @@ mod tests {
         }
     }
 
-    fn create_test_game() -> Game {
-        Game {
+    fn create_test_game() -> SoftwareTitle {
+        SoftwareTitle {
             _id: None,
             name: "Test game".to_string(),
             franchise_id: None,
@@ -1064,4 +1065,4 @@ mod tests {
 
         std::fs::remove_dir_all(test_db_name).unwrap();
     }
-}
+}*/

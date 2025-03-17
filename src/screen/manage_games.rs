@@ -1,7 +1,7 @@
 use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
-use crate::model::model::Game;
-use crate::repository::{GamesReadRepository, GamesWriteRepository as _};
+use crate::model::model::SoftwareTitle;
+use crate::repository::{GamesReadRepository, SoftwareTitlesWriteRepository as _};
 use crate::view_model::list_models::{get_games_as_list_model, GameListModel};
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
@@ -10,7 +10,7 @@ use iced::Element;
 #[derive(Debug, Clone)]
 pub struct ManageGames {
     games: Vec<GameListModel>,
-    game: Game,
+    game: SoftwareTitle,
     is_edit: bool,
 }
 
@@ -34,7 +34,7 @@ pub enum Action {
 }
 
 impl ManageGames {
-    pub fn new(edit_game: Option<Game>) -> Result<Self, Error> {
+    pub fn new(edit_game: Option<SoftwareTitle>) -> Result<Self, Error> {
         let db = DatabaseWithPolo::get_instance();
         let games = get_games_as_list_model(db)?;
         let is_edit = edit_game.is_some();
@@ -62,8 +62,8 @@ impl ManageGames {
             Message::SubmitGame => {
                 let db = DatabaseWithPolo::get_instance();
                 let res = match self.is_edit {
-                    true => db.update_game(&self.game),
-                    false => db.add_game(&self.game),
+                    true => db.update_software_title(&self.game),
+                    false => db.add_software_title(&self.game),
                 };
 
                 match res {
@@ -78,7 +78,7 @@ impl ManageGames {
             }
             Message::DeleteGame(id) => {
                 let db = DatabaseWithPolo::get_instance();
-                match db.delete_game(&id) {
+                match db.delete_software_title(&id) {
                     Ok(_) => {
                         self.games.retain(|game| game.id != id);
                         Action::GameDeleted
@@ -107,7 +107,7 @@ impl ManageGames {
                 Action::None
             }
             Message::Clear => {
-                self.game = Game::default();
+                self.game = SoftwareTitle::default();
                 Action::None
             }
         }

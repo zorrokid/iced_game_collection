@@ -1,14 +1,9 @@
-use crate::database::database_with_polo::DatabaseWithPolo;
-use crate::model::model::HasOid;
-use crate::repository::SettingsReadRepository;
+use crate::database::database_with_sqlx::get_db_pool;
+use crate::database::setting_repository::SettingsRepository;
+use crate::model::collection_file::CollectionFileType;
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::ReleaseViewModel;
-use crate::{
-    model::{collection_file::CollectionFileType, model::Settings},
-    view_model::release_view_model::get_release_view_model,
-};
-use bson::oid::ObjectId;
 use iced::widget::{button, image, Column};
 use iced::Element;
 use iced::{
@@ -22,14 +17,13 @@ use super::emulator_files_list_widget::{self, EmulatorFilesList};
 
 pub struct ReleaseDetails {
     release: Option<ReleaseViewModel>,
-    settings: Settings,
     file_path_builder: FilePathBuilder,
     emulator_files_list: EmulatorFilesList,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ReleaseSelected(ObjectId),
+    ReleaseSelected(i64),
     ViewImage(PathBuf),
     EmulatorFilesList(emulator_files_list_widget::Message),
 }
@@ -42,7 +36,8 @@ pub enum Action {
 
 impl ReleaseDetails {
     pub fn new() -> Self {
-        let db = DatabaseWithPolo::get_instance();
+        let pool = get_db_pool();
+        let settingsRepository = SettingsRepository { pool };
         let settings = db.get_settings().unwrap_or_else(|err| {
             println!("Failed to get settings {:?}", err);
             Settings::default()
@@ -70,7 +65,7 @@ impl ReleaseDetails {
                     self.emulator_files_list
                         .update(emulator_files_list_widget::Message::SetFiles(
                             release.files.clone(),
-                            release.system.id(),
+                            release.system.id,
                         ));
                 }
             }
@@ -129,16 +124,16 @@ impl ReleaseDetails {
             let scan_files_list = release
                 .files
                 .iter()
-                .filter(|f| f.collection_file_type == *file_type)
+                .filter(|f| f.file_type == *file_type)
                 .filter_map(|file| {
                     if let Ok(thumb_path) = get_thumbnail_path(
                         file,
                         &self.settings.collection_root_dir,
-                        &release.system.id(),
+                        release.system.id,
                     ) {
                         if let Ok(file_path) = self
                             .file_path_builder
-                            .build_file_path(&release.system.id(), file)
+                            .build_file_path(release.system.id, file)
                         {
                             let image = image(thumb_path);
                             let view_image_button =

@@ -1,32 +1,23 @@
-use core::fmt;
-use std::fmt::{Display, Formatter};
-
-use bson::oid::ObjectId;
-
-use crate::{
-    error::Error,
-    model::model::{Game, HasOid, System},
-    repository::{GamesReadRepository, ReleaseReadRepository, SystemReadRepository},
-};
+use crate::model::model::SoftwareTitle;
 
 #[derive(Debug, Clone)]
 pub struct GameListModel {
-    pub id: ObjectId,
+    pub id: i64,
     pub name: String,
     pub can_delete: bool,
 }
 
-impl From<&Game> for GameListModel {
-    fn from(game: &Game) -> Self {
+impl From<&SoftwareTitle> for GameListModel {
+    fn from(game: &SoftwareTitle) -> Self {
         GameListModel {
-            id: game.id(),
+            id: game.id,
             name: game.name.clone(),
             can_delete: false,
         }
     }
 }
 
-pub fn get_games_as_list_model<R>(repository: &R) -> Result<Vec<GameListModel>, Error>
+/*pub fn get_games_as_list_model<R>(repository: &R) -> Result<Vec<GameListModel>, Error>
 where
     R: GamesReadRepository,
 {
@@ -88,7 +79,7 @@ pub fn get_releases_in_list_model<R>(
 where
     R: ReleaseReadRepository + SystemReadRepository,
 {
-    let releases = repository.get_releases_with_game(game_id)?;
+    let releases = repository.get_releases_with_software_title(game_id)?;
     let mut list_models: Vec<ReleaseListModel> = Vec::new();
     for release in releases {
         let system_id = &release.system_id.expect("Expected system_id");
@@ -105,4 +96,4 @@ where
         });
     }
     Ok(list_models)
-}
+}*/

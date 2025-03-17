@@ -2,8 +2,8 @@ use iced::widget::{button, column, pick_list, row, text_input};
 
 use crate::{
     database::database_with_polo::DatabaseWithPolo,
-    model::model::{Franchise, Game, HasOid as _},
-    repository::{FranchisReadRepository, GamesWriteRepository},
+    model::model::{Franchise, HasOid as _, SoftwareTitle},
+    repository::{FranchiseReadRepository, SoftwareTitlesWriteRepository},
 };
 
 use super::add_franchise_widget::{self, AddFranchise};
@@ -27,7 +27,7 @@ pub enum Message {
 }
 
 pub enum Action {
-    GameAdded(Game),
+    GameAdded(SoftwareTitle),
     CancelAddGame,
     None,
 }
@@ -60,12 +60,12 @@ impl AddGame {
                     .selected_franchise
                     .as_ref()
                     .map(|franchise| franchise.id());
-                let game_to_db = Game {
+                let game_to_db = SoftwareTitle {
                     _id: None,
                     name: self.game_name.clone(),
                     franchise_id,
                 };
-                if let Ok(id) = db.add_game(&game_to_db) {
+                if let Ok(id) = db.add_software_title(&game_to_db) {
                     Action::GameAdded(game_to_db.with_id(id))
                 } else {
                     Action::None

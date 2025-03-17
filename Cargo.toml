@@ -19,3 +19,4 @@ uuid = {version="1.11.0", features = ["v4", "serde", "fast-rng"]}
 zip = "2.2.0"
 sqlx = { version = "0.8", features = ["runtime-async-std", "sqlite", "migrate"] }
 dotenvy = "0.15.7"
+thiserror = "2.0.12"

@@ -1,7 +1,7 @@
 use crate::{
     database::database_with_polo::DatabaseWithPolo,
     error::Error,
-    model::model::Game,
+    model::model::SoftwareTitle,
     repository::{GamesReadRepository, ReleaseWriteRepository},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
@@ -18,7 +18,7 @@ use iced::{
 // - view image screen
 #[derive(Debug, Clone)]
 pub struct ViewGame {
-    game: Game,
+    game: SoftwareTitle,
     releases: Vec<ReleaseListModel>,
 }
 

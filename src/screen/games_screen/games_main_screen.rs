@@ -7,7 +7,7 @@ use iced::{
 use crate::{
     database::database_with_polo::DatabaseWithPolo,
     error::Error,
-    repository::GamesWriteRepository,
+    repository::SoftwareTitlesWriteRepository,
     view_model::list_models::{get_games_as_list_model, GameListModel},
 };
 
@@ -43,7 +43,7 @@ impl GamesMainScreen {
             Message::GoHome => Action::GoHome,
             Message::DeleteGame(id) => {
                 let db = DatabaseWithPolo::get_instance();
-                match db.delete_game(&id) {
+                match db.delete_software_title(&id) {
                     Ok(_) => {
                         self.games.retain(|game| game.id != id);
                         Action::None

@@ -9,11 +9,11 @@ macro_rules! impl_has_oid {
    // - The `impl HasIdField for $t` block is generated for each type.
         $(
             impl HasIdField for $t {
-                fn get_id(&self) -> &Option<ObjectId> {
-                    &self._id
+                fn get_id(&self) -> &Option<i64> {
+                    &self.id
                 }
-                fn set_id(&mut self, id: ObjectId) {
-                    self._id = Some(id);
+                fn set_id(&mut self, id: i64) {
+                    self.id = Some(id);
                 }
             }
         )*

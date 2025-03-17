@@ -6,13 +6,13 @@ use iced::{
 
 use crate::{
     database::database_with_polo::DatabaseWithPolo,
-    model::model::{Game, HasOid},
+    model::model::{HasOid, SoftwareTitle},
     repository::{GamesReadRepository, ReleaseWriteRepository},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 
 pub struct ReleasesList {
-    game: Option<Game>,
+    game: Option<SoftwareTitle>,
     releases: Vec<ReleaseListModel>,
 }
 

@@ -1,31 +1,31 @@
-use bson::oid::ObjectId;
-
 use crate::{
+    database::{
+        collection_file_repository::CollectionFileReadRepository,
+        release_repository::ReleaseReadRepository,
+        software_title_repository::SoftwareTitleReadRepository,
+        system_repository::SystemReadRepository,
+    },
     error::Error,
     model::{
         collection_file::CollectionFile,
-        model::{Game, HasOid, System},
-    },
-    repository::{
-        CollectionFilesReadRepository, GamesReadRepository, ReleaseReadRepository,
-        SystemReadRepository,
+        model::{HasOid, SoftwareTitle, System},
     },
 };
 
 #[derive(Debug, Clone)]
 pub struct ReleaseViewModel {
-    pub id: ObjectId,
+    pub id: i64,
     pub name: String,
     pub system: System,
     pub files: Vec<CollectionFile>,
     // Release can be a single game or compilation of games
-    pub games: Vec<Game>,
+    pub games: Vec<SoftwareTitle>,
 }
 
 impl Default for ReleaseViewModel {
     fn default() -> Self {
         Self {
-            id: ObjectId::new(),
+            id: 0,
             name: "".to_string(),
             system: System::default(),
             files: vec![],
@@ -34,15 +34,15 @@ impl Default for ReleaseViewModel {
     }
 }
 
-pub fn get_release_view_model<R>(
-    release_id: &ObjectId,
+/*pub fn get_release_view_model<R>(
+    release_id: i64,
     repository: &R,
 ) -> Result<Option<ReleaseViewModel>, Error>
 where
     R: ReleaseReadRepository
-        + GamesReadRepository
+        + SoftwareTitleReadRepository
         + SystemReadRepository
-        + CollectionFilesReadRepository,
+        + CollectionFileReadRepository,
 {
     let release = repository.get_release(release_id)?;
 
@@ -63,23 +63,23 @@ where
                 files,
                 games,
             })),
-            // TODO: there probably should be a db model with obligatory system_id and save model with optional system_id
             _ => Ok(None),
         }
     } else {
         Ok(None)
     }
-}
+}*/
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
+        database::mock_database::MockRepository,
         model::{
             collection_file::{CollectionFile, CollectionFileType},
-            model::{Game, Release, System},
+            model::{Release, SoftwareTitle, System},
         },
-        repository::mock_repository::MockRepository,
     };
     use bson::oid::ObjectId;
     use std::collections::HashMap;
@@ -92,14 +92,14 @@ mod tests {
         let system_id = ObjectId::new();
 
         let release = Release {
-            _id: Some(release_id.clone()),
+            id: release_id.clone(),
             name: "Test Release".to_string(),
             games: vec![game_id.clone()],
             files: vec![file_id.clone()],
             system_id: Some(system_id.clone()),
         };
 
-        let game = Game {
+        let game = SoftwareTitle {
             _id: Some(game_id.clone()),
             name: "Test Game".to_string(),
             franchise_id: None,
@@ -150,4 +150,4 @@ mod tests {
         assert_eq!(release_view_model.files.len(), 1);
         assert_eq!(release_view_model.files[0].id(), file_id);
     }
-}
+}*/
