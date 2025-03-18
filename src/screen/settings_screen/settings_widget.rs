@@ -5,13 +5,7 @@ use iced::{
     Task,
 };
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    error::Error,
-    files::pick_folder,
-    model::model::Settings,
-    repository::{SettingsReadRepository, SettingsWriteRepository},
-};
+use crate::{error::Error, files::pick_folder};
 
 #[derive(Debug, Clone)]
 pub struct SettingsWidget {

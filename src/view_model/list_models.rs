@@ -1,34 +1,21 @@
-use crate::model::model::SoftwareTitle;
+use crate::model::model::{SoftwareTitle, System};
 
 #[derive(Debug, Clone)]
-pub struct GameListModel {
+pub struct SoftwareTitleListModel {
     pub id: i64,
     pub name: String,
     pub can_delete: bool,
 }
 
-impl From<&SoftwareTitle> for GameListModel {
-    fn from(game: &SoftwareTitle) -> Self {
-        GameListModel {
-            id: game.id,
-            name: game.name.clone(),
+impl From<&SoftwareTitle> for SoftwareTitleListModel {
+    fn from(software_title: &SoftwareTitle) -> Self {
+        SoftwareTitleListModel {
+            id: software_title.id,
+            name: software_title.name.clone(),
             can_delete: false,
         }
     }
 }
-
-/*pub fn get_games_as_list_model<R>(repository: &R) -> Result<Vec<GameListModel>, Error>
-where
-    R: GamesReadRepository,
-{
-    let games = repository.get_all_games()?;
-    let mut list_models: Vec<GameListModel> = games.iter().map(GameListModel::from).collect();
-    for game in &mut list_models {
-        game.can_delete = !repository.is_game_in_release(&game.id)?;
-    }
-    Ok(list_models)
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemListModel {
     pub id: ObjectId,
@@ -52,6 +39,7 @@ impl From<&System> for SystemListModel {
     }
 }
 
+/*
 pub fn get_systems_in_list_model<R>(repository: &R) -> Result<Vec<SystemListModel>, Error>
 where
     R: SystemReadRepository,

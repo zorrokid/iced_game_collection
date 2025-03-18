@@ -6,16 +6,9 @@ use iced::{
     Task,
 };
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    model::{
-        collection_file::CollectionFile,
-        model::{Game, HasOid, Release, Settings, System},
-    },
-    repository::{
-        CollectionFilesReadRepository as _, GamesReadRepository as _, ReleaseReadRepository,
-        ReleaseWriteRepository, SettingsReadRepository, SystemReadRepository,
-    },
+use crate::model::{
+    collection_file::CollectionFile,
+    model::{HasOid, Release, System},
 };
 
 use super::widgets::{add_game_widget, add_system_widget, file_select_widget, files_list_widget};

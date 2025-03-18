@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, row, text, Column},
@@ -5,15 +7,20 @@ use iced::{
 };
 
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
+    database::{
+        repository_manager::RepositoryManager,
+        software_title_repository::SoftwareTitleWriteRepository,
+    },
     error::Error,
-    repository::SoftwareTitlesWriteRepository,
-    view_model::list_models::{get_games_as_list_model, GameListModel},
+    service::view_model_service::ViewModelService,
+    view_model::list_models::SoftwareTitleListModel,
 };
 
 #[derive(Debug, Clone)]
 pub struct GamesMainScreen {
-    pub games: Vec<GameListModel>,
+    repo: Arc<RepositoryManager>,
+    view_model_service: Arc<ViewModelService>,
+    software_titles: Vec<SoftwareTitleListModel>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,31 +38,34 @@ pub enum Action {
 }
 
 impl GamesMainScreen {
-    pub fn new() -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let games = get_games_as_list_model(db)?;
-        Ok(Self { games })
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+    ) -> Result<Self, Error> {
+        let games = view_model_service.get_software_title_list_models()?;
+        Ok(Self {
+            software_titles: games,
+            repo,
+            view_model_service,
+        })
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
             Message::GoHome => Action::GoHome,
-            Message::DeleteGame(id) => {
-                let db = DatabaseWithPolo::get_instance();
-                match db.delete_software_title(&id) {
-                    Ok(_) => {
-                        self.games.retain(|game| game.id != id);
-                        Action::None
-                    }
-                    Err(e) => Action::Error(e),
+            Message::DeleteGame(id) => match self.repo.software_titles.delete_software_title(&id) {
+                Ok(_) => {
+                    self.software_titles.retain(|game| game.id != id);
+                    Action::None
                 }
-            }
+                Err(e) => Action::Error(e),
+            },
         }
     }
 
     pub fn view(&self) -> Element<Message> {
-        let games = self.games.iter().map(|game| {
+        let games = self.software_titles.iter().map(|game| {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),

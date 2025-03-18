@@ -9,7 +9,7 @@ use super::database_error::DatabaseError;
 pub trait SystemReadRepository {
     async fn get_system(&self, id: i64) -> Result<System, DatabaseError>;
     async fn get_systems(&self) -> Result<Vec<System>, DatabaseError>;
-    async fn is_system_in_release(&self, system_id: i64) -> Result<bool, DatabaseError>;
+    async fn is_system_in_use(&self, system_id: i64) -> Result<bool, DatabaseError>;
     async fn get_notes_for_system(&self, system_id: i64) -> Result<Vec<String>, DatabaseError>;
 }
 
@@ -59,8 +59,8 @@ impl SystemReadRepository for SystemRepository {
         Ok(systems)
     }
 
-    async fn is_system_in_release(&self, system_id: i64) -> Result<bool, DatabaseError> {
-        let count = sqlx::query_scalar!(
+    async fn is_system_in_use(&self, system_id: i64) -> Result<bool, DatabaseError> {
+        let releases_count = sqlx::query_scalar!(
             "SELECT COUNT(*) 
              FROM release_system 
              WHERE system_id = ?",
@@ -68,7 +68,17 @@ impl SystemReadRepository for SystemRepository {
         )
         .fetch_one(&*self.pool)
         .await?;
-        Ok(count > 0)
+
+        let emulators_count = sqlx::query_scalar!(
+            "SELECT COUNT(*) 
+             FROM emulator 
+             WHERE system_id = ?",
+            system_id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(releases_count > 0 || emulators_count > 0)
     }
 
     async fn get_notes_for_system(&self, system_id: i64) -> Result<Vec<String>, DatabaseError> {

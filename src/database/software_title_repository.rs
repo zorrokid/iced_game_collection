@@ -20,7 +20,8 @@ pub trait SoftwareTitleReadRepository {
 pub trait SoftwareTitleWriteRepository {
     async fn add_software_title(
         &self,
-        software_title: &SoftwareTitle,
+        name: &str,
+        franchise_id: Option<i64>,
     ) -> Result<i64, DatabaseError>;
     async fn update_software_title(
         &self,
@@ -80,12 +81,13 @@ impl SoftwareTitleReadRepository for SoftwareTitleRepository {
 impl SoftwareTitleWriteRepository for SoftwareTitleRepository {
     async fn add_software_title(
         &self,
-        software_title: &SoftwareTitle,
+        name: &str,
+        franchise_id: Option<i64>,
     ) -> Result<i64, DatabaseError> {
         let result = sqlx::query!(
             "INSERT INTO software_title (name, franchise_id) VALUES (?, ?)",
-            software_title.name,
-            software_title.franchise_id
+            name,
+            franchise_id
         )
         .execute(&*self.pool)
         .await?;

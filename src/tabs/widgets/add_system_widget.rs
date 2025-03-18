@@ -1,10 +1,6 @@
 use iced::widget::{button, row, text_input};
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    model::model::{HasOid, System},
-    repository::SystemWriteRepository,
-};
+use crate::model::model::System;
 
 pub struct AddSystem {
     new_system_name: String,

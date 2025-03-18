@@ -5,6 +5,7 @@ mod files;
 mod macros;
 mod model;
 mod screen;
+mod service;
 mod tabs;
 mod title_bar;
 mod util;
@@ -12,7 +13,6 @@ mod view_model;
 
 use std::sync::Arc;
 
-use bson::oid::ObjectId;
 use database::database_with_sqlx::get_db_pool;
 use database::repository_manager::RepositoryManager;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};

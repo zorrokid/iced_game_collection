@@ -5,9 +5,7 @@ use iced::{
 };
 
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    model::model::{HasOid, SoftwareTitle},
-    repository::{GamesReadRepository, ReleaseWriteRepository},
+    model::model::SoftwareTitle,
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 

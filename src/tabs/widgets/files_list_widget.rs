@@ -1,20 +1,15 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use bson::oid::ObjectId;
 use iced::{
-    widget::{button, column, image, pick_list, row, text, Column},
+    widget::{button, column, image, row, Column},
     Element, Task,
 };
 
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
     error::Error,
     files::delete_file,
-    model::{
-        collection_file::{CollectionFile, CollectionFileType},
-        model::HasOid as _,
-    },
-    repository::{CollectionFileWriteRepository, CollectionFilesReadRepository},
+    model::collection_file::{CollectionFile, CollectionFileType},
     util::{file_path_builder::FilePathBuilder, image::get_thumbnail_path},
 };
 

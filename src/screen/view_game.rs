@@ -1,8 +1,6 @@
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
     error::Error,
     model::model::SoftwareTitle,
-    repository::{GamesReadRepository, ReleaseWriteRepository},
     view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
 };
 use bson::oid::ObjectId;

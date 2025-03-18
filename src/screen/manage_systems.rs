@@ -1,16 +1,19 @@
-use crate::database::database_with_polo::DatabaseWithPolo;
-use crate::error::Error;
+use std::sync::Arc;
+
 use crate::model::model::System;
-use crate::repository::{SystemReadRepository, SystemWriteRepository};
-use crate::view_model::list_models::{get_systems_in_list_model, SystemListModel};
+use crate::service::view_model_service::ViewModelService;
+use crate::view_model::list_models::SystemListModel;
+use crate::{database::repository_manager::RepositoryManager, error::Error};
 use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
 pub struct ManageSystems {
-    pub system: System,
-    pub systems: Vec<SystemListModel>,
-    pub is_editing: bool,
+    system: System,
+    systems: Vec<SystemListModel>,
+    is_editing: bool,
+    repo: Arc<RepositoryManager>,
+    view_model_service: Arc<ViewModelService>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,11 +36,14 @@ pub enum Action {
 }
 
 impl ManageSystems {
-    pub fn new(edit_system_id: Option<ObjectId>) -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let systems = get_systems_in_list_model(db)?;
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+        edit_system_id: Option<ObjectId>,
+    ) -> Result<Self, Error> {
+        let systems = view_model_service.get_system_list_models()?;
         let edit_system = match edit_system_id {
-            Some(id) => db.get_system(&id)?,
+            Some(id) => repo.systems().get_system(&id)?,
             None => None,
         };
 
@@ -48,6 +54,8 @@ impl ManageSystems {
                 None => System::default(),
             },
             systems,
+            repo,
+            view_model_service,
         })
     }
 
@@ -69,32 +77,26 @@ impl ManageSystems {
             }
             Message::Submit => match &mut self.system.name {
                 name if name.is_empty() => Action::None,
-                _ => {
-                    let db = DatabaseWithPolo::get_instance();
-                    match self.is_editing {
-                        true => match db.update_system(&self.system) {
-                            Ok(_) => Action::SystemSubmitted,
-                            Err(e) => Action::Error(e),
-                        },
-                        false => match db.add_system(&self.system) {
-                            Ok(_) => Action::SystemSubmitted,
-                            Err(e) => Action::Error(e),
-                        },
-                    }
-                }
+                _ => match self.is_editing {
+                    true => match self.repo.systems().update_system(&self.system) {
+                        Ok(_) => Action::SystemSubmitted,
+                        Err(e) => Action::Error(e),
+                    },
+                    false => match self.repo.systems().add_system(&self.system) {
+                        Ok(_) => Action::SystemSubmitted,
+                        Err(e) => Action::Error(e),
+                    },
+                },
             },
             Message::GoHome => Action::GoHome,
             Message::EditSystem(id) => Action::EditSystem(id),
-            Message::DeleteSystem(id) => {
-                let db = DatabaseWithPolo::get_instance();
-                match db.delete_system(&id) {
-                    Ok(_) => {
-                        self.systems.retain(|system| system.id != id);
-                        Action::None
-                    }
-                    Err(e) => Action::Error(e),
+            Message::DeleteSystem(id) => match self.repo.systems().delete_system(&id) {
+                Ok(_) => {
+                    self.systems.retain(|system| system.id != id);
+                    Action::None
                 }
-            }
+                Err(e) => Action::Error(e),
+            },
             Message::Clear => {
                 self.system = System::default();
                 Action::None

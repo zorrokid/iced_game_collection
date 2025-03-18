@@ -1,25 +1,29 @@
-use crate::database::database_with_polo::DatabaseWithPolo;
+use std::sync::Arc;
+
+use crate::database::repository_manager::RepositoryManager;
+use crate::database::software_title_repository::SoftwareTitleWriteRepository as _;
 use crate::error::Error;
 use crate::model::model::SoftwareTitle;
-use crate::repository::{GamesReadRepository, SoftwareTitlesWriteRepository as _};
-use crate::view_model::list_models::{get_games_as_list_model, GameListModel};
-use bson::oid::ObjectId;
+use crate::service::view_model_service::ViewModelService;
+use crate::view_model::list_models::SoftwareTitleListModel;
 use iced::widget::{button, column, row, text, text_input, Column};
 use iced::Element;
 
 #[derive(Debug, Clone)]
 pub struct ManageGames {
-    games: Vec<GameListModel>,
-    game: SoftwareTitle,
+    software_titles: Vec<SoftwareTitleListModel>,
+    software_title: SoftwareTitle,
     is_edit: bool,
+    repo: Arc<RepositoryManager>,
+    view_model_service: Arc<ViewModelService>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Back,
-    SubmitGame,
-    DeleteGame(ObjectId),
-    EditGame(ObjectId),
+    SubmitSoftwareTitle,
+    DeleteSoftwareTitle(i64),
+    EditSoftwareTitle(i64),
     NameChanged(String),
     Clear,
 }
@@ -34,14 +38,19 @@ pub enum Action {
 }
 
 impl ManageGames {
-    pub fn new(edit_game: Option<SoftwareTitle>) -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let games = get_games_as_list_model(db)?;
-        let is_edit = edit_game.is_some();
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+        edit_software_title: Option<SoftwareTitle>,
+    ) -> Result<Self, Error> {
+        let software_titles = view_model_service.get_software_title_list_models()?;
+        let is_edit = edit_software_title.is_some();
         Ok(Self {
-            game: edit_game.unwrap_or_default(),
-            games,
+            software_title: edit_software_title.unwrap_or_default(),
+            software_titles,
             is_edit,
+            repo,
+            view_model_service,
         })
     }
 
@@ -50,20 +59,24 @@ impl ManageGames {
     }
 
     fn update_games(&mut self) -> Result<(), Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let games = get_games_as_list_model(db)?;
-        self.games = games;
+        let software_titles = self.view_model_service.get_software_title_list_models()?;
+        self.software_titles = software_titles;
         Ok(())
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::Back => Action::Back,
-            Message::SubmitGame => {
-                let db = DatabaseWithPolo::get_instance();
+            Message::SubmitSoftwareTitle => {
                 let res = match self.is_edit {
-                    true => db.update_software_title(&self.game),
-                    false => db.add_software_title(&self.game),
+                    true => self
+                        .repo
+                        .software_titles
+                        .update_software_title(&self.software_title),
+                    false => self.repo.software_titles.add_software_title(
+                        &self.software_title.name,
+                        &self.software_title.franchise_id,
+                    ),
                 };
 
                 match res {
@@ -76,22 +89,20 @@ impl ManageGames {
                     Err(e) => Action::Error(e),
                 }
             }
-            Message::DeleteGame(id) => {
-                let db = DatabaseWithPolo::get_instance();
-                match db.delete_software_title(&id) {
+            Message::DeleteSoftwareTitle(id) => {
+                match self.repo.software_titles.delete_software_title(&id) {
                     Ok(_) => {
-                        self.games.retain(|game| game.id != id);
+                        self.software_titles.retain(|game| game.id != id);
                         Action::GameDeleted
                     }
                     Err(e) => Action::Error(e),
                 }
             }
-            Message::EditGame(id) => {
-                let db = DatabaseWithPolo::get_instance();
-                match db.get_game(&id) {
+            Message::EditSoftwareTitle(id) => {
+                match self.repo.software_titles.get_software_title(&id) {
                     Ok(game) => match game {
                         Some(game) => {
-                            self.game = game;
+                            self.software_title = game;
                             self.is_edit = true;
                             Action::None
                         }
@@ -103,11 +114,11 @@ impl ManageGames {
                 }
             }
             Message::NameChanged(name) => {
-                self.game.name = name;
+                self.software_title.name = name;
                 Action::None
             }
             Message::Clear => {
-                self.game = SoftwareTitle::default();
+                self.software_title = SoftwareTitle::default();
                 Action::None
             }
         }
@@ -116,23 +127,26 @@ impl ManageGames {
     pub fn view(&self) -> iced::Element<Message> {
         let back_button = button("Back").on_press(Message::Back);
         let name_input_field =
-            text_input("Enter name", &self.game.name).on_input(Message::NameChanged);
+            text_input("Enter name", &self.software_title.name).on_input(Message::NameChanged);
         let main_buttons = row![
-            button("Submit").on_press(Message::SubmitGame),
+            button("Submit").on_press(Message::SubmitSoftwareTitle),
             button("Clear").on_press(Message::Clear)
         ];
 
         let games_list = self
-            .games
+            .software_titles
             .iter()
             .map(|game| {
                 row![
                     text(&game.name).width(iced::Length::Fixed(300.0)),
                     button("Edit")
-                        .on_press(Message::EditGame(game.id))
+                        .on_press(Message::EditSoftwareTitle(game.id))
                         .width(iced::Length::Fixed(200.0)),
                     button("Delete")
-                        .on_press_maybe(game.can_delete.then_some(Message::DeleteGame(game.id)))
+                        .on_press_maybe(
+                            game.can_delete
+                                .then_some(Message::DeleteSoftwareTitle(game.id))
+                        )
                         .width(iced::Length::Fixed(200.0))
                 ]
                 .into()

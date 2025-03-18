@@ -1,10 +1,6 @@
 use iced::widget::{button, column, pick_list, row, text_input};
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    model::model::{Franchise, HasOid as _, SoftwareTitle},
-    repository::{FranchiseReadRepository, SoftwareTitlesWriteRepository},
-};
+use crate::model::model::{Franchise, SoftwareTitle};
 
 use super::add_franchise_widget::{self, AddFranchise};
 

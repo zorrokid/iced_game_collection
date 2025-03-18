@@ -1,13 +1,8 @@
 use iced::widget::{button, column, text};
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo, error::Error, model::model::Settings,
-    repository::SettingsReadRepository,
-};
+use crate::error::Error;
 
-pub struct Home {
-    settings: Settings,
-}
+pub struct Home {}
 
 #[derive(Debug, Clone)]
 pub enum Message {

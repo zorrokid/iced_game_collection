@@ -4,10 +4,7 @@ use iced::{
     Element,
 };
 
-use crate::{
-    database::database_with_polo::DatabaseWithPolo,
-    view_model::list_models::{get_games_as_list_model, GameListModel},
-};
+use crate::view_model::list_models::{get_games_as_list_model, GameListModel};
 
 pub struct GamesList {
     pub games: Vec<GameListModel>,

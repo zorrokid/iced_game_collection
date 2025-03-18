@@ -1,17 +1,12 @@
 use std::path::PathBuf;
 use std::{collections::HashMap, vec};
 
-use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::error::Error;
 use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
 use crate::model::{
     collection_file::{CollectionFile, CollectionFileType},
-    model::{Release, Settings, SoftwareTitle, System},
-};
-use crate::repository::{
-    CollectionFileWriteRepository, CollectionFilesReadRepository, GamesReadRepository,
-    SettingsReadRepository, SystemReadRepository,
+    model::{Release, SoftwareTitle, System},
 };
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;

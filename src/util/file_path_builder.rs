@@ -1,5 +1,3 @@
-use bson::oid::ObjectId;
-
 use crate::{
     error::Error,
     files::get_file_extension,

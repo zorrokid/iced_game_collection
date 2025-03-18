@@ -7,7 +7,6 @@ use iced::{
 };
 
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
     emulator_runner::{process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions},
     error::Error,
     model::{
@@ -16,7 +15,6 @@ use crate::{
         },
         model::{Emulator, HasOid as _, Settings},
     },
-    repository::{EmulatorReadRepository, SettingsReadRepository},
     util::file_path_builder::FilePathBuilder,
 };
 

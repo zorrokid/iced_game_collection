@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::{collections::HashMap, env, vec};
 
-use crate::database::database_with_polo::DatabaseWithPolo;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::model::model::HasOid;
@@ -9,7 +8,6 @@ use crate::model::{
     collection_file::{CollectionFileType, GetFileExtensions},
     model::{Emulator, Settings, System},
 };
-use crate::repository::{EmulatorReadRepository, SettingsReadRepository};
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::{get_release_view_model, ReleaseViewModel};

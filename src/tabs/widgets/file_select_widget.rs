@@ -5,11 +5,9 @@ use iced::{
 };
 
 use crate::{
-    database::database_with_polo::DatabaseWithPolo,
     error::Error,
     files::{copy_file, pick_file, PickedFile},
     model::collection_file::{CollectionFile, CollectionFileType},
-    repository::CollectionFileWriteRepository as _,
     util::file_path_builder::FilePathBuilder,
 };
 
