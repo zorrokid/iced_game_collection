@@ -6,11 +6,11 @@ use crate::error::Error;
 use crate::model::model::HasOid;
 use crate::model::{
     collection_file::{CollectionFileType, GetFileExtensions},
-    model::{Emulator, Settings, System},
+    model::{Emulator, System},
 };
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
-use crate::view_model::release_view_model::{get_release_view_model, ReleaseViewModel};
+use crate::view_model::release_view_model::ReleaseViewModel;
 use bson::oid::ObjectId;
 use iced::widget::{button, column, image, pick_list, row, text, Column};
 use iced::{Element, Task};
@@ -20,7 +20,6 @@ pub struct ViewRelease {
     release: ReleaseViewModel,
     selected_file: HashMap<ObjectId, String>,
     emulators: Vec<Emulator>,
-    settings: Settings,
     file_path_builder: FilePathBuilder,
 }
 

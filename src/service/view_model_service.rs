@@ -2,13 +2,18 @@ use std::sync::Arc;
 
 use crate::{
     database::{
-        database_error::DatabaseError, repository_manager::RepositoryManager,
+        database_error::DatabaseError, release_repository::ReleaseReadRepository,
+        repository_manager::RepositoryManager, setting_repository::SettingReadRepository,
         software_title_repository::SoftwareTitleReadRepository,
         system_repository::SystemReadRepository as _,
     },
-    view_model::list_models::{SoftwareTitleListModel, SystemListModel},
+    view_model::{
+        list_models::{ReleaseListModel, SoftwareTitleListModel, SystemListModel},
+        settings::Settings,
+    },
 };
 
+#[derive(Debug, Clone)]
 pub struct ViewModelService {
     repository_manager: Arc<RepositoryManager>,
 }
@@ -58,5 +63,51 @@ impl ViewModelService {
         }
 
         Ok(list_models)
+    }
+
+    pub async fn get_release_list_models(
+        &self,
+        software_title_id: i64,
+    ) -> Result<Vec<ReleaseListModel>, DatabaseError> {
+        let releases = self
+            .repository_manager
+            .releases()
+            .get_releases_with_software_title(software_title_id)
+            .await?;
+
+        let mut list_models: Vec<ReleaseListModel> = Vec::new();
+
+        for release in releases {
+            let system = self
+                .repository_manager
+                .systems()
+                .get_systems_for_release(release.id)
+                .await?;
+
+            let can_delete = !self
+                .repository_manager
+                .releases()
+                .has_release_files(release.id)
+                .await?;
+
+            let system_names = system
+                .iter()
+                .map(|s| s.name.clone())
+                .collect::<Vec<String>>();
+
+            list_models.push(ReleaseListModel {
+                id: release.id,
+                name: release.name.clone(),
+                system_name: system_names.join(", "),
+                can_delete,
+            });
+        }
+
+        Ok(list_models)
+    }
+
+    pub async fn get_settings(&self) -> Result<Settings, DatabaseError> {
+        let settings_map = self.repository_manager.settings().get_settings().await?;
+        Ok(Settings::from(settings_map))
     }
 }

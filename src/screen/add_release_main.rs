@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crate::database::repository_manager::RepositoryManager;
 use crate::error::Error;
 use crate::manage_games;
 use crate::manage_systems;
@@ -5,6 +8,7 @@ use crate::model::model::HasOid;
 use crate::model::model::Release;
 use crate::screen::add_release_screen::add_release_main_screen;
 use crate::screen::add_release_screen::AddReleaseScreen;
+use crate::view_model::settings::Settings;
 use bson::oid::ObjectId;
 use iced::{Element, Task};
 
@@ -18,6 +22,8 @@ pub struct AddReleaseMain {
     // Also, we don't want to save to db after each state, because of cancel functionality.
     // Only changes that are saved to db immediately are adding or deleting files because actual files are copied or deleted.
     release: Release,
+    repo: Arc<RepositoryManager>,
+    settings: Arc<Settings>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,7 +43,11 @@ pub enum Action {
 }
 
 impl AddReleaseMain {
-    pub fn new(edit_release_id: Option<ObjectId>) -> Result<Self, Error> {
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        settings: Arc<Settings>,
+        edit_release_id: Option<ObjectId>,
+    ) -> (Self, Task<Message>) {
         let db = DatabaseWithPolo::get_instance();
 
         let edit_release = match edit_release_id {
@@ -51,6 +61,8 @@ impl AddReleaseMain {
         Ok(Self {
             screen: AddReleaseScreen::AddReleaseMainScreen(screen),
             release,
+            repo,
+            settings,
         })
     }
 

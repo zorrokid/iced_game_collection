@@ -13,6 +13,7 @@ pub trait ReleaseReadRepository {
         software_title_id: i64,
     ) -> Result<Vec<Release>, DatabaseError>;
     async fn get_notes_for_release(&self, release_id: i64) -> Result<Vec<String>, DatabaseError>;
+    async fn has_release_files(&self, release_id: i64) -> Result<bool, DatabaseError>;
 }
 
 pub trait ReleaseWriteRepository {
@@ -79,6 +80,16 @@ impl ReleaseReadRepository for ReleaseRepository {
         .await?;
         let notes = notes.into_iter().map(|row| row.note).collect();
         Ok(notes)
+    }
+
+    async fn has_release_files(&self, release_id: i64) -> Result<bool, DatabaseError> {
+        let count = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM release_collection_file WHERE release_id = ?",
+            release_id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+        Ok(count > 0)
     }
 }
 

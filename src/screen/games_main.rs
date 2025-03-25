@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
+use crate::database::repository_manager::RepositoryManager;
 use crate::emulator_runner::EmulatorRunOptions;
 use crate::error::Error;
 use crate::screen::games_screen::games_main_screen::GamesMainScreen;
 use crate::screen::games_screen::GamesScreen;
-use bson::oid::ObjectId;
+use crate::service::view_model_service::ViewModelService;
 use iced::{Element, Task};
 
 use super::games_screen::games_main_screen;
@@ -10,7 +13,9 @@ use super::view_game_main;
 
 pub struct GamesMain {
     screen: GamesScreen,
-    selected_game_id: Option<ObjectId>,
+    selected_game_id: Option<i64>,
+    repo: Arc<RepositoryManager>,
+    view_model_service: Arc<ViewModelService>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,12 +33,21 @@ pub enum Action {
 }
 
 impl GamesMain {
-    pub fn new() -> Result<Self, Error> {
-        let screen = GamesMainScreen::new()?;
-        Ok(Self {
-            screen: GamesScreen::GamesMainScreen(screen),
-            selected_game_id: None,
-        })
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+    ) -> (Self, Task<Message>) {
+        let (screen, task) =
+            GamesMainScreen::new(Arc::clone(&repo), Arc::clone(&view_model_service));
+        (
+            Self {
+                screen: GamesScreen::GamesMainScreen(screen),
+                selected_game_id: None,
+                repo,
+                view_model_service,
+            },
+            task.map(Message::GamesMainScreen),
+        )
     }
 
     pub fn title(&self) -> String {
@@ -47,17 +61,21 @@ impl GamesMain {
                     match screen.update(message) {
                         games_main_screen::Action::ViewGame(id) => {
                             self.selected_game_id = Some(id);
-                            match view_game_main::ViewGameMain::new(id) {
-                                Ok(view_game) => {
-                                    self.screen = GamesScreen::ViewGameScreen(view_game);
-                                    Action::None
-                                }
-                                Err(e) => Action::Error(e),
-                            }
+
+                            let (view_game, task) = view_game_main::ViewGameMain::new(
+                                id,
+                                Arc::clone(&self.repo),
+                                Arc::clone(&self.view_model_service),
+                            );
+                            self.screen = GamesScreen::ViewGameScreen(view_game);
+                            Action::Run(task.map(Message::ViewGameScreen))
                         }
                         games_main_screen::Action::GoHome => Action::Back,
                         games_main_screen::Action::Error(error) => Action::Error(error),
                         games_main_screen::Action::None => Action::None,
+                        games_main_screen::Action::Run(task) => {
+                            Action::Run(task.map(Message::GamesMainScreen))
+                        }
                     }
                 } else {
                     Action::None
@@ -66,7 +84,14 @@ impl GamesMain {
             Message::ViewGameScreen(message) => {
                 if let GamesScreen::ViewGameScreen(screen) = &mut self.screen {
                     match screen.update(message) {
-                        view_game_main::Action::Back => self.create_main_screen(),
+                        view_game_main::Action::Back => {
+                            let (screen, task) = GamesMainScreen::new(
+                                Arc::clone(&self.repo),
+                                Arc::clone(&self.view_model_service),
+                            );
+                            self.screen = GamesScreen::GamesMainScreen(screen);
+                            Action::Run(task.map(Message::GamesMainScreen))
+                        }
                         view_game_main::Action::Run(task) => {
                             Action::Run(task.map(Message::ViewGameScreen))
                         }
@@ -80,16 +105,6 @@ impl GamesMain {
                     Action::None
                 }
             }
-        }
-    }
-
-    fn create_main_screen(&mut self) -> Action {
-        match GamesMainScreen::new() {
-            Ok(screen) => {
-                self.screen = GamesScreen::GamesMainScreen(screen);
-                Action::None
-            }
-            Err(e) => Action::Error(e),
         }
     }
 

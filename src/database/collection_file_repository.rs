@@ -99,6 +99,7 @@ impl CollectionFileWriteRepository for CollectionFileRepository {
     ) -> Result<i64, DatabaseError> {
         let archive_type = archive_type as i64;
         let file_type = file_type as i64;
+        let is_archive = if is_archive { 1 } else { 0 };
         let result = sqlx::query!(
             "INSERT INTO collection_file (
                 original_file_name, 
@@ -151,16 +152,19 @@ mod tests {
             id: 1,
             original_file_name: "test.zip".to_string(),
             is_archive: true,
-            archive_type: None,
+            archive_type: ArchiveType::None,
             file_type: None,
         };
+        let file_type = collection_file.file_type as i64;
+        let archive_type = collection_file.archive_type as i64;
+        let is_archive = if collection_file.is_archive { 1 } else { 0 };
         query!(
             "INSERT INTO collection_file (id, original_file_name, is_archive, archive_type, file_type) VALUES (?, ?, ?, ?, ?)",
             collection_file.id,
             collection_file.original_file_name,
-            collection_file.is_archive,
-            collection_file.archive_type,
-            collection_file.file_type
+            is_archive,
+            archive_type,
+            file_type
         )
         .execute(&pool)
         .await

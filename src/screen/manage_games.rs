@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::database::database_error::DatabaseError;
 use crate::database::repository_manager::RepositoryManager;
 use crate::database::software_title_repository::SoftwareTitleWriteRepository as _;
 use crate::error::Error;
@@ -7,7 +8,7 @@ use crate::model::model::SoftwareTitle;
 use crate::service::view_model_service::ViewModelService;
 use crate::view_model::list_models::SoftwareTitleListModel;
 use iced::widget::{button, column, row, text, text_input, Column};
-use iced::Element;
+use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
 pub struct ManageGames {
@@ -26,6 +27,7 @@ pub enum Message {
     EditSoftwareTitle(i64),
     NameChanged(String),
     Clear,
+    SoftwareTitleListModelsLoaded(Result<Vec<SoftwareTitleListModel>, DatabaseError>),
 }
 
 #[derive(Debug, Clone)]
@@ -42,16 +44,27 @@ impl ManageGames {
         repo: Arc<RepositoryManager>,
         view_model_service: Arc<ViewModelService>,
         edit_software_title: Option<SoftwareTitle>,
-    ) -> Result<Self, Error> {
-        let software_titles = view_model_service.get_software_title_list_models()?;
+    ) -> (Self, Task<Message>) {
         let is_edit = edit_software_title.is_some();
-        Ok(Self {
-            software_title: edit_software_title.unwrap_or_default(),
-            software_titles,
-            is_edit,
-            repo,
-            view_model_service,
-        })
+        let view_model_service_clone = Arc::clone(&view_model_service);
+        let software_title_list_models_task = Task::perform(
+            async move {
+                view_model_service_clone
+                    .get_software_title_list_models()
+                    .await
+            },
+            Message::SoftwareTitleListModelsLoaded,
+        );
+        (
+            Self {
+                software_title: edit_software_title.unwrap_or_default(),
+                software_titles: vec![],
+                is_edit,
+                repo,
+                view_model_service,
+            },
+            software_title_list_models_task,
+        )
     }
 
     pub fn title(&self) -> String {
@@ -119,6 +132,11 @@ impl ManageGames {
             }
             Message::Clear => {
                 self.software_title = SoftwareTitle::default();
+                Action::None
+            }
+            // TODO: handle error
+            Message::SoftwareTitleListModelsLoaded(Ok(software_titles)) => {
+                self.software_titles = software_titles;
                 Action::None
             }
         }

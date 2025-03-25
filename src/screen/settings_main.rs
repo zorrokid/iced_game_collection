@@ -1,13 +1,17 @@
+use std::sync::Arc;
+
+use crate::database::repository_manager::RepositoryManager;
+use crate::database::setting_repository::SettingReadRepository as _;
 use crate::error::Error;
-use crate::model::model::Settings;
+use crate::model::settings::SettingName;
 use crate::screen::settings_screen::settings_main_screen;
 
 use super::settings_screen::SettingsScreen;
 use iced::Task;
 
 pub struct SettingsMain {
+    repo: Arc<RepositoryManager>,
     screen: SettingsScreen,
-    settings: Settings,
 }
 
 #[derive(Debug, Clone)]
@@ -22,17 +26,15 @@ pub enum Action {
 }
 
 impl SettingsMain {
-    pub fn new() -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-
-        let settings = db.get_settings()?;
-
-        let collection_root_dir = settings.collection_root_dir.clone();
+    pub fn new(repo: Arc<RepositoryManager>) -> Result<Self, Error> {
+        let collection_root_dir = repo
+            .settings()
+            .get_setting(SettingName::CollectionRootDir)?;
         Ok(Self {
-            settings,
             screen: SettingsScreen::SettingsMainScreen(
                 settings_main_screen::SettingsMainScreen::new(collection_root_dir),
             ),
+            repo,
         })
     }
 
@@ -47,8 +49,10 @@ impl SettingsMain {
                 match screen.update(message) {
                     settings_main_screen::Action::SetCollectionRootDir(dir) => {
                         self.settings.collection_root_dir = dir;
-                        let db = DatabaseWithPolo::get_instance();
-                        if let Err(err) = db.add_or_update_settings(&self.settings) {
+                        if let Err(err) = self.repo.settings.add_or_update_setting(
+                            SettingName::CollectionRootDir,
+                            &self.settings.collection_root_dir,
+                        ) {
                             // TODO: Show error
                             eprintln!("Failed to update settings {:?}", err);
                         }

@@ -12,10 +12,11 @@ pub enum Message {
 }
 
 impl SettingsTab {
-    pub fn new() -> Result<Self, Error> {
-        let settings_widget = settings_widget::SettingsWidget::new()?;
+    pub fn new() -> Self {
+        // TODO
+        let settings_widget = settings_widget::SettingsWidget::new().unwrap();
 
-        Ok(Self { settings_widget })
+        Self { settings_widget }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {

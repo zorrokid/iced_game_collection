@@ -4,13 +4,13 @@ CREATE TABLE setting (
 );
 
 CREATE TABLE system (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL
 );
 
 
 CREATE TABLE emulator (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL,
     system_id INTEGER NOT NULL,
     executable TEXT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE release_system (
 );
 
 CREATE TABLE collection_file (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     original_file_name TEXT NOT NULL,
     is_archive INTEGER NOT NULL,
     archive_type INTEGER NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE collection_file (
  );
 
 CREATE TABLE file_info (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     sha1_checksum TEXT NOT NULL,
     file_size INTEGER NOT NULL
 );
@@ -59,12 +59,12 @@ CREATE TABLE collection_file_file_info (
 );
 
 CREATE TABLE franchise (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL
 );
 
 CREATE TABLE software_title (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL,
     franchise_id INTEGER,
     FOREIGN KEY (franchise_id) REFERENCES franchise(id)
@@ -88,7 +88,7 @@ CREATE TABLE release_software_title (
 CREATE INDEX idx_release_software_title_software_title_id ON release_software_title(software_title_id);
 
 CREATE TABLE system_note (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     system_id INTEGER DEFAULT NULL,
     note TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -96,7 +96,7 @@ CREATE TABLE system_note (
 );
 
 CREATE TABLE emulator_note (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     emulator_id INTEGER DEFAULT NULL,
     note TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -104,7 +104,7 @@ CREATE TABLE emulator_note (
 );
 
 CREATE TABLE release_note (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     release_id INTEGER DEFAULT NULL,
     note TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

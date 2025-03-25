@@ -43,7 +43,7 @@ impl RepositoryManager {
         }
     }
 
-    pub fn settigns(&self) -> &SettingRepository {
+    pub fn settings(&self) -> &SettingRepository {
         &self.setting_repository
     }
 

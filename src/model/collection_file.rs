@@ -1,13 +1,6 @@
-use std::{
-    fmt::{self, Display, Formatter},
-    path::Path,
-};
+use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-
-use crate::impl_has_oid;
-
-use super::model::{HasIdField, HasOid};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CollectionFileType {
@@ -121,13 +114,11 @@ pub trait GetCollectionFileName {
 pub struct CollectionFile {
     pub id: i64,
     pub original_file_name: String,
+    pub collection_file_name: String,
     pub is_archive: bool,
-    pub archive_type: ArchiveType,
-    //pub files: Option<Vec<FileInfo>>,
+    pub archive_type: Option<ArchiveType>,
     pub file_type: CollectionFileType,
 }
-
-impl_has_oid!(CollectionFile);
 
 fn get_file_extension(file_name: &str) -> String {
     file_name
@@ -138,7 +129,7 @@ fn get_file_extension(file_name: &str) -> String {
         .to_lowercase()
 }
 
-impl GetFileExtensions for CollectionFile {
+/*impl GetFileExtensions for CollectionFile {
     fn get_file_extensions(&self) -> Vec<String> {
         match &self.files {
             Some(files) => files
@@ -148,7 +139,7 @@ impl GetFileExtensions for CollectionFile {
             None => vec![],
         }
     }
-}
+}*/
 
 impl GetFileExtension for CollectionFile {
     fn get_file_extension(&self) -> String {
@@ -156,21 +147,17 @@ impl GetFileExtension for CollectionFile {
     }
 }
 
-impl GetCollectionFileName for CollectionFile {
+/*impl GetCollectionFileName for CollectionFile {
     fn get_collection_file_name(&self) -> String {
         let extension = Path::new(&self.original_file_name).extension();
         if let Some(extension) = extension {
             if let Some(extension) = extension.to_str() {
-                return format!(
-                    "{}.{}",
-                    self.get_id_string(),
-                    extension.to_string().to_lowercase()
-                );
+                return format!("{}.{}", self.id, extension.to_string().to_lowercase());
             }
         }
         self.get_id_string()
     }
-}
+}*/
 
 impl Display for CollectionFile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -181,39 +168,45 @@ impl Display for CollectionFile {
 #[cfg(test)]
 mod tests {
 
+    use uuid::Uuid;
+
     use super::*;
 
     #[test]
     fn test_get_file_extensions() {
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            id: Some(1),
-            is_zip: true,
-            files: Some(vec![FileInfo {
+            id: 1,
+            is_archive: true,
+            /*files: Some(vec![FileInfo {
                 name: "game.rom".to_string(),
                 checksum: "checksum".to_string(),
-            }]),
-            collection_file_type: CollectionFileType::Rom,
+            }]),*/
+            file_type: CollectionFileType::Rom,
+            archive_type: Some(ArchiveType::Zip),
+            collection_file_name: Uuid::new_v4().to_string(),
         };
 
         let extensions = collection_file.get_file_extensions();
         assert_eq!(extensions, vec!["rom".to_string()]);
     }
 
-    #[test]
+    /*#[test]
     fn test_get_collection_file_name() {
         let collection_file = CollectionFile {
             original_file_name: "game.zip".to_string(),
-            id: Some(1),
-            is_zip: true,
-            files: None,
-            collection_file_type: CollectionFileType::Rom,
+            id: 1,
+            is_archive: true,
+            //files: None,
+            file_type: CollectionFileType::Rom,
+            archive_type: Some(ArchiveType::Zip),
+            collection_file_name: Uuid::new_v4().to_string(),
         };
 
-        let file_name = collection_file.get_collection_file_name();
+        //let file_name = collection_file.get_collection_file_name();
         assert_eq!(
             file_name,
             format!("{}.zip", &collection_file.get_id_string())
         );
-    }
+    }*/
 }

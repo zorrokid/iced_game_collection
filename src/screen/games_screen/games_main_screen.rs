@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, row, text, Column},
-    Element,
+    Element, Task,
 };
 
 use crate::{
     database::{
-        repository_manager::RepositoryManager,
+        database_error::DatabaseError, repository_manager::RepositoryManager,
         software_title_repository::SoftwareTitleWriteRepository,
     },
     error::Error,
@@ -25,41 +24,70 @@ pub struct GamesMainScreen {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ViewGame(ObjectId),
-    DeleteGame(ObjectId),
+    ViewGame(i64),
+    DeleteGame(i64),
     GoHome,
+    GameDeleted(Result<i64, DatabaseError>),
+    SoftwareTitleListModelsLoaded(Result<Vec<SoftwareTitleListModel>, DatabaseError>),
 }
 
 pub enum Action {
     GoHome,
-    ViewGame(ObjectId),
+    ViewGame(i64),
     None,
     Error(Error),
+    Run(Task<Message>),
 }
 
 impl GamesMainScreen {
     pub fn new(
         repo: Arc<RepositoryManager>,
         view_model_service: Arc<ViewModelService>,
-    ) -> Result<Self, Error> {
-        let games = view_model_service.get_software_title_list_models()?;
-        Ok(Self {
-            software_titles: games,
-            repo,
-            view_model_service,
-        })
+    ) -> (Self, Task<Message>) {
+        let service = Arc::clone(&view_model_service);
+        (
+            Self {
+                software_titles: vec![],
+                repo,
+                view_model_service,
+            },
+            Task::perform(
+                async move { service.get_software_title_list_models().await },
+                Message::SoftwareTitleListModelsLoaded,
+            ),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
             Message::ViewGame(id) => Action::ViewGame(id),
             Message::GoHome => Action::GoHome,
-            Message::DeleteGame(id) => match self.repo.software_titles.delete_software_title(&id) {
-                Ok(_) => {
+            Message::DeleteGame(id) => {
+                let repo = Arc::clone(&self.repo);
+                Action::Run(Task::perform(
+                    async move { repo.software_titles().delete_software_title(id).await },
+                    Message::GameDeleted,
+                ))
+            }
+            Message::GameDeleted(result) => match result {
+                Ok(id) => {
                     self.software_titles.retain(|game| game.id != id);
                     Action::None
                 }
-                Err(e) => Action::Error(e),
+                Err(e) => {
+                    eprintln!("Failed to delete game {:?}", e);
+                    Action::Error(Error::DbError(e.to_string()))
+                }
+            },
+            Message::SoftwareTitleListModelsLoaded(result) => match result {
+                Ok(games) => {
+                    self.software_titles = games;
+                    Action::None
+                }
+                Err(e) => {
+                    eprintln!("Failed to load software titles {:?}", e);
+                    Action::Error(Error::DbError(e.to_string()))
+                }
             },
         }
     }

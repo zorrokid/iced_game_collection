@@ -1,7 +1,14 @@
-use bson::oid::ObjectId;
+use std::sync::Arc;
+
 use iced::{
+    futures::future,
     widget::{button, column, row},
     Task,
+};
+
+use crate::{
+    database::repository_manager::RepositoryManager, service::view_model_service::ViewModelService,
+    view_model::settings::Settings,
 };
 
 use super::widgets::{
@@ -25,17 +32,33 @@ pub enum Message {
     ShowReleaseDetails(release_details_widget::Message),
     ViewImage(image_viewer_widget::Message),
     Refresh,
-    EditRelease(ObjectId),
+    EditRelease(i64),
+    ChildTasksCompleted((release_details_widget::Message, games_list_widget::Message)),
 }
 
 impl GamesTab {
-    pub fn new() -> Self {
-        Self {
-            games_list: GamesList::new(),
-            releases_list: ReleasesList::new(),
-            release_details: ReleaseDetails::new(),
-            image_viewer: ImageViewer::new(),
-        }
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        settings: Arc<Settings>,
+        view_model_service: Arc<ViewModelService>,
+    ) -> (Self, Task<Message>) {
+        let (release_details, release_details_task) = ReleaseDetails::new(repo, settings);
+        let (games_list, games_list_task) = GamesList::new(view_model_service);
+
+        let combined_task = Task::batch(vec![
+            release_details_task.map(Message::ShowReleaseDetails),
+            games_list_task.map(Message::GameSelected),
+        ]);
+
+        (
+            Self {
+                games_list,
+                releases_list: ReleasesList::new(),
+                release_details,
+                image_viewer: ImageViewer::new(),
+            },
+            combined_task,
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {

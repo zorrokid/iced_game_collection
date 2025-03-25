@@ -1,9 +1,8 @@
-use crate::database::database_with_sqlx::get_db_pool;
-use crate::database::setting_repository::SettingsRepository;
+use crate::database::repository_manager::RepositoryManager;
 use crate::model::collection_file::CollectionFileType;
-use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
 use crate::view_model::release_view_model::ReleaseViewModel;
+use crate::view_model::settings::Settings;
 use iced::widget::{button, image, Column};
 use iced::Element;
 use iced::{
@@ -11,14 +10,16 @@ use iced::{
     Task,
 };
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::vec;
 
 use super::emulator_files_list_widget::{self, EmulatorFilesList};
 
 pub struct ReleaseDetails {
     release: Option<ReleaseViewModel>,
-    file_path_builder: FilePathBuilder,
     emulator_files_list: EmulatorFilesList,
+    repo: Arc<RepositoryManager>,
+    settings: Arc<Settings>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,21 +36,18 @@ pub enum Action {
 }
 
 impl ReleaseDetails {
-    pub fn new() -> Self {
-        let pool = get_db_pool();
-        let settingsRepository = SettingsRepository { pool };
-        let settings = db.get_settings().unwrap_or_else(|err| {
-            println!("Failed to get settings {:?}", err);
-            Settings::default()
-        });
-        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
-
-        Self {
-            release: None,
-            settings,
-            file_path_builder,
-            emulator_files_list: EmulatorFilesList::new(None, vec![]),
-        }
+    pub fn new(repo: Arc<RepositoryManager>, settings: Arc<Settings>) -> (Self, Task<Message>) {
+        let repo_clone = Arc::clone(&repo);
+        let (emulator_files_list, task) = EmulatorFilesList::new(None, vec![], repo_clone);
+        (
+            Self {
+                release: None,
+                emulator_files_list,
+                repo,
+                settings,
+            },
+            task.map(Message::EmulatorFilesList),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {

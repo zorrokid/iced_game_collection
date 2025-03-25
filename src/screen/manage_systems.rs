@@ -4,7 +4,6 @@ use crate::model::model::System;
 use crate::service::view_model_service::ViewModelService;
 use crate::view_model::list_models::SystemListModel;
 use crate::{database::repository_manager::RepositoryManager, error::Error};
-use bson::oid::ObjectId;
 use iced::widget::{button, column, row, text, text_input, Column};
 
 #[derive(Debug, Clone)]
@@ -21,8 +20,8 @@ pub enum Message {
     NameChanged(String),
     GoHome,
     Submit,
-    EditSystem(ObjectId),
-    DeleteSystem(ObjectId),
+    EditSystem(i64),
+    DeleteSystem(i64),
     Clear,
     NotesChanged(String),
 }
@@ -30,7 +29,7 @@ pub enum Message {
 pub enum Action {
     GoHome,
     None,
-    EditSystem(ObjectId),
+    EditSystem(i64),
     SystemSubmitted,
     Error(Error),
 }
@@ -39,7 +38,7 @@ impl ManageSystems {
     pub fn new(
         repo: Arc<RepositoryManager>,
         view_model_service: Arc<ViewModelService>,
-        edit_system_id: Option<ObjectId>,
+        edit_system_id: Option<i64>,
     ) -> Result<Self, Error> {
         let systems = view_model_service.get_system_list_models()?;
         let edit_system = match edit_system_id {

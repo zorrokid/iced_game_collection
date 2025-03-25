@@ -11,8 +11,10 @@ mod title_bar;
 mod util;
 mod view_model;
 
+use std::cell::OnceCell;
 use std::sync::Arc;
 
+use database::database_error::DatabaseError;
 use database::database_with_sqlx::get_db_pool;
 use database::repository_manager::RepositoryManager;
 use emulator_runner::{process_files_for_emulator, run_with_emulator_async};
@@ -27,8 +29,10 @@ use screen::manage_emulators;
 use screen::manage_games;
 use screen::manage_systems;
 use screen::settings_main;
+use service::view_model_service::ViewModelService;
 use tabs::tabs_controller::TabsController;
 use title_bar::TitleBar;
+use view_model::settings::Settings;
 
 use crate::screen::Screen;
 
@@ -44,8 +48,10 @@ fn main() -> iced::Result {
 struct IcedGameCollection {
     screen: Screen,
     title_bar: TitleBar,
-    tabs_controller: TabsController,
-    repositories: Option<Arc<RepositoryManager>>,
+    tabs_controller: OnceCell<TabsController>,
+    repositories: OnceCell<Arc<RepositoryManager>>,
+    view_model_service: OnceCell<Arc<ViewModelService>>,
+    settings: OnceCell<Arc<Settings>>,
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +68,7 @@ enum Message {
     TitleBar(title_bar::Message),
     TabsController(tabs::tabs_controller::Message),
     RepositoriesLoaded(Result<Arc<RepositoryManager>, Error>),
+    SettingsLoaded(Result<Arc<Settings>, DatabaseError>),
 }
 
 impl IcedGameCollection {
@@ -70,8 +77,6 @@ impl IcedGameCollection {
             Ok(screen) => Screen::Home(screen),
             Err(e) => Screen::Error(error_screen::Error::new(e)),
         };
-
-        let controller = TabsController::new(None);
 
         let task = Task::perform(
             async {
@@ -86,19 +91,39 @@ impl IcedGameCollection {
             Message::RepositoriesLoaded,
         );
 
-        if let Ok(tabs_controller) = controller {
-            (
-                Self {
-                    screen: home_screen,
-                    title_bar: TitleBar::new(),
-                    tabs_controller,
-                    repositories: None,
-                },
-                task,
-            )
-        } else {
-            panic!("Failed init the app");
-        }
+        (
+            Self {
+                screen: home_screen,
+                title_bar: TitleBar::new(),
+                tabs_controller: OnceCell::new(),
+                repositories: OnceCell::new(),
+                view_model_service: OnceCell::new(),
+                settings: OnceCell::new(),
+            },
+            task,
+        )
+    }
+
+    fn get_tabs_controller(&self) -> &TabsController {
+        self.tabs_controller
+            .get()
+            .expect("tabs controller not initialized")
+    }
+
+    fn get_repository_manager(&self) -> &Arc<RepositoryManager> {
+        self.repositories
+            .get()
+            .expect("repositories not initialized")
+    }
+
+    fn get_view_model_service(&self) -> &Arc<ViewModelService> {
+        self.view_model_service
+            .get()
+            .expect("view model service not initialized")
+    }
+
+    fn get_settings(&self) -> &Arc<Settings> {
+        self.settings.get().expect("settings not initialized")
     }
 
     fn title(&self) -> String {
@@ -118,10 +143,56 @@ impl IcedGameCollection {
         match message {
             Message::RepositoriesLoaded(repositories) => {
                 if let Ok(repositories) = repositories {
-                    self.repositories = Some(repositories);
+                    self.repositories.set(repositories).unwrap_or_else(|_| {
+                        panic!("Failed to set repositories, already set?");
+                    });
+
+                    self.view_model_service
+                        .set(Arc::new(ViewModelService::new(
+                            self.get_repository_manager().clone(),
+                        )))
+                        .unwrap_or_else(|_| {
+                            panic!("Failed to set view model service, already set?");
+                        });
+
+                    return Task::perform(
+                        async move {
+                            let settings = self.get_view_model_service().get_settings().await?;
+                            Ok(Arc::new(settings))
+                        },
+                        Message::SettingsLoaded,
+                    );
+
+                    // in settings loaded message handler initialize tabs controller
+                    // and return tabs controller task mapped to main Task<Message>
+
+                    // let (controller, tabs_task) = TabsController::new(repositories_clone);
                 } else {
                     self.screen = Screen::Error(screen::Error::new(Error::DbError(
                         "Failed to load repositories.".to_string(),
+                    )));
+                }
+                Task::none()
+            }
+            Message::SettingsLoaded(settings) => {
+                if let Ok(settings) = settings {
+                    self.settings.set(settings).unwrap_or_else(|_| {
+                        panic!("Failed to set settings, already set?");
+                    });
+                    let (controller, task) = TabsController::new(
+                        None,
+                        self.get_repository_manager().clone(),
+                        self.get_settings().clone(),
+                        self.get_view_model_service().clone(),
+                    );
+                    self.tabs_controller.set(controller).unwrap_or_else(|_| {
+                        panic!("Failed to set tabs controller, already set?");
+                    });
+
+                    return task.map(Message::TabsController);
+                } else {
+                    self.screen = Screen::Error(screen::Error::new(Error::DbError(
+                        "Failed to load settings.".to_string(),
                     )));
                 }
                 Task::none()
@@ -158,7 +229,10 @@ impl IcedGameCollection {
             Screen::SettingsMain(settings_main) => settings_main.view().map(Message::SettingsMain),
         };
 
-        let tab_view = self.tabs_controller.view().map(Message::TabsController);
+        let tab_view = self
+            .get_tabs_controller()
+            .view()
+            .map(Message::TabsController);
 
         column![self.title_bar.view().map(Message::TitleBar), view, tab_view].into()
     }
@@ -180,7 +254,7 @@ impl IcedGameCollection {
             "main, update_tabs_controller received message: {:?}",
             message,
         );
-        self.tabs_controller
+        self.get_tabs_controller()
             .update(message)
             .map(Message::TabsController)
     }
@@ -189,7 +263,7 @@ impl IcedGameCollection {
         self.title_bar.update(message.clone());
         match message {
             title_bar::Message::TabSelected(tab) => self
-                .tabs_controller
+                .get_tabs_controller()
                 .switch_to_tab(tab)
                 .map(Message::TabsController),
         }
@@ -227,8 +301,12 @@ impl IcedGameCollection {
         }
     }
 
-    fn handle_navigate_to_manage_systems(&mut self, id: Option<ObjectId>) -> Task<Message> {
-        match screen::ManageSystems::new(id) {
+    fn handle_navigate_to_manage_systems(&mut self, id: Option<i64>) -> Task<Message> {
+        match screen::ManageSystems::new(
+            self.get_repository_manager().clone(),
+            self.get_view_model_service().clone(),
+            id,
+        ) {
             Ok(screen) => self.screen = Screen::ManageSystems(screen),
             Err(e) => {
                 self.screen = Screen::Error(screen::Error::new(e));
@@ -241,38 +319,31 @@ impl IcedGameCollection {
         if let Screen::Home(home) = &mut self.screen {
             match home.update(message) {
                 home::Action::ViewGames => {
-                    match games_main::GamesMain::new() {
-                        Ok(screen) => {
-                            self.screen = Screen::GamesMain(screen);
-                        }
-                        Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e));
-                        }
-                    }
-                    Task::none()
+                    let (screen, task) = games_main::GamesMain::new(
+                        Arc::clone(self.get_repository_manager()),
+                        Arc::clone(self.get_view_model_service()),
+                    );
+                    self.screen = Screen::GamesMain(screen);
+                    task.map(Message::GamesMain)
                 }
                 home::Action::ManageSystems => self.handle_navigate_to_manage_systems(None),
                 home::Action::ManageGames => {
-                    match screen::manage_games::ManageGames::new(None) {
-                        Ok(screen) => {
-                            self.screen = Screen::ManageGames(screen);
-                        }
-                        Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e));
-                        }
-                    }
-                    Task::none()
+                    let (screen, task) = manage_games::ManageGames::new(
+                        Arc::clone(self.get_repository_manager()),
+                        Arc::clone(self.get_view_model_service()),
+                        None,
+                    );
+                    self.screen = Screen::ManageGames(screen);
+                    task.map(Message::ManageGames)
                 }
                 home::Action::AddRelease => {
-                    match add_release_main::AddReleaseMain::new(None) {
-                        Ok(screen) => {
-                            self.screen = Screen::AddReleaseMain(screen);
-                        }
-                        Err(e) => {
-                            self.screen = Screen::Error(screen::Error::new(e));
-                        }
-                    }
-                    Task::none()
+                    let (screen, task) = add_release_main::AddReleaseMain::new(
+                        Arc::clone(self.get_repository_manager()),
+                        Arc::clone(self.get_settings()),
+                        None,
+                    );
+                    self.screen = Screen::AddReleaseMain(screen);
+                    task.map(Message::AddReleaseMain)
                 }
                 home::Action::Exit => exit(),
                 home::Action::ManageEmulators => {
@@ -288,7 +359,7 @@ impl IcedGameCollection {
                     Task::none()
                 }
                 home::Action::ManageSettings => {
-                    let screen = screen::SettingsMain::new();
+                    let screen = screen::SettingsMain::new(self.get_repository_manager().clone());
                     match screen {
                         Ok(screen) => {
                             self.screen = Screen::SettingsMain(screen);

@@ -1,6 +1,12 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{collections::HashMap, vec};
 
+use crate::database::collection_file_repository::CollectionFileReadRepository;
+use crate::database::database_error::DatabaseError;
+use crate::database::repository_manager::RepositoryManager;
+use crate::database::software_title_repository::SoftwareTitleReadRepository as _;
+use crate::database::system_repository::SystemReadRepository;
 use crate::error::Error;
 use crate::files::{copy_file, delete_file, pick_file, PickedFile};
 use crate::model::model::HasOid;
@@ -10,21 +16,21 @@ use crate::model::{
 };
 use crate::util::file_path_builder::FilePathBuilder;
 use crate::util::image::get_thumbnail_path;
-use bson::oid::ObjectId;
+use crate::view_model::settings::Settings;
 use iced::widget::{button, column, image, pick_list, row, text, text_input, Column};
 use iced::{Element, Task};
 
 #[derive(Debug, Clone)]
 pub struct AddReleaseMainScreen {
-    games: Vec<SoftwareTitle>,
-    selected_game: Option<SoftwareTitle>,
+    software_titles: Vec<SoftwareTitle>,
+    selected_software_title: Option<SoftwareTitle>,
     release: Release,
     systems: Vec<System>,
-    selected_file: HashMap<ObjectId, String>,
+    selected_file: HashMap<i64, String>,
     selected_file_type: Option<CollectionFileType>,
-    settings: Settings,
-    file_path_builder: FilePathBuilder,
+    settings: Arc<Settings>,
     files: Vec<CollectionFile>,
+    repo: Arc<RepositoryManager>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,13 +45,16 @@ pub enum Message {
     FilePicked(Result<PickedFile, Error>),
     Submit,
     Clear,
-    FileSelected(ObjectId, String),
+    FileSelected(i64, String),
     CollectionFileTypeSelected(CollectionFileType),
     ViewImage(PathBuf),
-    FileCopied(Result<ObjectId, Error>),
-    DeleteFile(ObjectId),
-    FileDeleted(Result<(), Error>, ObjectId),
+    FileCopied(Result<i64, Error>),
+    DeleteFile(i64),
+    FileDeleted(Result<(), Error>, i64),
     Save,
+    SoftwareTitlesLoaded(Result<Vec<SoftwareTitle>, DatabaseError>),
+    SystemsLoaded(Result<Vec<System>, DatabaseError>),
+    CollectionFilesLoaded(Result<Vec<CollectionFile>, DatabaseError>),
 }
 
 pub enum Action {
@@ -57,12 +66,12 @@ pub enum Action {
     None,
     SystemSelected(System),
     Run(Task<Message>),
-    AddFile(ObjectId),
+    AddFile(i64),
     Submit,
     Clear,
     ViewImage(PathBuf),
     Error(Error),
-    DeleteFile(ObjectId),
+    DeleteFile(i64),
     Save,
 }
 
@@ -70,29 +79,70 @@ pub enum Action {
 // Cannot use view model here because when adding a release, it doesn't have id yet
 // TODO: split files management to another sub screen
 impl AddReleaseMainScreen {
-    pub fn new(release: Release) -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let games = db.get_all_games()?;
-        let systems = db.get_systems()?;
-        let settings = db.get_settings()?;
-        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
-        let files = db.get_collection_files(&release.files)?;
+    pub fn new(
+        release: Release,
+        repo: Arc<RepositoryManager>,
+        settings: Arc<Settings>,
+    ) -> (Self, Task<Message>) {
+        let repo_clone = Arc::clone(&repo);
+        let load_games_task = Task::perform(
+            async move { repo_clone.software_titles().get_all_software_titles().await },
+            Message::SoftwareTitlesLoaded,
+        );
 
-        Ok(Self {
-            games,
-            selected_game: None,
-            release,
-            systems,
-            selected_file: HashMap::new(),
-            selected_file_type: None,
-            settings,
-            file_path_builder,
-            files,
-        })
+        let repo_clone = Arc::clone(&repo);
+        let load_systems_task = Task::perform(
+            async move { repo_clone.systems().get_systems().await },
+            Message::SystemsLoaded,
+        );
+
+        let repo_clone = Arc::clone(&repo);
+        let load_collection_files_task = Task::perform(
+            async move {
+                repo_clone
+                    .collection_files()
+                    .get_collection_files_for_release(release.id)
+                    .await
+            },
+            Message::CollectionFilesLoaded,
+        );
+
+        let combined_task = Task::batch(vec![
+            load_games_task,
+            load_systems_task,
+            load_collection_files_task,
+        ]);
+
+        (
+            Self {
+                software_titles: vec![],
+                selected_software_title: None,
+                release,
+                systems: vec![],
+                selected_file: HashMap::new(),
+                selected_file_type: None,
+                settings,
+                files: vec![],
+                repo,
+            },
+            combined_task,
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
+            Message::SoftwareTitlesLoaded(Ok(software_titles)) => {
+                self.software_titles = software_titles;
+                Action::None
+            }
+            Message::SystemsLoaded(Ok(systems)) => {
+                self.systems = systems;
+                Action::None
+            }
+            Message::CollectionFilesLoaded(Ok(files)) => {
+                self.files = files;
+                Action::None
+            }
             Message::ManageGames => Action::ManageGames,
             Message::ManageSystems => Action::ManageSystems,
             Message::Back => Action::Back,
@@ -153,9 +203,10 @@ impl AddReleaseMainScreen {
             Message::ViewImage(file_path) => Action::ViewImage(file_path),
             Message::DeleteFile(id) => {
                 if let Some(system) = self.get_release_system() {
-                    if let Some(file) = self.files.iter().find(|f| f.id() == id) {
+                    if let Some(file) = self.files.iter().find(|f| f.id == id) {
                         if let Ok(file_path) =
-                            self.file_path_builder.build_file_path(&system.id(), file)
+                            FilePathBuilder::new(self.settings.collection_root_dir)
+                                .build_file_path(system.id, file)
                         {
                             // TODO: remove also thumbnail if exists
                             return Action::Run(Task::perform(
@@ -246,7 +297,7 @@ impl AddReleaseMainScreen {
             .iter()
             .map(|game_id| {
                 let game = self
-                    .games
+                    .software_titles
                     .iter()
                     .find(|game| game.id() == *game_id)
                     .unwrap();
@@ -255,7 +306,7 @@ impl AddReleaseMainScreen {
             .collect::<Vec<Element<Message>>>();
 
         let available_games: Vec<SoftwareTitle> = self
-            .games
+            .software_titles
             .iter()
             .filter(|g| !self.release.games.contains(&g.id()))
             .cloned()
@@ -263,7 +314,7 @@ impl AddReleaseMainScreen {
 
         let game_picker = pick_list(
             available_games,
-            self.selected_game.clone(),
+            self.selected_software_title.clone(),
             Message::GameSelected,
         );
 

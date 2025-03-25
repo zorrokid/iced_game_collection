@@ -1,12 +1,18 @@
+use std::{cell::OnceCell, sync::Arc};
+
 use crate::{
+    database::{
+        database_error::DatabaseError, repository_manager::RepositoryManager,
+        software_title_repository::SoftwareTitleReadRepository,
+    },
     error::Error,
     model::model::SoftwareTitle,
-    view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
+    service::view_model_service::ViewModelService,
+    view_model::list_models::ReleaseListModel,
 };
-use bson::oid::ObjectId;
 use iced::{
     widget::{button, column, row, text, Column},
-    Length,
+    Length, Task,
 };
 
 // TODO: ViewGame needs to be a main screen with subscreens:
@@ -16,40 +22,65 @@ use iced::{
 // - view image screen
 #[derive(Debug, Clone)]
 pub struct ViewGame {
-    game: SoftwareTitle,
+    repo: Arc<RepositoryManager>,
+    view_model_service: Arc<ViewModelService>,
+    game: OnceCell<SoftwareTitle>,
     releases: Vec<ReleaseListModel>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     GoToGames,
-    EditRelease(ObjectId),
-    ViewRelease(ObjectId),
-    DeleteRelease(ObjectId),
+    EditRelease(i64),
+    ViewRelease(i64),
+    DeleteRelease(i64),
+    ReleasesLoaded(Result<Vec<ReleaseListModel>, DatabaseError>),
+    GameLoaded(Result<SoftwareTitle, DatabaseError>),
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
     Back,
-    EditRelease(ObjectId),
-    ViewRelease(ObjectId),
+    EditRelease(i64),
+    ViewRelease(i64),
     None,
     Error(Error),
 }
 
 impl ViewGame {
-    pub fn new(game_id: ObjectId) -> Result<Self, Error> {
-        let db = DatabaseWithPolo::get_instance();
-        let releases = get_releases_in_list_model(db, &game_id)?;
+    pub fn new(
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+        game_id: i64,
+    ) -> (Self, Task<Message>) {
+        let service_clone = Arc::clone(&view_model_service);
+        let load_releases_task = Task::perform(
+            async move { service_clone.get_release_list_models(game_id).await },
+            Message::ReleasesLoaded,
+        );
 
-        let game = db.get_game(&game_id)?;
-        match game {
-            None => Err(Error::NotFound(format!(
-                "Game with id {} not found",
-                game_id
-            ))),
-            Some(game) => Ok(Self { game, releases }),
-        }
+        let repo_clone = Arc::clone(&repo);
+        let load_game_task = Task::perform(
+            async move {
+                repo_clone
+                    .software_titles()
+                    .get_software_title(game_id)
+                    .await
+            },
+            Message::GameLoaded,
+        );
+
+        let combined_task = Task::batch(vec![load_releases_task, load_game_task]);
+
+        (
+            Self {
+                repo,
+                view_model_service,
+                game: OnceCell::new(),
+                releases: vec![],
+            },
+            combined_task,
+        )
     }
 
     pub fn title(&self) -> String {

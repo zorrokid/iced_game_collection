@@ -1,13 +1,9 @@
-use bson::oid::ObjectId;
 use iced::{
     widget::{button, row, text, Column},
     Length,
 };
 
-use crate::{
-    model::model::SoftwareTitle,
-    view_model::list_models::{get_releases_in_list_model, ReleaseListModel},
-};
+use crate::{model::model::SoftwareTitle, view_model::list_models::ReleaseListModel};
 
 pub struct ReleasesList {
     game: Option<SoftwareTitle>,
@@ -16,15 +12,15 @@ pub struct ReleasesList {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    GameSelected(ObjectId),
-    ViewRelease(ObjectId),
-    EditRelease(ObjectId),
-    DeleteRelease(ObjectId),
+    GameSelected(i64),
+    ViewRelease(i64),
+    EditRelease(i64),
+    DeleteRelease(i64),
     Refresh,
 }
 
 pub enum Action {
-    EditRelease(ObjectId),
+    EditRelease(i64),
     None,
 }
 

@@ -1,6 +1,11 @@
+use std::sync::Arc;
+
 use iced::Task;
 
-use crate::error::Error;
+use crate::{
+    database::repository_manager::RepositoryManager, error::Error,
+    service::view_model_service::ViewModelService, view_model::settings::Settings,
+};
 
 use super::{add_release_tab, games_tab, home_tab, settings_tab};
 
@@ -29,15 +34,25 @@ pub struct TabsController {
 }
 
 impl TabsController {
-    pub fn new(selected_tab: Option<Tab>) -> Result<Self, Error> {
-        let settings_tab = settings_tab::SettingsTab::new()?;
-        Ok(Self {
-            current_tab: selected_tab.unwrap_or(Tab::Home),
-            home_tab: home_tab::HomeTab::new(),
-            settings_tab,
-            games_tab: games_tab::GamesTab::new(),
-            add_release_tab: add_release_tab::AddReleaseTab::new(None),
-        })
+    pub fn new(
+        selected_tab: Option<Tab>,
+        repo: Arc<RepositoryManager>,
+        settings: Arc<Settings>,
+        view_model_service: Arc<ViewModelService>,
+    ) -> (Self, Task<Message>) {
+        let settings_tab = settings_tab::SettingsTab::new();
+        let (games_tab, task) = games_tab::GamesTab::new(repo, settings, view_model_service);
+
+        (
+            Self {
+                current_tab: selected_tab.unwrap_or(Tab::Home),
+                home_tab: home_tab::HomeTab::new(),
+                settings_tab,
+                games_tab,
+                add_release_tab: add_release_tab::AddReleaseTab::new(None),
+            },
+            task.map(Message::Games),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {

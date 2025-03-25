@@ -27,7 +27,7 @@ pub trait SoftwareTitleWriteRepository {
         &self,
         software_title: &SoftwareTitle,
     ) -> Result<i64, DatabaseError>;
-    async fn delete_software_title(&self, id: i64) -> Result<(), DatabaseError>;
+    async fn delete_software_title(&self, id: i64) -> Result<i64, DatabaseError>;
 }
 
 #[derive(Debug, Clone)]
@@ -109,7 +109,7 @@ impl SoftwareTitleWriteRepository for SoftwareTitleRepository {
         Ok(result.last_insert_rowid())
     }
 
-    async fn delete_software_title(&self, id: i64) -> Result<(), DatabaseError> {
+    async fn delete_software_title(&self, id: i64) -> Result<i64, DatabaseError> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(*) FROM release_software_title WHERE software_title_id = ?",
             id
@@ -122,7 +122,7 @@ impl SoftwareTitleWriteRepository for SoftwareTitleRepository {
         sqlx::query!("DELETE FROM software_title WHERE id = ?", id)
             .execute(&*self.pool)
             .await?;
-        Ok(())
+        Ok(id)
     }
 }
 

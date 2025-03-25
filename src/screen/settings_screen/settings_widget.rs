@@ -1,16 +1,21 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use iced::{
     widget::{button, row, text},
     Task,
 };
 
-use crate::{error::Error, files::pick_folder};
+use crate::{
+    database::repository_manager::RepositoryManager, error::Error, files::pick_folder,
+    view_model::settings::Settings,
+};
 
 #[derive(Debug, Clone)]
 pub struct SettingsWidget {
-    settings: Settings,
+    settings: Arc<Settings>,
+    repo: Arc<RepositoryManager>,
     is_locked: bool,
+    collection_root_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,12 +26,12 @@ pub enum Message {
 }
 
 impl SettingsWidget {
-    pub fn new() -> Result<Self, Error> {
-        let settings = DatabaseWithPolo::get_instance().get_settings()?;
-
+    pub fn new(settings: Arc<Settings>, repo: Arc<RepositoryManager>) -> Result<Self, Error> {
         Ok(Self {
-            is_locked: !settings.collection_root_dir.is_empty(),
+            is_locked: !settings.collection_root_dir.is_dir(),
             settings,
+            repo,
+            collection_root_dir: None,
         })
     }
 
@@ -58,7 +63,8 @@ impl SettingsWidget {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let collection_root_dir_input = text(&self.settings.collection_root_dir);
+        let root_dir_str = self.settings.collection_root_dir.to_string_lossy();
+        let collection_root_dir_input = text(root_dir_str.clone());
 
         let collection_root_dir_button = button("Collection root dir")
             .on_press_maybe((!self.is_locked).then_some(Message::SelectFolder));

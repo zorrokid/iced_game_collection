@@ -1,39 +1,48 @@
-use bson::oid::ObjectId;
+use std::sync::Arc;
+
 use iced::{
     widget::{button, column, row, text, Column},
-    Element,
+    Element, Task,
 };
 
-use crate::view_model::list_models::{get_games_as_list_model, GameListModel};
+use crate::{
+    database::database_error::DatabaseError, service::view_model_service::ViewModelService,
+    view_model::list_models::SoftwareTitleListModel,
+};
 
 pub struct GamesList {
-    pub games: Vec<GameListModel>,
-    pub selected_game: Option<ObjectId>,
+    pub software_titles: Vec<SoftwareTitleListModel>,
+    pub selected_game: Option<i64>,
+    pub view_model_service: Arc<ViewModelService>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ViewGame(ObjectId),
+    ViewGame(i64),
     Refresh,
+    SoftwareTitleListModelsLoaded(Result<Vec<SoftwareTitleListModel>, DatabaseError>),
 }
 
 pub enum Action {
-    ViewGame(ObjectId),
+    ViewGame(i64),
     None,
 }
 
 impl GamesList {
-    pub fn new() -> Self {
-        let db = DatabaseWithPolo::get_instance();
-        let games = get_games_as_list_model(db).unwrap_or_else(|err| {
-            println!("Failed to get games list {:?}", err);
-            vec![]
-        });
+    pub fn new(view_model_service: Arc<ViewModelService>) -> (Self, Task<Message>) {
+        let service_clone = Arc::clone(&view_model_service);
 
-        Self {
-            games,
-            selected_game: None,
-        }
+        (
+            Self {
+                software_titles: vec![],
+                selected_game: None,
+                view_model_service,
+            },
+            Task::perform(
+                async move { service_clone.get_software_title_list_models().await },
+                Message::SoftwareTitleListModelsLoaded,
+            ),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -45,17 +54,21 @@ impl GamesList {
             }
             Message::Refresh => {
                 let db = DatabaseWithPolo::get_instance();
-                self.games = get_games_as_list_model(db).unwrap_or_else(|err| {
+                self.software_titles = get_games_as_list_model(db).unwrap_or_else(|err| {
                     println!("Failed to get games list {:?}", err);
                     vec![]
                 });
+                Action::None
+            }
+            Message::SoftwareTitleListModelsLoaded(Ok(software_titles)) => {
+                self.software_titles = software_titles;
                 Action::None
             }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let games = self.games.iter().map(|game| {
+        let games = self.software_titles.iter().map(|game| {
             row![
                 text(game.name.clone()).width(iced::Length::Fixed(300.0)),
                 button("View").on_press(Message::ViewGame(game.id)),

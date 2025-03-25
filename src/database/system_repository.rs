@@ -11,6 +11,7 @@ pub trait SystemReadRepository {
     async fn get_systems(&self) -> Result<Vec<System>, DatabaseError>;
     async fn is_system_in_use(&self, system_id: i64) -> Result<bool, DatabaseError>;
     async fn get_notes_for_system(&self, system_id: i64) -> Result<Vec<String>, DatabaseError>;
+    async fn get_systems_for_release(&self, release_id: i64) -> Result<Vec<System>, DatabaseError>;
 }
 
 pub trait SystemWriteRepository {
@@ -90,6 +91,21 @@ impl SystemReadRepository for SystemRepository {
         .await?;
         let notes = notes.into_iter().map(|row| row.note).collect();
         Ok(notes)
+    }
+
+    async fn get_systems_for_release(&self, release_id: i64) -> Result<Vec<System>, DatabaseError> {
+        let systems = sqlx::query_as!(
+            System,
+            "SELECT s.id as id, s.name as name 
+             FROM system s
+             INNER JOIN release_system rs
+             ON s.id = rs.system_id
+             WHERE rs.release_id = ?",
+            release_id
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+        Ok(systems)
     }
 }
 

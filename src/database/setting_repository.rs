@@ -12,6 +12,7 @@ pub trait SettingReadRepository {
 pub trait SettingWriteRepository {
     async fn add_setting(&self, key: &str, value: &str) -> Result<(), DatabaseError>;
     async fn update_setting(&self, key: &str, value: &str) -> Result<(), DatabaseError>;
+    async fn add_or_update_setting(&self, key: &str, value: &str) -> Result<(), DatabaseError>;
 }
 
 #[derive(Debug, Clone)]
@@ -66,6 +67,14 @@ impl SettingWriteRepository for SettingRepository {
         )
         .execute(&*self.pool)
         .await?;
+        Ok(())
+    }
+    async fn add_or_update_setting(&self, key: &str, value: &str) -> Result<(), DatabaseError> {
+        if self.get_setting(key).await.is_ok() {
+            self.update_setting(key, value).await?;
+        } else {
+            self.add_setting(key, value).await?;
+        }
         Ok(())
     }
 }

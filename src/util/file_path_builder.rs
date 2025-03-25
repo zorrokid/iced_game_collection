@@ -1,20 +1,17 @@
 use crate::{
     error::Error,
     files::get_file_extension,
-    model::{
-        collection_file::{CollectionFile, CollectionFileType},
-        model::HasOid,
-    },
+    model::collection_file::{CollectionFile, CollectionFileType},
 };
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct FilePathBuilder {
-    pub collection_root_dir: String,
+    pub collection_root_dir: PathBuf,
 }
 
 impl FilePathBuilder {
-    pub fn new(collection_root_dir: String) -> Self {
+    pub fn new(collection_root_dir: PathBuf) -> Self {
         Self {
             collection_root_dir,
         }
@@ -30,7 +27,7 @@ impl FilePathBuilder {
         let extension = get_file_extension(Path::new(&collection_file.original_file_name))?;
         path.push(system_id.to_string());
         path.push(collection_file.file_type.directory());
-        path.push(collection_file.get_id_string());
+        path.push(collection_file.id.to_string());
         Ok(path.with_extension(extension))
     }
 
@@ -45,14 +42,13 @@ impl FilePathBuilder {
         path
     }
 
-    pub fn get_collection_root_dir(&self) -> &String {
+    pub fn get_collection_root_dir(&self) -> &PathBuf {
         &self.collection_root_dir
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use bson::oid::ObjectId;
 
     use super::*;
     use crate::model::collection_file::{ArchiveType, CollectionFileType};
@@ -60,52 +56,46 @@ mod tests {
 
     #[test]
     fn test_build_file_path() {
-        let collection_root_dir = "/home/user/collection".to_string();
+        let collection_root_dir = PathBuf::from("/home/user/collection".to_string());
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
-        let system_id = ObjectId::new();
+        let system_id = 1;
 
         let collection_file = CollectionFile {
             id: 1,
             original_file_name: "file.zip".to_string(),
+            collection_file_name: "1".to_string(),
             is_archive: true,
-            archive_type: ArchiveType::Zip,
-            /*files: Some(vec![FileInfo {
-                name: "file1".to_string(),
-                checksum: "checksum".to_string(),
-            }]),*/
+            archive_type: Some(ArchiveType::Zip),
             file_type: CollectionFileType::DiskImage,
         };
 
-        let result = file_path_builder.build_file_path(&system_id, &collection_file);
+        let result = file_path_builder.build_file_path(system_id, &collection_file);
         assert!(result.is_ok());
         let path = result.unwrap();
         assert_eq!(
             path,
             PathBuf::from(format!(
                 "/home/user/collection/{}/disk_images/{}.zip",
-                system_id.to_hex(),
-                collection_file.get_id_string()
+                system_id,
+                collection_file.id.to_string()
             ))
         );
     }
 
     #[test]
     fn test_build_target_directory() {
-        let collection_root_dir = "/home/user/collection".to_string();
+        let collection_root_dir = PathBuf::from("/home/user/collection");
         let file_path_builder = FilePathBuilder::new(collection_root_dir);
 
-        let system_id = ObjectId::new();
+        let system_id = 1;
 
         let file_type = CollectionFileType::DiskImage;
 
-        let path = file_path_builder.build_target_directory(&system_id, &file_type);
+        let path = file_path_builder.build_target_directory(system_id, &file_type);
         assert_eq!(
             path,
-            PathBuf::from(format!(
-                "/home/user/collection/{}/disk_images",
-                system_id.to_hex()
-            ))
+            PathBuf::from(format!("/home/user/collection/{}/disk_images", system_id))
         );
     }
 }

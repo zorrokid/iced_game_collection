@@ -1,6 +1,11 @@
-use bson::oid::ObjectId;
+use std::sync::Arc;
 
-use crate::{emulator_runner::EmulatorRunOptions, error::Error};
+use iced::Task;
+
+use crate::{
+    database::repository_manager::RepositoryManager, emulator_runner::EmulatorRunOptions,
+    error::Error, service::view_model_service::ViewModelService,
+};
 
 use super::{
     add_release_main, view_game, view_game_screen::ViewGameScreen, view_image, view_release,
@@ -9,7 +14,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ViewGameMain {
     screen: ViewGameScreen,
-    game_id: ObjectId,
+    game_id: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -29,13 +34,20 @@ pub enum Action {
 }
 
 impl ViewGameMain {
-    pub fn new(game_id: ObjectId) -> Result<Self, Error> {
-        let screen = view_game::ViewGame::new(game_id)?;
+    pub fn new(
+        game_id: i64,
+        repo: Arc<RepositoryManager>,
+        view_model_service: Arc<ViewModelService>,
+    ) -> (Self, Task<Message>) {
+        let (screen, task) = view_game::ViewGame::new(repo, view_model_service, game_id);
 
-        Ok(Self {
-            screen: ViewGameScreen::ViewGame(screen),
-            game_id,
-        })
+        (
+            Self {
+                screen: ViewGameScreen::ViewGame(screen),
+                game_id,
+            },
+            task.map(Message::ViewGameScreen),
+        )
     }
 
     pub fn title(&self) -> String {

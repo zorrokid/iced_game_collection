@@ -1,68 +1,67 @@
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, sync::Arc};
 
-use bson::oid::ObjectId;
 use iced::{
     widget::{button, pick_list, row, text, Column, Row},
     Element, Task,
 };
 
 use crate::{
+    database::{
+        database_error::DatabaseError, emulator_repository::EmulatorReadRepository,
+        repository_manager::RepositoryManager,
+    },
     emulator_runner::{process_files_for_emulator, run_with_emulator_async, EmulatorRunOptions},
     error::Error,
     model::{
-        collection_file::{
-            CollectionFile, CollectionFileType, GetFileExtension, GetFileExtensions as _,
-        },
-        model::{Emulator, HasOid as _, Settings},
+        collection_file::{CollectionFile, CollectionFileType, GetFileExtension},
+        model::Emulator,
     },
-    util::file_path_builder::FilePathBuilder,
 };
 
 pub struct EmulatorFilesList {
-    system_id: Option<ObjectId>,
+    system_id: Option<i64>,
     files: Vec<CollectionFile>,
     emulators: Vec<Emulator>,
-    selected_file: HashMap<ObjectId, String>,
-    file_path_builder: FilePathBuilder,
+    selected_file: HashMap<i64, String>,
+    repo: Arc<RepositoryManager>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FileSelected(ObjectId, String),
-    StartRemoveFile(ObjectId),
+    FileSelected(i64, String),
+    StartRemoveFile(i64),
     RunWithEmulator(Emulator, String, CollectionFileType),
     FinishedRunningWithEmulator(Result<(), Error>),
-    SetFiles(Vec<CollectionFile>, ObjectId),
+    SetFiles(Vec<CollectionFile>, i64),
+    EmulatorsLoaded(Result<Vec<Emulator>, DatabaseError>),
 }
 
 pub enum Action {
-    RemoveFileReference(ObjectId),
+    RemoveFileReference(i64),
     Run(Task<Message>),
     None,
 }
 
 impl EmulatorFilesList {
-    pub fn new(system_id: Option<ObjectId>, files: Vec<CollectionFile>) -> Self {
-        let db = DatabaseWithPolo::get_instance();
-        let emulators = db.get_emulators().unwrap_or_else(|err| {
-            println!("Failed to get emulators {:?}", err);
-            vec![]
-        });
-
-        let settings = db.get_settings().unwrap_or_else(|err| {
-            println!("Failed to get settings {:?}", err);
-            Settings::default()
-        });
-
-        let file_path_builder = FilePathBuilder::new(settings.collection_root_dir.clone());
-
-        Self {
-            system_id,
-            files,
-            emulators,
-            selected_file: HashMap::new(),
-            file_path_builder,
-        }
+    pub fn new(
+        system_id: Option<i64>,
+        files: Vec<CollectionFile>,
+        repo: Arc<RepositoryManager>,
+    ) -> (Self, Task<Message>) {
+        let repo_clone = Arc::clone(&repo);
+        (
+            Self {
+                system_id,
+                files,
+                emulators: vec![],
+                selected_file: HashMap::new(),
+                repo,
+            },
+            Task::perform(
+                async move { repo_clone.emulators().get_emulators().await },
+                Message::EmulatorsLoaded,
+            ),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -121,6 +120,16 @@ impl EmulatorFilesList {
             Message::SetFiles(files, system_id) => {
                 self.files = files;
                 self.system_id = Some(system_id);
+                Action::None
+            }
+            Message::EmulatorsLoaded(result) => {
+                self.emulators = match result {
+                    Ok(emulators) => emulators,
+                    Err(e) => {
+                        println!("Failed to load emulators {:?}", e);
+                        vec![]
+                    }
+                };
                 Action::None
             }
         }
